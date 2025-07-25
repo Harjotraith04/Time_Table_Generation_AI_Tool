@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   Box,
   Container,
@@ -15,17 +15,25 @@ import {
   Chip,
   Stack,
   TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  InputAdornment,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { ThemeModeContext } from '../App';
 import {
-  Analytics,
-  Code,
+  Schedule,
+  AutoAwesome,
   TrendingUp,
   Security,
   Speed,
   GroupWork,
-  AutoAwesome,
+  Analytics,
   Insights,
   LightMode,
   DarkMode,
@@ -35,52 +43,99 @@ import {
   Twitter,
   LinkedIn,
   GitHub,
+  Visibility,
+  VisibilityOff,
+  Person,
+  Email,
+  Lock,
+  CalendarToday,
+  Dashboard,
+  School,
+  Business,
 } from '@mui/icons-material';
 
 const Landing = () => {
   const theme = useTheme();
   const { toggleColorMode, mode } = useContext(ThemeModeContext);
+  
+  // State for dialogs
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [signUpOpen, setSignUpOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: '',
+    confirmPassword: ''
+  });
 
   const features = [
     {
-      icon: <Code sx={{ fontSize: 40 }} />,
-      title: 'Qualitative Coding',
-      description: 'Streamline your coding process with AI-assisted thematic analysis, automated code suggestions, and intelligent pattern recognition across your qualitative data.',
+      icon: <Schedule sx={{ fontSize: 40 }} />,
+      title: 'AI-Powered Scheduling',
+      description: 'Generate optimal timetables using advanced AI algorithms that consider constraints, preferences, and resource availability for maximum efficiency.',
     },
     {
       icon: <Analytics sx={{ fontSize: 40 }} />,
-      title: 'Thematic Analysis',
-      description: 'Discover meaningful themes and patterns in interviews, surveys, and documents with powerful analytical tools designed for researchers.',
+      title: 'Smart Optimization',
+      description: 'Minimize conflicts and maximize resource utilization with intelligent optimization that adapts to your specific scheduling requirements.',
     },
     {
-      icon: <Insights sx={{ fontSize: 40 }} />,
-      title: 'Data Visualization',
-      description: 'Transform your findings into compelling visual narratives with interactive charts, theme maps, and publication-ready graphics.',
+      icon: <Dashboard sx={{ fontSize: 40 }} />,
+      title: 'Real-time Management',
+      description: 'Monitor and adjust schedules in real-time with intuitive dashboard controls and instant conflict detection.',
     },
     {
-      icon: <GroupWork sx={{ fontSize: 40 }} />,
-      title: 'Team Collaboration',
-      description: 'Enable seamless collaboration with inter-rater reliability tools, shared codebooks, and real-time team coding sessions.',
+      icon: <AutoAwesome sx={{ fontSize: 40 }} />,
+      title: 'Automated Solutions',
+      description: 'Reduce manual effort with automated timetable generation that handles complex scheduling scenarios effortlessly.',
     },
     {
       icon: <TrendingUp sx={{ fontSize: 40 }} />,
-      title: 'Research Insights',
-      description: 'Generate comprehensive reports, track theme evolution, and extract actionable insights from your qualitative research data.',
+      title: 'Performance Analytics',
+      description: 'Track scheduling efficiency, resource utilization, and identify optimization opportunities with comprehensive analytics.',
     },
     {
       icon: <Security sx={{ fontSize: 40 }} />,
-      title: 'Secure & Ethical',
-      description: 'Ensure data privacy and research ethics compliance with end-to-end encryption, anonymization tools, and secure data handling.',
+      title: 'Secure & Reliable',
+      description: 'Enterprise-grade security with reliable cloud infrastructure ensuring your scheduling data is always protected and accessible.',
     },
   ];
 
   const benefits = [
-    'Code interviews, focus groups, and documents',
-    'Identify themes with AI-powered analysis',
-    'Collaborate with your research team',
-    'Export findings in multiple formats',
-    'Ensure inter-rater reliability',
+    'Generate timetables in minutes, not hours',
+    'Optimize resource allocation automatically',
+    'Handle complex constraints effortlessly',
+    'Real-time conflict detection and resolution',
+    'Export schedules in multiple formats',
   ];
+
+  const handleInputChange = (field) => (event) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
+
+  const handleSignIn = () => {
+    // Add your sign-in logic here
+    console.log('Sign in with:', formData.email, formData.password);
+    alert(`Welcome back! Signing in with ${formData.email}`);
+    setSignInOpen(false);
+    setFormData({ email: '', password: '', name: '', confirmPassword: '' });
+  };
+
+  const handleSignUp = () => {
+    // Add your sign-up logic here
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+    console.log('Sign up with:', formData.name, formData.email, formData.password);
+    alert(`Account created successfully for ${formData.name}!`);
+    setSignUpOpen(false);
+    setFormData({ email: '', password: '', name: '', confirmPassword: '' });
+  };
 
   return (
     <Box sx={{ 
@@ -152,27 +207,29 @@ const Landing = () => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 color: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
               }}
             >
-              ThemeAnalytica
+              <CalendarToday sx={{ color: '#3b82f6' }} />
+              AI Timetable Generator
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <IconButton onClick={toggleColorMode} color="inherit">
                 {mode === 'dark' ? <LightMode /> : <DarkMode />}
               </IconButton>
               <Button
-                component={RouterLink}
-                to="/login"
                 variant="outlined"
                 sx={{ borderRadius: 3 }}
+                onClick={() => setSignInOpen(true)}
               >
                 Sign In
               </Button>
               <Button
-                component={RouterLink}
-                to="/signup"
                 variant="contained"
                 sx={{ borderRadius: 3 }}
+                onClick={() => setSignUpOpen(true)}
               >
                 Get Started
               </Button>
@@ -186,7 +243,7 @@ const Landing = () => {
         <Fade in timeout={1000}>
           <Box textAlign="center" sx={{ mb: 8 }}>
             <Chip
-              label="🔬 Qualitative Research Platform"
+              label="🤖 AI-Powered Timetabling Solution"
               sx={{
                 mb: 3,
                 px: 2,
@@ -214,7 +271,7 @@ const Landing = () => {
                 lineHeight: 1.1,
               }}
             >
-              Unlock Insights with
+              Smart Timetables with
               <br />
               <Box
                 component="span"
@@ -225,7 +282,7 @@ const Landing = () => {
                   color: 'transparent',
                 }}
               >
-                Thematic Analysis
+                AI Optimization
               </Box>
             </Typography>
             <Typography
@@ -238,7 +295,7 @@ const Landing = () => {
                 lineHeight: 1.6,
               }}
             >
-              Powerful qualitative data analysis platform for researchers. Code interviews, identify themes, and collaborate with your team using AI-powered insights.
+              Revolutionary AI-powered timetable generation and optimization platform. Create perfect schedules for schools, universities, and organizations in minutes.
             </Typography>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -248,8 +305,6 @@ const Landing = () => {
             >
               <Zoom in timeout={1200}>
                 <Button
-                  component={RouterLink}
-                  to="/signup"
                   variant="contained"
                   size="large"
                   endIcon={<ArrowForward />}
@@ -265,8 +320,9 @@ const Landing = () => {
                       boxShadow: '0 12px 32px rgba(59, 130, 246, 0.5)',
                     },
                   }}
+                  onClick={() => setSignUpOpen(true)}
                 >
-                  Start Your Research
+                  Start Creating Timetables
                 </Button>
               </Zoom>
               <Zoom in timeout={1400}>
@@ -283,7 +339,7 @@ const Landing = () => {
                     color: theme.palette.primary.main,
                   }}
                 >
-                  See How It Works
+                  See Demo
                 </Button>
               </Zoom>
             </Stack>
@@ -317,7 +373,7 @@ const Landing = () => {
               color: theme.palette.text.primary,
             }}
           >
-            Everything You Need for Qualitative Research
+            Advanced Timetabling Features
           </Typography>
           <Typography
             variant="h6"
@@ -329,15 +385,18 @@ const Landing = () => {
               mx: 'auto',
             }}
           >
-            From data collection to analysis and reporting - streamline your entire research workflow
+            Everything you need for intelligent schedule management and optimization
           </Typography>
-          <Grid container spacing={4}>
+          <Grid container spacing={4} alignItems="stretch">
             {features.map((feature, index) => (
               <Grid item xs={12} md={6} lg={4} key={index}>
                 <Fade in timeout={1000 + index * 200}>
                   <Card
                     sx={{
+                      p: 3,
                       height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
                       background: theme.palette.mode === 'dark'
                         ? 'rgba(30, 41, 59, 0.6)'
                         : 'rgba(255, 255, 255, 0.8)',
@@ -346,47 +405,31 @@ const Landing = () => {
                       borderRadius: 3,
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        transform: 'translateY(-8px)',
-                        boxShadow: theme.palette.mode === 'dark'
-                          ? '0 20px 40px rgba(0, 0, 0, 0.3)'
-                          : '0 20px 40px rgba(0, 0, 0, 0.1)',
+                        transform: 'translateY(-4px)',
                         border: `1px solid ${theme.palette.primary.main}40`,
                       },
                     }}
                   >
-                    <CardContent sx={{ p: 4, textAlign: 'center' }}>
-                      <Avatar
-                        sx={{
-                          width: 80,
-                          height: 80,
-                          mx: 'auto',
-                          mb: 3,
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                        }}
-                      >
-                        {feature.icon}
-                      </Avatar>
-                      {/* avatar removed */}
-                      <Typography
-                        variant="h5"
-                        sx={{
-                          mb: 2,
-                          fontWeight: 600,
-                // avatar removed
-                        }}
-                      >
-                        {feature.title}
-                      </Typography>
-                      <Typography
-                // avatar removed
-                        sx={{
-                          color: theme.palette.text.secondary,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {feature.description}
-                      </Typography>
-                    </CardContent>
+                    <Avatar
+                      sx={{
+                        width: 60,
+                        height: 60,
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                        mb: 2,
+                      }}
+                    >
+                      {feature.icon}
+                    </Avatar>
+                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                      {feature.title}
+                    </Typography>
+                    <Typography sx={{ 
+                      color: theme.palette.text.secondary, 
+                      lineHeight: 1.6,
+                      flex: 1
+                    }}>
+                      {feature.description}
+                    </Typography>
                   </Card>
                 </Fade>
               </Grid>
@@ -394,7 +437,7 @@ const Landing = () => {
           </Grid>
         </Box>
 
-        {/* Research Process Section */}
+        {/* Use Cases Section */}
         <Box sx={{ mb: 12 }}>
           <Typography
             variant="h2"
@@ -405,7 +448,7 @@ const Landing = () => {
               color: theme.palette.text.primary,
             }}
           >
-            Your Research Journey, Simplified
+            Perfect for Every Organization
           </Typography>
           <Typography
             variant="h6"
@@ -417,127 +460,36 @@ const Landing = () => {
               mx: 'auto',
             }}
           >
-            Follow our proven methodology for systematic qualitative analysis
+            Flexible solution that adapts to your specific scheduling needs
           </Typography>
           
           <Grid container spacing={4}>
-            <Grid item xs={12} md={4}>
-              <Fade in timeout={1500}>
-                <Box textAlign="center">
-                  <Avatar
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      mx: 'auto',
-                      mb: 3,
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      fontSize: '2rem',
-                    }}
-                  >
-                    1
-                  </Avatar>
-                  <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                    Upload & Organize
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Import interviews, documents, and media files. Organize your data into projects with secure cloud storage.
-                  </Typography>
-                </Box>
-              </Fade>
-            </Grid>
-            
-            <Grid item xs={12} md={4}>
-              <Fade in timeout={1700}>
-                <Box textAlign="center">
-                  <Avatar
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      mx: 'auto',
-                      mb: 3,
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                      fontSize: '2rem',
-                    }}
-                  >
-                    2
-                  </Avatar>
-                  <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                    Code & Analyze
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Apply codes manually or with AI assistance. Develop your codebook and identify emerging themes systematically.
-                  </Typography>
-                </Box>
-              </Fade>
-            </Grid>
-            
-            <Grid item xs={12} md={4}>
-              <Fade in timeout={1900}>
-                <Box textAlign="center">
-                  <Avatar
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      mx: 'auto',
-                      mb: 3,
-                      background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                      fontSize: '2rem',
-                    }}
-                  >
-                    3
-                  </Avatar>
-                  <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                    Report & Share
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    Generate comprehensive reports, visualize findings, and collaborate with stakeholders on your discoveries.
-                  </Typography>
-                </Box>
-              </Fade>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* Methodology Support Section */}
-        <Box sx={{ mb: 12 }}>
-          <Typography
-            variant="h2"
-            textAlign="center"
-            sx={{
-              mb: 2,
-              fontWeight: 700,
-              color: theme.palette.text.primary,
-            }}
-          >
-            Supported Research Methodologies
-          </Typography>
-          <Typography
-            variant="h6"
-            textAlign="center"
-            sx={{
-              mb: 6,
-              color: theme.palette.text.secondary,
-              maxWidth: 600,
-              mx: 'auto',
-            }}
-          >
-            Flexible tools that adapt to your preferred analytical approach
-          </Typography>
-          
-          <Grid container spacing={3}>
             {[
-              { name: 'Thematic Analysis', desc: 'Braun & Clarke methodology' },
-              { name: 'Grounded Theory', desc: 'Constant comparative method' },
-              { name: 'Content Analysis', desc: 'Quantitative & qualitative' },
-              { name: 'Framework Analysis', desc: 'Ritchie & Spencer approach' },
-              { name: 'Narrative Analysis', desc: 'Story-focused interpretation' },
-              { name: 'Phenomenological Analysis', desc: 'IPA and descriptive methods' },
-            ].map((method, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <Fade in timeout={2000 + index * 100}>
+              { 
+                icon: <School sx={{ fontSize: 40 }} />, 
+                name: 'Educational Institutions', 
+                desc: 'Schools, colleges, and universities',
+                features: ['Class scheduling', 'Teacher allocation', 'Room management', 'Exam timetables']
+              },
+              { 
+                icon: <Business sx={{ fontSize: 40 }} />, 
+                name: 'Corporate Organizations', 
+                desc: 'Meetings, training, and resource booking',
+                features: ['Meeting rooms', 'Training schedules', 'Resource planning', 'Shift management']
+              },
+              { 
+                icon: <GroupWork sx={{ fontSize: 40 }} />, 
+                name: 'Event Management', 
+                desc: 'Conferences, workshops, and events',
+                features: ['Session planning', 'Speaker coordination', 'Venue optimization', 'Attendee management']
+              },
+            ].map((useCase, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <Fade in timeout={2000 + index * 200}>
                   <Card
                     sx={{
-                      p: 3,
+                      p: 4,
+                      height: '100%',
                       textAlign: 'center',
                       background: theme.palette.mode === 'dark'
                         ? 'rgba(30, 41, 59, 0.4)'
@@ -552,103 +504,30 @@ const Landing = () => {
                       },
                     }}
                   >
-                    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-                      {method.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {method.desc}
-                    </Typography>
-                  </Card>
-                </Fade>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-
-        {/* Testimonials Section */}
-        <Box sx={{ mb: 12 }}>
-          <Typography
-            variant="h2"
-            textAlign="center"
-            sx={{
-              mb: 2,
-              fontWeight: 700,
-              color: theme.palette.text.primary,
-            }}
-          >
-            Trusted by Researchers Worldwide
-          </Typography>
-          <Typography
-            variant="h6"
-            textAlign="center"
-            sx={{
-              mb: 8,
-              color: theme.palette.text.secondary,
-              maxWidth: 600,
-              mx: 'auto',
-            }}
-          >
-            See what our users are saying about ThemeAnalytica
-          </Typography>
-          
-          <Grid container spacing={4}>
-            {[
-              {
-                quote: "ThemeAnalytica has revolutionized our qualitative data analysis. The AI-powered tools are incredibly intuitive and have saved us countless hours.",
-                name: 'Dr. Jane Foster',
-                title: 'Lead Researcher, University of Oxford',
-                avatar: '/path/to/avatar1.png',
-              },
-              {
-                quote: "The collaboration features are seamless. Our team can work on projects in real-time, which has significantly improved our workflow and inter-rater reliability.",
-                name: 'Dr. Carlos Ramirez',
-                title: 'Director of Research, Innovate Insights',
-                avatar: '/path/to/avatar2.png',
-              },
-              {
-                quote: "As a PhD student, this tool has been a lifesaver. It's affordable, powerful, and the customer support is outstanding. Highly recommended!",
-                name: 'Aisha Khan',
-                title: 'PhD Candidate, Stanford University',
-                avatar: '/path/to/avatar3.png',
-              },
-            ].map((testimonial, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <Fade in timeout={2000 + index * 200}>
-                  <Card
-                    sx={{
-                      p: 4,
-                      height: '100%',
-                      background: theme.palette.mode === 'dark'
-                        ? 'rgba(30, 41, 59, 0.6)'
-                        : 'rgba(255, 255, 255, 0.8)',
-                      backdropFilter: 'blur(20px)',
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 3,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <Typography
-                      variant="body1"
+                    <Avatar
                       sx={{
-                        fontStyle: 'italic',
+                        width: 80,
+                        height: 80,
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                        mx: 'auto',
                         mb: 3,
-                        color: theme.palette.text.secondary,
                       }}
                     >
-                      "{testimonial.quote}"
+                      {useCase.icon}
+                    </Avatar>
+                    <Typography variant="h5" sx={{ mb: 1, fontWeight: 600 }}>
+                      {useCase.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar sx={{ width: 50, height: 50, mr: 2 }} src={testimonial.avatar} />
-                      <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                          {testimonial.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {testimonial.title}
-                        </Typography>
-                      </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      {useCase.desc}
+                    </Typography>
+                    <Box sx={{ textAlign: 'left' }}>
+                      {useCase.features.map((feature, idx) => (
+                        <Box key={idx} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <CheckCircle sx={{ color: theme.palette.success.main, fontSize: 16, mr: 1 }} />
+                          <Typography variant="body2">{feature}</Typography>
+                        </Box>
+                      ))}
                     </Box>
                   </Card>
                 </Fade>
@@ -658,7 +537,7 @@ const Landing = () => {
         </Box>
 
         {/* Feedback Form Section */}
-        <Box sx={{ mb: 2 }}> {/* Reduced from mb: 8 to mb: 2 */}
+        <Box sx={{ mb: 2 }}>
           <Container maxWidth="lg">
             <Grid container spacing={6} alignItems="center">
               <Grid item xs={12} md={6}>
@@ -694,7 +573,7 @@ const Landing = () => {
                         lineHeight: 1.8,
                       }}
                     >
-                      Your feedback helps us improve our platform and create better tools for qualitative researchers worldwide. Share your thoughts, suggestions, or experiences with us.
+                      Your feedback helps us improve our AI timetabling platform and create better scheduling solutions. Share your thoughts, suggestions, or experiences with us.
                     </Typography>
                   </Box>
                 </Fade>
@@ -764,7 +643,6 @@ const Landing = () => {
                           },
                         }}
                         onClick={() => {
-                          // Add form submission logic here
                           alert('Thank you for your feedback!');
                         }}
                       >
@@ -779,77 +657,199 @@ const Landing = () => {
         </Box>
       </Container>
 
-      {/* Newsletter Subscription */}
-      <Box
-        sx={{
-          py: 1, // Reduced padding
-          background: theme.palette.mode === 'dark'
-            ? 'rgba(15, 23, 42, 0.9)'
-            : 'rgba(248, 250, 252, 0.9)',
-          borderTop: `1px solid ${theme.palette.divider}`,
-          borderBottom: `1px solid ${theme.palette.divider}`,
+      {/* Sign In Dialog */}
+      <Dialog 
+        open={signInOpen} 
+        onClose={() => setSignInOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
         }}
       >
-        <Container maxWidth="md">
-          <Box textAlign="center">
-            <Typography
-              variant="h6" // Reduced size
-              sx={{
-                mb: 1, // Reduced margin
-                fontWeight: 600,
-                color: theme.palette.text.primary,
+        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Welcome Back
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Sign in to your AI Timetable Generator account
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Stack spacing={3}>
+            <TextField
+              label="Email Address"
+              type="email"
+              fullWidth
+              value={formData.email}
+              onChange={handleInputChange('email')}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email />
+                  </InputAdornment>
+                ),
               }}
-            >
-              Stay Updated with Research Insights
-            </Typography>
-            <Typography
-              variant="body2" // Reduced size
-              sx={{
-                mb: 2, // Reduced margin
-                color: theme.palette.text.secondary,
-              }}
-            >
-              Get the latest updates on qualitative research methodologies and platform features
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1, // Reduced gap
-                maxWidth: 400,
-                mx: 'auto',
-                flexDirection: { xs: 'column', sm: 'row' },
-              }}
-            >
-              <TextField
-                label="Your email"
-                variant="outlined"
-                size="small"
-                fullWidth
+            />
+            <FormControl variant="outlined" fullWidth>
+              <InputLabel>Password</InputLabel>
+              <OutlinedInput
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleInputChange('password')}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <Lock />
+                  </InputAdornment>
+                }
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                label="Password"
               />
-              <Button
-                variant="contained"
-                sx={{
-                  px: 2, // Reduced padding
-                  py: 1,
-                  borderRadius: 1,
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  whiteSpace: 'nowrap',
-                  '&:hover': {
-                    transform: 'translateY(-1px)',
-                  },
-                }}
-              >
-                Subscribe
-              </Button>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
+            </FormControl>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setSignInOpen(false)}
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSignIn}
+            sx={{ 
+              borderRadius: 2,
+              px: 4,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            }}
+          >
+            Sign In
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Sign Up Dialog */}
+      <Dialog 
+        open={signUpOpen} 
+        onClose={() => setSignUpOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Get Started
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Create your AI Timetable Generator account
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          <Stack spacing={3}>
+            <TextField
+              label="Full Name"
+              fullWidth
+              value={formData.name}
+              onChange={handleInputChange('name')}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              label="Email Address"
+              type="email"
+              fullWidth
+              value={formData.email}
+              onChange={handleInputChange('email')}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <FormControl variant="outlined" fullWidth>
+              <InputLabel>Password</InputLabel>
+              <OutlinedInput
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleInputChange('password')}
+                startAdornment={
+                  <InputAdornment position="start">
+                    <Lock />
+                  </InputAdornment>
+                }
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                label="Password"
+              />
+            </FormControl>
+            <TextField
+              label="Confirm Password"
+              type="password"
+              fullWidth
+              value={formData.confirmPassword}
+              onChange={handleInputChange('confirmPassword')}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setSignUpOpen(false)}
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSignUp}
+            sx={{ 
+              borderRadius: 2,
+              px: 4,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            }}
+          >
+            Create Account
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Footer */}
       <Box
         sx={{
-          py: 2, // Reduced padding
+          py: 2,
           background: theme.palette.mode === 'dark'
             ? 'rgba(15, 23, 42, 0.8)'
             : 'rgba(248, 250, 252, 0.8)',
@@ -857,8 +857,7 @@ const Landing = () => {
         }}
       >
         <Container maxWidth="lg">
-          <Grid container spacing={2} alignItems="center"> {/* Reduced spacing */}
-            {/* Left side - Company info */}
+          <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={6}>
               <Typography
                 variant="h6"
@@ -868,24 +867,27 @@ const Landing = () => {
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   color: 'transparent',
-                  mb: 1, // Reduced margin
+                  mb: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
                 }}
               >
-                ThemeAnalytica
+                <CalendarToday sx={{ color: '#3b82f6' }} />
+                AI Timetable Generator
               </Typography>
               <Typography
                 variant="body2"
                 sx={{ 
                   color: theme.palette.text.secondary,
                   maxWidth: 300,
-                  lineHeight: 1.4, // Reduced line height
+                  lineHeight: 1.4,
                 }}
               >
-                Empowering researchers worldwide with intelligent qualitative analysis tools for meaningful insights and discoveries.
+                Empowering organizations worldwide with intelligent timetable generation and optimization solutions.
               </Typography>
             </Grid>
             
-            {/* Right side - Copyright and social links */}
             <Grid item xs={12} md={6}>
               <Box
                 sx={{
@@ -893,17 +895,16 @@ const Landing = () => {
                   justifyContent: { xs: 'center', md: 'flex-end' },
                   alignItems: 'center',
                   flexDirection: { xs: 'column', md: 'row' },
-                  gap: 1, // Reduced gap
+                  gap: 1,
                 }}
               >
                 <Typography
                   variant="body2"
                   sx={{ color: theme.palette.text.secondary }}
                 >
-                  © 2025 ThemeAnalytica. All rights reserved.
+                  © 2025 AI Timetable Generator. All rights reserved.
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5 }}> {/* Reduced gap */}
-                  {/* Social media icons */}
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
                   <IconButton 
                     size="small" 
                     sx={{ 
