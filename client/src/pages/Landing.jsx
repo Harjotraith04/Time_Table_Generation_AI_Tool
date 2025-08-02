@@ -199,7 +199,7 @@ const Landing = () => {
               </button>
               
               <button
-                onClick={() => setSignInOpen(true)}
+                onClick={() => window.location.href = '/login'}
                 className={`px-6 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 ${
                   darkMode 
                     ? 'text-gray-300 hover:text-white border border-gray-600 hover:border-gray-500' 
@@ -250,7 +250,7 @@ const Landing = () => {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <button
-              onClick={() => setSignUpOpen(true)}
+              onClick={() => window.location.href = '/login'}
               className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25 flex items-center justify-center"
             >
               Start Creating Timetables
