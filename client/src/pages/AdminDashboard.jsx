@@ -76,6 +76,36 @@ const AdminDashboard = () => {
         ))}
       </div>
 
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button 
+              onClick={() => navigate('/create-timetable')}
+              className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors group"
+            >
+              <Plus className="w-6 h-6 text-blue-600 mr-3" />
+              <span className="font-medium text-blue-900">Create New Timetable</span>
+            </button>
+            <button 
+              className="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors group"
+            >
+              <Users className="w-6 h-6 text-green-600 mr-3" />
+              <span className="font-medium text-green-900">Manage Teachers</span>
+            </button>
+            <button 
+              className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
+            >
+              <Building2 className="w-6 h-6 text-purple-600 mr-3" />
+              <span className="font-medium text-purple-900">Manage Rooms</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Timetables */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="p-6 border-b border-gray-200">
@@ -149,7 +179,10 @@ const AdminDashboard = () => {
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex items-center space-x-4">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+          <button 
+            onClick={() => navigate('/create-timetable')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
             <Plus className="w-4 h-4" />
             <span>Create New Timetable</span>
           </button>
