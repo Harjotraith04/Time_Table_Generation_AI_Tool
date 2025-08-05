@@ -29,6 +29,12 @@ const TeachersData = () => {
   const navigate = useNavigate();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [subjectDetails, setSubjectDetails] = useState({
+    hasLab: false,
+    hasTutorial: false
+  });
   const [uploadMethod, setUploadMethod] = useState('form'); // 'form' or 'csv'
 
   // Sample teachers data
@@ -39,7 +45,11 @@ const TeachersData = () => {
       employeeId: 'EMP001',
       department: 'Computer Science',
       designation: 'Professor',
-      subjects: ['Data Structures', 'Algorithms', 'Machine Learning'],
+      subjects: [
+        {name: 'Data Structures', hasLab: true, hasTutorial: false},
+        {name: 'Algorithms', hasLab: false, hasTutorial: true},
+        {name: 'Machine Learning', hasLab: true, hasTutorial: true}
+      ],
       hoursPerWeek: 18,
       availability: {
         Monday: ['09:00-12:00', '14:00-17:00'],
@@ -59,7 +69,11 @@ const TeachersData = () => {
       employeeId: 'EMP002',
       department: 'Computer Science',
       designation: 'Associate Professor',
-      subjects: ['Database Systems', 'Software Engineering', 'Web Development'],
+      subjects: [
+        {name: 'Database Systems', hasLab: true, hasTutorial: false},
+        {name: 'Software Engineering', hasLab: false, hasTutorial: true},
+        {name: 'Web Development', hasLab: true, hasTutorial: false}
+      ],
       hoursPerWeek: 16,
       availability: {
         Monday: ['09:00-12:00', '14:00-17:00'],
@@ -79,7 +93,11 @@ const TeachersData = () => {
       employeeId: 'EMP003',
       department: 'Mathematics',
       designation: 'Assistant Professor',
-      subjects: ['Linear Algebra', 'Calculus', 'Statistics'],
+      subjects: [
+        {name: 'Linear Algebra', hasLab: false, hasTutorial: true},
+        {name: 'Calculus', hasLab: false, hasTutorial: true},
+        {name: 'Statistics', hasLab: false, hasTutorial: false}
+      ],
       hoursPerWeek: 14,
       availability: {
         Monday: ['09:00-12:00'],
@@ -100,7 +118,7 @@ const TeachersData = () => {
     employeeId: '',
     department: '',
     designation: '',
-    subjects: [],
+    subjects: [], // Array of objects: {name: 'Subject Name', hasLab: false, hasTutorial: false}
     hoursPerWeek: '',
     email: '',
     phone: '',
@@ -185,17 +203,53 @@ const TeachersData = () => {
 
   const handleSubjectToggle = (subject) => {
     const currentSubjects = teacherForm.subjects || [];
-    if (currentSubjects.includes(subject)) {
+    const existingSubject = currentSubjects.find(s => s.name === subject);
+    
+    if (existingSubject) {
+      // Remove subject if already selected
       setTeacherForm({
         ...teacherForm,
-        subjects: currentSubjects.filter(s => s !== subject)
+        subjects: currentSubjects.filter(s => s.name !== subject)
       });
     } else {
-      setTeacherForm({
-        ...teacherForm,
-        subjects: [...currentSubjects, subject]
+      // Show modal to get lab/tutorial details for new subject
+      setSelectedSubject(subject);
+      setSubjectDetails({
+        hasLab: false,
+        hasTutorial: false
       });
+      setShowSubjectModal(true);
     }
+  };
+
+  const handleSubjectDetailsConfirm = () => {
+    const currentSubjects = teacherForm.subjects || [];
+    const newSubject = {
+      name: selectedSubject,
+      hasLab: subjectDetails.hasLab,
+      hasTutorial: subjectDetails.hasTutorial
+    };
+    
+    setTeacherForm({
+      ...teacherForm,
+      subjects: [...currentSubjects, newSubject]
+    });
+    
+    setShowSubjectModal(false);
+    setSelectedSubject('');
+    setSubjectDetails({
+      hasLab: false,
+      hasTutorial: false
+    });
+  };
+
+  const handleSubjectDetailsCancel = () => {
+    setShowSubjectModal(false);
+    setSelectedSubject('');
+    setSubjectDetails({
+      hasLab: false,
+      hasTutorial: false
+    });
   };
 
   const handleAvailabilityToggle = (day, timeSlot) => {
@@ -339,18 +393,39 @@ const TeachersData = () => {
           {/* Subject Assignments */}
           <div>
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Subject Assignments</h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {subjectsList.map(subject => (
-                <label key={subject} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={teacherForm.subjects?.includes(subject) || false}
-                    onChange={() => handleSubjectToggle(subject)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
-                </label>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {subjectsList.map(subject => {
+                const isSelected = teacherForm.subjects?.some(s => s.name === subject) || false;
+                const subjectInfo = teacherForm.subjects?.find(s => s.name === subject);
+                
+                return (
+                  <div key={subject} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                    <label className="flex items-center space-x-2 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleSubjectToggle(subject)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
+                    </label>
+                    {isSelected && subjectInfo && (
+                      <div className="flex items-center space-x-1 ml-2">
+                        {subjectInfo.hasLab && (
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
+                            Lab
+                          </span>
+                        )}
+                        {subjectInfo.hasTutorial && (
+                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded">
+                            Tutorial
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -412,6 +487,115 @@ const TeachersData = () => {
           >
             <Save className="w-4 h-4" />
             <span>{editingTeacher ? 'Update' : 'Add'} Teacher</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Subject Details Modal
+  const renderSubjectModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Subject Details: {selectedSubject}
+          </h3>
+          <button
+            onClick={handleSubjectDetailsCancel}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Please specify the session types for this subject:
+          </p>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Laboratory Sessions
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Does this subject include practical lab work?
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setSubjectDetails({...subjectDetails, hasLab: false})}
+                  className={`px-3 py-1 text-sm rounded ${
+                    !subjectDetails.hasLab 
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' 
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  No
+                </button>
+                <button
+                  onClick={() => setSubjectDetails({...subjectDetails, hasLab: true})}
+                  className={`px-3 py-1 text-sm rounded ${
+                    subjectDetails.hasLab 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Tutorial Sessions
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Does this subject include tutorial sessions?
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setSubjectDetails({...subjectDetails, hasTutorial: false})}
+                  className={`px-3 py-1 text-sm rounded ${
+                    !subjectDetails.hasTutorial 
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' 
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  No
+                </button>
+                <button
+                  onClick={() => setSubjectDetails({...subjectDetails, hasTutorial: true})}
+                  className={`px-3 py-1 text-sm rounded ${
+                    subjectDetails.hasTutorial 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-4">
+          <button
+            onClick={handleSubjectDetailsCancel}
+            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubjectDetailsConfirm}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          >
+            <Save className="w-4 h-4" />
+            <span>Add Subject</span>
           </button>
         </div>
       </div>
@@ -572,9 +756,25 @@ const TeachersData = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
                         {teacher.subjects.slice(0, 2).map((subject, index) => (
-                          <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
-                            {subject}
-                          </span>
+                          <div key={index} className="flex items-center space-x-1">
+                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
+                              {subject.name || subject}
+                            </span>
+                            {(subject.hasLab || subject.hasTutorial) && (
+                              <div className="flex space-x-1">
+                                {subject.hasLab && (
+                                  <span className="px-1 py-0.5 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded">
+                                    L
+                                  </span>
+                                )}
+                                {subject.hasTutorial && (
+                                  <span className="px-1 py-0.5 text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded">
+                                    T
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         ))}
                         {teacher.subjects.length > 2 && (
                           <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
@@ -640,6 +840,9 @@ const TeachersData = () => {
 
       {/* Add/Edit Form Modal */}
       {showAddForm && renderTeacherForm()}
+      
+      {/* Subject Details Modal */}
+      {showSubjectModal && renderSubjectModal()}
     </div>
   );
 };
