@@ -1,0 +1,214 @@
+[
+  {
+    "id": "TEACHER_001",
+    "name": "Dr. John Smith",
+    "email": "john.smith@university.edu",
+    "department": "Mathematics",
+    "employeeId": "EMP001",
+    "subjects": ["MATH101", "MATH102", "STAT101"],
+    "specializations": ["Calculus", "Linear Algebra", "Statistics"],
+    "preferences": {
+      "preferredHours": 18,
+      "maxHours": 22,
+      "preferredDays": ["Monday", "Wednesday", "Friday"],
+      "avoidBackToBack": true
+    },
+    "unavailableSlots": [
+      {"day": "Friday", "time": "16:00", "reason": "Research meeting"}
+    ],
+    "qualifications": ["PhD Mathematics", "MSc Applied Mathematics"],
+    "experience": 15,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_002", 
+    "name": "Dr. Sarah Johnson",
+    "email": "sarah.johnson@university.edu",
+    "department": "Physics",
+    "employeeId": "EMP002",
+    "subjects": ["PHYS101", "PHYS102", "PHYS201"],
+    "specializations": ["Classical Mechanics", "Thermodynamics", "Quantum Physics"],
+    "preferences": {
+      "preferredHours": 20,
+      "maxHours": 24,
+      "preferredDays": ["Monday", "Tuesday", "Thursday"],
+      "avoidBackToBack": false
+    },
+    "unavailableSlots": [
+      {"day": "Wednesday", "time": "14:00", "reason": "Department meeting"}
+    ],
+    "qualifications": ["PhD Physics", "MSc Theoretical Physics"],
+    "experience": 12,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_003",
+    "name": "Dr. Michael Chen",
+    "email": "michael.chen@university.edu", 
+    "department": "Computer Science",
+    "employeeId": "EMP003",
+    "subjects": ["CS201", "CS201L", "CS301", "CS401"],
+    "specializations": ["Machine Learning", "Artificial Intelligence", "Data Science"],
+    "preferences": {
+      "preferredHours": 16,
+      "maxHours": 20,
+      "preferredDays": ["Monday", "Wednesday", "Friday"],
+      "avoidBackToBack": false
+    },
+    "unavailableSlots": [
+      {"day": "Tuesday", "time": "10:00", "reason": "Research collaboration"},
+      {"day": "Thursday", "time": "15:00", "reason": "Industry consultation"}
+    ],
+    "qualifications": ["PhD Computer Science", "MSc Machine Learning"],
+    "experience": 8,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_004",
+    "name": "Prof. Emily Davis",
+    "email": "emily.davis@university.edu",
+    "department": "Computer Science", 
+    "employeeId": "EMP004",
+    "subjects": ["CS202", "CS302", "CS402"],
+    "specializations": ["Data Mining", "Database Systems", "Big Data Analytics"],
+    "preferences": {
+      "preferredHours": 18,
+      "maxHours": 22,
+      "preferredDays": ["Tuesday", "Thursday"],
+      "avoidBackToBack": true
+    },
+    "unavailableSlots": [
+      {"day": "Monday", "time": "09:00", "reason": "Administrative duties"}
+    ],
+    "qualifications": ["PhD Computer Science", "MSc Information Systems"],
+    "experience": 20,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_005",
+    "name": "Dr. Alex Rodriguez",
+    "email": "alex.rodriguez@university.edu",
+    "department": "Computer Science",
+    "employeeId": "EMP005", 
+    "subjects": ["CS203", "CS303", "CS403"],
+    "specializations": ["Computer Vision", "Image Processing", "Neural Networks"],
+    "preferences": {
+      "preferredHours": 16,
+      "maxHours": 20,
+      "preferredDays": ["Monday", "Wednesday", "Friday"],
+      "avoidBackToBack": false
+    },
+    "unavailableSlots": [
+      {"day": "Friday", "time": "14:00", "reason": "Lab maintenance"}
+    ],
+    "qualifications": ["PhD Computer Vision", "MSc Computer Science"],
+    "experience": 10,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_006",
+    "name": "Dr. Lisa Wang",
+    "email": "lisa.wang@university.edu",
+    "department": "Electrical Engineering",
+    "employeeId": "EMP006",
+    "subjects": ["EE201", "EE301", "EE401"],
+    "specializations": ["Digital Signal Processing", "Communications", "Control Systems"],
+    "preferences": {
+      "preferredHours": 19,
+      "maxHours": 23,
+      "preferredDays": ["Tuesday", "Wednesday", "Thursday"],
+      "avoidBackToBack": true
+    },
+    "unavailableSlots": [
+      {"day": "Monday", "time": "11:00", "reason": "Equipment inspection"}
+    ],
+    "qualifications": ["PhD Electrical Engineering", "MSc Signal Processing"],
+    "experience": 14,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_007",
+    "name": "Prof. Robert Brown",
+    "email": "robert.brown@university.edu",
+    "department": "Electrical Engineering",
+    "employeeId": "EMP007",
+    "subjects": ["EE202", "EE302", "EE402"],
+    "specializations": ["Power Electronics", "Power Systems", "Renewable Energy"],
+    "preferences": {
+      "preferredHours": 17,
+      "maxHours": 21,
+      "preferredDays": ["Monday", "Wednesday", "Friday"],
+      "avoidBackToBack": false
+    },
+    "unavailableSlots": [
+      {"day": "Thursday", "time": "13:00", "reason": "Industry partnership meeting"}
+    ],
+    "qualifications": ["PhD Power Engineering", "MSc Electrical Engineering"],
+    "experience": 18,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_008",
+    "name": "Mr. David Wilson",
+    "email": "david.wilson@university.edu",
+    "department": "Engineering",
+    "employeeId": "EMP008",
+    "subjects": ["ENG101", "ENG102", "ENG201"],
+    "specializations": ["Engineering Drawing", "CAD", "Design Fundamentals"],
+    "preferences": {
+      "preferredHours": 20,
+      "maxHours": 24,
+      "preferredDays": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+      "avoidBackToBack": false
+    },
+    "unavailableSlots": [
+      {"day": "Friday", "time": "15:00", "reason": "Equipment training"}
+    ],
+    "qualifications": ["MSc Engineering Design", "BSc Mechanical Engineering"],
+    "experience": 12,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_009",
+    "name": "Dr. Jennifer Martinez",
+    "email": "jennifer.martinez@university.edu",
+    "department": "Management",
+    "employeeId": "EMP009",
+    "subjects": ["MGMT201", "MGMT202", "MGMT301"],
+    "specializations": ["Project Management", "Organizational Behavior", "Leadership"],
+    "preferences": {
+      "preferredHours": 15,
+      "maxHours": 18,
+      "preferredDays": ["Tuesday", "Wednesday", "Thursday"],
+      "avoidBackToBack": true
+    },
+    "unavailableSlots": [
+      {"day": "Monday", "time": "10:00", "reason": "Executive coaching session"},
+      {"day": "Friday", "time": "14:00", "reason": "Board meeting"}
+    ],
+    "qualifications": ["PhD Management", "MBA", "PMP Certification"],
+    "experience": 16,
+    "isActive": true
+  },
+  {
+    "id": "TEACHER_010",
+    "name": "Ms. Angela Thompson",
+    "email": "angela.thompson@university.edu",
+    "department": "Management",
+    "employeeId": "EMP010",
+    "subjects": ["MGMT202", "MGMT302", "MGMT402"],
+    "specializations": ["Business Communication", "Public Speaking", "Corporate Training"],
+    "preferences": {
+      "preferredHours": 16,
+      "maxHours": 20,
+      "preferredDays": ["Monday", "Tuesday", "Thursday", "Friday"],
+      "avoidBackToBack": false
+    },
+    "unavailableSlots": [
+      {"day": "Wednesday", "time": "11:00", "reason": "Communication workshop"}
+    ],
+    "qualifications": ["MSc Business Communication", "BSc English Literature", "Corporate Training Certification"],
+    "experience": 9,
+    "isActive": true
+  }
+]

@@ -1,0 +1,445 @@
+[
+  {
+    "id": "LECTURE_HALL_A",
+    "name": "Main Lecture Hall A",
+    "building": "Academic Block A",
+    "floor": 1,
+    "type": "lecture",
+    "capacity": 120,
+    "facilities": [
+      "projector",
+      "sound_system", 
+      "air_conditioning",
+      "whiteboard",
+      "microphone",
+      "recording_equipment"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": true,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 2,
+      "screens": 2,
+      "speakers": 4,
+      "microphones": 2
+    },
+    "isActive": true
+  },
+  {
+    "id": "LECTURE_HALL_B",
+    "name": "Lecture Hall B",
+    "building": "Academic Block A",
+    "floor": 2,
+    "type": "lecture",
+    "capacity": 80,
+    "facilities": [
+      "projector",
+      "sound_system",
+      "air_conditioning", 
+      "whiteboard",
+      "microphone"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 1,
+      "screens": 1,
+      "speakers": 2,
+      "microphones": 1
+    },
+    "isActive": true
+  },
+  {
+    "id": "LECTURE_HALL_C",
+    "name": "Lecture Hall C",
+    "building": "Academic Block B",
+    "floor": 1,
+    "type": "lecture",
+    "capacity": 60,
+    "facilities": [
+      "projector",
+      "air_conditioning",
+      "whiteboard",
+      "microphone"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 1,
+      "screens": 1,
+      "speakers": 2,
+      "microphones": 1
+    },
+    "isActive": true
+  },
+  {
+    "id": "COMPUTER_LAB_1",
+    "name": "Computer Science Lab 1",
+    "building": "IT Block",
+    "floor": 2,
+    "type": "computer",
+    "capacity": 40,
+    "facilities": [
+      "computers",
+      "internet",
+      "projector",
+      "air_conditioning",
+      "whiteboard",
+      "software",
+      "gpu"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "computers": 40,
+      "projectors": 1,
+      "screens": 1,
+      "servers": 2,
+      "switches": 4
+    },
+    "software": [
+      "Python",
+      "R",
+      "MATLAB",
+      "TensorFlow",
+      "PyTorch",
+      "Jupyter",
+      "VS Code",
+      "IntelliJ"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "COMPUTER_LAB_2",
+    "name": "Computer Science Lab 2",
+    "building": "IT Block",
+    "floor": 2,
+    "type": "computer",
+    "capacity": 35,
+    "facilities": [
+      "computers",
+      "internet",
+      "projector",
+      "air_conditioning",
+      "whiteboard",
+      "software"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "computers": 35,
+      "projectors": 1,
+      "screens": 1,
+      "servers": 1,
+      "switches": 3
+    },
+    "software": [
+      "Python",
+      "Java",
+      "C++",
+      "MySQL",
+      "PostgreSQL",
+      "MongoDB",
+      "Eclipse",
+      "VS Code"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "COMPUTER_LAB_3",
+    "name": "Advanced Computing Lab",
+    "building": "IT Block",
+    "floor": 3,
+    "type": "computer",
+    "capacity": 30,
+    "facilities": [
+      "computers",
+      "internet",
+      "projector",
+      "air_conditioning",
+      "whiteboard",
+      "software",
+      "gpu",
+      "high_performance_computing"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "computers": 30,
+      "projectors": 1,
+      "screens": 1,
+      "gpu_workstations": 10,
+      "servers": 3,
+      "switches": 2
+    },
+    "software": [
+      "Python",
+      "R",
+      "MATLAB",
+      "TensorFlow",
+      "PyTorch",
+      "CUDA",
+      "OpenCV",
+      "Keras",
+      "Scikit-learn"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "ENGINEERING_LAB_1",
+    "name": "Engineering Drawing Lab",
+    "building": "Engineering Block",
+    "floor": 1,
+    "type": "lab",
+    "capacity": 30,
+    "facilities": [
+      "drawing_boards",
+      "instruments",
+      "projector",
+      "air_conditioning",
+      "storage_cabinets"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "drawing_boards": 30,
+      "instrument_sets": 30,
+      "projectors": 1,
+      "screens": 1,
+      "storage_units": 6
+    },
+    "isActive": true
+  },
+  {
+    "id": "ENGINEERING_LAB_2",
+    "name": "CAD Design Lab",
+    "building": "Engineering Block",
+    "floor": 2,
+    "type": "lab",
+    "capacity": 25,
+    "facilities": [
+      "computers",
+      "internet",
+      "projector",
+      "air_conditioning",
+      "software",
+      "high_resolution_monitors"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "computers": 25,
+      "monitors": 25,
+      "projectors": 1,
+      "screens": 1,
+      "plotters": 2
+    },
+    "software": [
+      "AutoCAD",
+      "SolidWorks",
+      "CATIA",
+      "Fusion 360",
+      "SketchUp",
+      "Blender"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "ELECTRONICS_LAB",
+    "name": "Electronics & Power Lab",
+    "building": "Electrical Block",
+    "floor": 1,
+    "type": "lab",
+    "capacity": 20,
+    "facilities": [
+      "oscilloscopes",
+      "power_supplies",
+      "function_generators",
+      "multimeters",
+      "breadboards",
+      "components",
+      "safety_equipment"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "workbenches": 20,
+      "oscilloscopes": 10,
+      "power_supplies": 15,
+      "function_generators": 8,
+      "multimeters": 20,
+      "component_storage": 1
+    },
+    "isActive": true
+  },
+  {
+    "id": "SEMINAR_ROOM_1",
+    "name": "Executive Seminar Room",
+    "building": "Management Block",
+    "floor": 3,
+    "type": "seminar",
+    "capacity": 50,
+    "facilities": [
+      "projector",
+      "sound_system",
+      "air_conditioning",
+      "whiteboard",
+      "microphone",
+      "video_conferencing",
+      "executive_seating"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": true,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 1,
+      "screens": 1,
+      "speakers": 4,
+      "microphones": 4,
+      "cameras": 2,
+      "conference_table": 1
+    },
+    "isActive": true
+  },
+  {
+    "id": "SEMINAR_ROOM_2",
+    "name": "Business Communication Room",
+    "building": "Management Block",
+    "floor": 2,
+    "type": "seminar",
+    "capacity": 45,
+    "facilities": [
+      "projector",
+      "sound_system",
+      "air_conditioning",
+      "whiteboard",
+      "microphone",
+      "video_conferencing"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 1,
+      "screens": 1,
+      "speakers": 2,
+      "microphones": 2,
+      "cameras": 1,
+      "presentation_podium": 1
+    },
+    "isActive": true
+  },
+  {
+    "id": "TUTORIAL_ROOM_1",
+    "name": "Small Group Tutorial Room A",
+    "building": "Academic Block A",
+    "floor": 3,
+    "type": "tutorial",
+    "capacity": 25,
+    "facilities": [
+      "projector",
+      "air_conditioning",
+      "whiteboard",
+      "flexible_seating"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 1,
+      "screens": 1,
+      "chairs": 25,
+      "tables": 6
+    },
+    "isActive": true
+  },
+  {
+    "id": "TUTORIAL_ROOM_2",
+    "name": "Small Group Tutorial Room B",
+    "building": "Academic Block B",
+    "floor": 3,
+    "type": "tutorial",
+    "capacity": 20,
+    "facilities": [
+      "projector",
+      "air_conditioning",
+      "whiteboard",
+      "flexible_seating"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": false,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 1,
+      "screens": 1,
+      "chairs": 20,
+      "tables": 5
+    },
+    "isActive": true
+  },
+  {
+    "id": "AUDITORIUM_MAIN",
+    "name": "Main Auditorium",
+    "building": "Central Block",
+    "floor": 1,
+    "type": "auditorium",
+    "capacity": 300,
+    "facilities": [
+      "projector",
+      "sound_system",
+      "air_conditioning",
+      "stage",
+      "lighting_system",
+      "recording_equipment",
+      "microphone"
+    ],
+    "accessibility": {
+      "wheelchairAccessible": true,
+      "hearingLoop": true,
+      "visualAids": true
+    },
+    "equipment": {
+      "projectors": 3,
+      "screens": 2,
+      "speakers": 12,
+      "microphones": 6,
+      "stage_lights": 20,
+      "cameras": 4
+    },
+    "isActive": true
+  }
+]

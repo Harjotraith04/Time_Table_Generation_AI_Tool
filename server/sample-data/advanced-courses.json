@@ -1,0 +1,354 @@
+[
+  {
+    "id": "CORE_MATH_101",
+    "name": "Calculus I",
+    "code": "MATH101",
+    "department": "Mathematics",
+    "program": "Engineering",
+    "year": 1,
+    "semester": 1,
+    "credits": 4,
+    "category": "core",
+    "isMandatory": true,
+    "type": "theory",
+    "teacherId": "TEACHER_001",
+    "duration": 1,
+    "hoursPerWeek": 4,
+    "studentGroup": "ENG_2024_1ST",
+    "studentCount": 120,
+    "batches": [
+      {
+        "id": "BATCH_A",
+        "name": "Batch A",
+        "studentCount": 60
+      },
+      {
+        "id": "BATCH_B", 
+        "name": "Batch B",
+        "studentCount": 60
+      }
+    ],
+    "roomRequirements": {
+      "type": "lecture",
+      "minimumCapacity": 60
+    },
+    "priority": 5,
+    "isActive": true
+  },
+  {
+    "id": "CORE_PHYS_101",
+    "name": "Physics I",
+    "code": "PHYS101",
+    "department": "Physics",
+    "program": "Engineering", 
+    "year": 1,
+    "semester": 1,
+    "credits": 4,
+    "category": "core",
+    "isMandatory": true,
+    "type": "theory",
+    "teacherId": "TEACHER_002",
+    "duration": 1,
+    "hoursPerWeek": 4,
+    "studentGroup": "ENG_2024_1ST",
+    "studentCount": 120,
+    "batches": [
+      {
+        "id": "BATCH_A",
+        "name": "Batch A", 
+        "studentCount": 60
+      },
+      {
+        "id": "BATCH_B",
+        "name": "Batch B",
+        "studentCount": 60
+      }
+    ],
+    "roomRequirements": {
+      "type": "lecture",
+      "minimumCapacity": 60
+    },
+    "priority": 5,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_CS_201",
+    "name": "Machine Learning",
+    "code": "CS201",
+    "department": "Computer Science",
+    "program": "Engineering",
+    "year": 2,
+    "semester": 1,
+    "credits": 3,
+    "category": "elective",
+    "electiveGroup": "CS_ADVANCED_GROUP_A",
+    "type": "theory",
+    "teacherId": "TEACHER_003",
+    "duration": 1,
+    "hoursPerWeek": 3,
+    "studentGroup": "ENG_2023_2ND",
+    "studentCount": 40,
+    "roomRequirements": {
+      "type": "computer",
+      "facilities": ["projector", "internet"],
+      "minimumCapacity": 40
+    },
+    "schedulingConstraints": {
+      "preferredDays": ["Monday", "Wednesday", "Friday"],
+      "consecutiveSlots": false
+    },
+    "priority": 3,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_CS_202",
+    "name": "Data Mining",
+    "code": "CS202", 
+    "department": "Computer Science",
+    "program": "Engineering",
+    "year": 2,
+    "semester": 1,
+    "credits": 3,
+    "category": "elective",
+    "electiveGroup": "CS_ADVANCED_GROUP_A",
+    "type": "theory",
+    "teacherId": "TEACHER_004",
+    "duration": 1,
+    "hoursPerWeek": 3,
+    "studentGroup": "ENG_2023_2ND",
+    "studentCount": 35,
+    "roomRequirements": {
+      "type": "computer",
+      "facilities": ["projector", "internet"],
+      "minimumCapacity": 35
+    },
+    "schedulingConstraints": {
+      "preferredDays": ["Tuesday", "Thursday"],
+      "consecutiveSlots": false
+    },
+    "priority": 3,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_CS_203",
+    "name": "Computer Vision",
+    "code": "CS203",
+    "department": "Computer Science", 
+    "program": "Engineering",
+    "year": 2,
+    "semester": 1,
+    "credits": 3,
+    "category": "elective",
+    "electiveGroup": "CS_ADVANCED_GROUP_A",
+    "type": "theory",
+    "teacherId": "TEACHER_005",
+    "duration": 1,
+    "hoursPerWeek": 3,
+    "studentGroup": "ENG_2023_2ND",
+    "studentCount": 30,
+    "roomRequirements": {
+      "type": "computer",
+      "facilities": ["projector", "internet", "gpu"],
+      "minimumCapacity": 30
+    },
+    "schedulingConstraints": {
+      "preferredDays": ["Monday", "Wednesday", "Friday"],
+      "consecutiveSlots": false
+    },
+    "priority": 3,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_EE_201",
+    "name": "Digital Signal Processing",
+    "code": "EE201",
+    "department": "Electrical Engineering",
+    "program": "Engineering",
+    "year": 2,
+    "semester": 1,
+    "credits": 4,
+    "category": "elective",
+    "electiveGroup": "EE_ADVANCED_GROUP_B",
+    "type": "theory",
+    "teacherId": "TEACHER_006",
+    "duration": 1,
+    "hoursPerWeek": 4,
+    "studentGroup": "ENG_2023_2ND",
+    "studentCount": 45,
+    "roomRequirements": {
+      "type": "lecture",
+      "facilities": ["projector", "whiteboard"],
+      "minimumCapacity": 45
+    },
+    "priority": 3,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_EE_202",
+    "name": "Power Electronics",
+    "code": "EE202",
+    "department": "Electrical Engineering",
+    "program": "Engineering",
+    "year": 2,
+    "semester": 1,
+    "credits": 4,
+    "category": "elective",
+    "electiveGroup": "EE_ADVANCED_GROUP_B", 
+    "type": "theory",
+    "teacherId": "TEACHER_007",
+    "duration": 1,
+    "hoursPerWeek": 4,
+    "studentGroup": "ENG_2023_2ND",
+    "studentCount": 40,
+    "roomRequirements": {
+      "type": "lecture",
+      "facilities": ["projector", "whiteboard"],
+      "minimumCapacity": 40
+    },
+    "priority": 3,
+    "isActive": true
+  },
+  {
+    "id": "LAB_CS_201L",
+    "name": "Machine Learning Lab",
+    "code": "CS201L",
+    "department": "Computer Science",
+    "program": "Engineering",
+    "year": 2,
+    "semester": 1,
+    "credits": 1,
+    "category": "elective",
+    "electiveGroup": "CS_ADVANCED_GROUP_A",
+    "type": "practical",
+    "teacherId": "TEACHER_003",
+    "duration": 2,
+    "hoursPerWeek": 2,
+    "studentGroup": "ENG_2023_2ND",
+    "studentCount": 20,
+    "batches": [
+      {
+        "id": "LAB_BATCH_1",
+        "name": "Lab Batch 1",
+        "studentCount": 20
+      },
+      {
+        "id": "LAB_BATCH_2",
+        "name": "Lab Batch 2", 
+        "studentCount": 20
+      }
+    ],
+    "roomRequirements": {
+      "type": "lab",
+      "facilities": ["computers", "internet", "software"],
+      "minimumCapacity": 20
+    },
+    "schedulingConstraints": {
+      "consecutiveSlots": true,
+      "preferredDays": ["Tuesday", "Thursday"]
+    },
+    "linkedCourses": ["ELEC_CS_201"],
+    "priority": 4,
+    "isActive": true
+  },
+  {
+    "id": "CORE_ENG_101",
+    "name": "Engineering Drawing",
+    "code": "ENG101",
+    "department": "Engineering",
+    "program": "Engineering",
+    "year": 1,
+    "semester": 1,
+    "credits": 2,
+    "category": "core",
+    "isMandatory": true,
+    "type": "practical",
+    "teacherId": "TEACHER_008",
+    "duration": 2,
+    "hoursPerWeek": 4,
+    "studentGroup": "ENG_2024_1ST",
+    "studentCount": 120,
+    "batches": [
+      {
+        "id": "DRAWING_BATCH_1",
+        "name": "Drawing Batch 1",
+        "studentCount": 30
+      },
+      {
+        "id": "DRAWING_BATCH_2",
+        "name": "Drawing Batch 2",
+        "studentCount": 30
+      },
+      {
+        "id": "DRAWING_BATCH_3",
+        "name": "Drawing Batch 3",
+        "studentCount": 30
+      },
+      {
+        "id": "DRAWING_BATCH_4",
+        "name": "Drawing Batch 4",
+        "studentCount": 30
+      }
+    ],
+    "roomRequirements": {
+      "type": "lab",
+      "facilities": ["drawing_boards", "instruments"],
+      "minimumCapacity": 30
+    },
+    "schedulingConstraints": {
+      "consecutiveSlots": true,
+      "maxGapsPerDay": 0
+    },
+    "priority": 5,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_MGMT_201",
+    "name": "Project Management",
+    "code": "MGMT201",
+    "department": "Management",
+    "program": "Engineering",
+    "year": 3,
+    "semester": 1,
+    "credits": 2,
+    "category": "elective",
+    "electiveGroup": "MANAGEMENT_SOFT_SKILLS",
+    "type": "seminar",
+    "teacherId": "TEACHER_009",
+    "duration": 1,
+    "hoursPerWeek": 2,
+    "studentGroup": "ENG_2022_3RD",
+    "studentCount": 50,
+    "roomRequirements": {
+      "type": "seminar",
+      "facilities": ["projector", "whiteboard", "sound_system"],
+      "minimumCapacity": 50
+    },
+    "priority": 2,
+    "isActive": true
+  },
+  {
+    "id": "ELEC_MGMT_202",
+    "name": "Business Communication",
+    "code": "MGMT202",
+    "department": "Management",
+    "program": "Engineering",
+    "year": 3,
+    "semester": 1,
+    "credits": 2,
+    "category": "elective",
+    "electiveGroup": "MANAGEMENT_SOFT_SKILLS",
+    "type": "seminar",
+    "teacherId": "TEACHER_010",
+    "duration": 1,
+    "hoursPerWeek": 2,
+    "studentGroup": "ENG_2022_3RD",
+    "studentCount": 45,
+    "roomRequirements": {
+      "type": "seminar",
+      "facilities": ["projector", "whiteboard", "sound_system"],
+      "minimumCapacity": 45
+    },
+    "priority": 2,
+    "isActive": true
+  }
+]
