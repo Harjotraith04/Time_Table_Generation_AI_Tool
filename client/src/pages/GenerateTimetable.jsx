@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -24,6 +24,15 @@ import {
   AlertTriangle,
   CheckCircle2
 } from 'lucide-react';
+import { 
+  generateTimetable, 
+  getTimetableProgress, 
+  validateData, 
+  getAlgorithms, 
+  getConstraints,
+  getOptimizationGoals,
+  validateAlgorithmParameters
+} from '../services/api';
 
 const GenerateTimetable = () => {
   const { user, logout } = useAuth();
@@ -32,6 +41,11 @@ const GenerateTimetable = () => {
   const [generationStep, setGenerationStep] = useState(0);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [currentTimetableId, setCurrentTimetableId] = useState(null);
+  const [progressData, setProgressData] = useState(null);
+  const [algorithmsData, setAlgorithmsData] = useState([]);
+  const [constraintsData, setConstraintsData] = useState([]);
+  const [optimizationGoalsData, setOptimizationGoalsData] = useState([]);
   
   const [generationSettings, setGenerationSettings] = useState({
     algorithm: 'genetic',
@@ -47,13 +61,45 @@ const GenerateTimetable = () => {
   });
 
   const [dataValidation, setDataValidation] = useState({
-    teachers: { status: 'completed', count: 12, issues: 0 },
-    classrooms: { status: 'completed', count: 25, issues: 0 },
-    programs: { status: 'completed', count: 8, issues: 0 },
-    courses: { status: 'completed', count: 45, issues: 1 },
-    policies: { status: 'completed', count: 15, issues: 0 },
-    calendar: { status: 'completed', count: 8, issues: 0 }
+    teachers: { status: 'unknown', count: 0, issues: [] },
+    classrooms: { status: 'unknown', count: 0, issues: [] },
+    programs: { status: 'unknown', count: 0, issues: [] },
+    courses: { status: 'unknown', count: 0, issues: [] },
+    policies: { status: 'unknown', count: 0, issues: [] },
+    calendar: { status: 'unknown', count: 0, issues: [] },
+    overall: { status: 'unknown', ready: false }
   });
+
+  const [timetableData, setTimetableData] = useState({
+    name: `Timetable ${new Date().getFullYear()}`,
+    academicYear: '2024-2025',
+    semester: 1,
+    department: 'Computer Science',
+    year: 1
+  });
+
+  // Load initial data
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      const [algorithmsData, constraintsData, goalsData, validationData] = await Promise.all([
+        getAlgorithms(),
+        getConstraints(),
+        getOptimizationGoals(),
+        validateData()
+      ]);
+
+      setAlgorithmsData(algorithmsData.algorithms || []);
+      setConstraintsData(constraintsData.constraints || []);
+      setOptimizationGoalsData(goalsData.goals || []);
+      setDataValidation(validationData);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    }
+  };
 
   const generationSteps = [
     { id: 1, name: 'Data Validation', description: 'Validating input data and constraints' },
@@ -102,22 +148,88 @@ const GenerateTimetable = () => {
   };
 
   const handleStartGeneration = async () => {
-    setIsGenerating(true);
-    setGenerationStep(0);
-    setGenerationComplete(false);
+    try {
+      if (!dataValidation.overall.ready) {
+        alert('Please ensure all data is valid before generating timetable');
+        return;
+      }
 
-    // Simulate generation process
-    for (let i = 0; i < generationSteps.length; i++) {
-      setGenerationStep(i + 1);
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
+      setIsGenerating(true);
+      setGenerationStep(0);
+      setGenerationComplete(false);
+
+      // Prepare generation data
+      const generationData = {
+        name: timetableData.name,
+        academicYear: timetableData.academicYear,
+        semester: timetableData.semester,
+        department: timetableData.department,
+        year: timetableData.year,
+        settings: {
+          algorithm: generationSettings.algorithm,
+          populationSize: generationSettings.populationSize,
+          maxGenerations: generationSettings.maxIterations,
+          crossoverRate: generationSettings.crossoverRate,
+          mutationRate: generationSettings.mutationRate,
+          optimizationGoals: generationSettings.optimizationGoals,
+          workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          startTime: '09:00',
+          endTime: '17:00',
+          slotDuration: 60,
+          breakSlots: ['12:00-13:00'],
+          enforceBreaks: generationSettings.enforceBreaks,
+          balanceWorkload: generationSettings.balanceWorkload
+        }
+      };
+
+      // Start generation
+      const response = await generateTimetable(generationData);
+      setCurrentTimetableId(response.timetableId);
+
+      // Start polling for progress
+      pollProgress(response.timetableId);
+
+    } catch (error) {
+      console.error('Error starting generation:', error);
+      alert('Failed to start timetable generation: ' + error.message);
+      setIsGenerating(false);
     }
+  };
 
-    setIsGenerating(false);
-    setGenerationComplete(true);
+  const pollProgress = async (timetableId) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const progress = await getTimetableProgress(timetableId);
+        setProgressData(progress);
+
+        if (progress.progress) {
+          setGenerationStep(Math.min(progress.progress.generation / 100, generationSteps.length));
+        }
+
+        if (progress.status === 'completed') {
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          setGenerationComplete(true);
+          setGenerationStep(generationSteps.length);
+        } else if (progress.status === 'draft') {
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          alert('Timetable generation failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error polling progress:', error);
+        clearInterval(pollInterval);
+        setIsGenerating(false);
+      }
+    }, 2000); // Poll every 2 seconds
   };
 
   const handleViewTimetable = () => {
-    navigate('/view-timetable');
+    if (currentTimetableId) {
+      navigate(`/view-timetable/${currentTimetableId}`);
+    } else {
+      navigate('/view-timetable');
+    }
   };
 
   const handleRegenerateWithSettings = () => {
