@@ -50,12 +50,7 @@ const AdminDashboard = () => {
     { id: 4, name: 'Medical Sciences', status: 'Review', lastUpdated: '1 week ago', conflicts: 1 }
   ];
 
-  const notifications = [
-    { id: 1, message: 'New timetable conflict detected in Engineering Year 2', time: '5 min ago', type: 'warning' },
-    { id: 2, message: 'Timetable generation completed for Computer Science', time: '1 hour ago', type: 'success' },
-    { id: 3, message: 'Room booking request from Dr. Smith', time: '2 hours ago', type: 'info' }
-  ];
-
+  
   const renderOverview = () => (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -148,29 +143,8 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Notifications */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Notifications</h3>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            {notifications.map((notification) => (
-              <div key={notification.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  notification.type === 'warning' ? 'bg-yellow-500' :
-                  notification.type === 'success' ? 'bg-green-500' :
-                  'bg-blue-500'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">{notification.message}</p>
-                  <p className="text-xs text-gray-500">{notification.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+ 
+      
     </div>
   );
 

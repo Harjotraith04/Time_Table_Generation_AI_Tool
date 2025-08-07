@@ -327,23 +327,7 @@ const TeachersData = () => {
             </div>
           </div>
 
-          {/* Subject Assignments */}
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Subject Assignments</h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {subjectsList.map(subject => (
-                <label key={subject} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={teacherForm.subjects?.includes(subject) || false}
-                    onChange={() => handleSubjectToggle(subject)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{subject}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          
 
           {/* Availability Schedule */}
           <div>

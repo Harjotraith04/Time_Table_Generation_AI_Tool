@@ -68,17 +68,9 @@ const StudentDashboard = () => {
     { id: 5, name: 'History', code: 'HIST101', credits: 3, grade: 'A-', progress: 88 }
   ];
 
-  const notifications = [
-    { id: 1, message: 'Assignment due tomorrow: Computer Science Lab Report', time: '2 hours ago', type: 'warning' },
-    { id: 2, message: 'New grade posted for Mathematics Quiz', time: '1 day ago', type: 'success' },
-    { id: 3, message: 'Room change: Physics Lab moved to Lab 205', time: '2 days ago', type: 'info' }
-  ];
+  
 
-  const upcomingAssignments = [
-    { id: 1, subject: 'Computer Science', title: 'Lab Report #3', dueDate: 'Tomorrow', priority: 'high' },
-    { id: 2, subject: 'Mathematics', title: 'Calculus Problem Set', dueDate: 'Friday', priority: 'medium' },
-    { id: 3, subject: 'Physics', title: 'Experiment Report', dueDate: 'Next Monday', priority: 'low' }
-  ];
+  
 
   const renderTimetable = () => (
     <div className="space-y-6">
@@ -188,65 +180,9 @@ const StudentDashboard = () => {
     </div>
   );
 
-  const renderAssignments = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Upcoming Assignments</h3>
-      
-      <div className="space-y-4">
-        {upcomingAssignments.map((assignment) => (
-          <div key={assignment.id} className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className={`w-3 h-3 rounded-full ${
-                  assignment.priority === 'high' ? 'bg-red-500' :
-                  assignment.priority === 'medium' ? 'bg-yellow-500' :
-                  'bg-green-500'
-                }`} />
-                <div>
-                  <h4 className="font-medium text-gray-900">{assignment.title}</h4>
-                  <p className="text-sm text-gray-600">{assignment.subject}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{assignment.dueDate}</p>
-                <p className={`text-xs ${
-                  assignment.priority === 'high' ? 'text-red-600' :
-                  assignment.priority === 'medium' ? 'text-yellow-600' :
-                  'text-green-600'
-                }`}>
-                  {assignment.priority} priority
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  
 
-  const renderNotifications = () => (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Recent Notifications</h3>
-      
-      <div className="space-y-4">
-        {notifications.map((notification) => (
-          <div key={notification.id} className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="flex items-start space-x-3">
-              <div className={`w-2 h-2 rounded-full mt-2 ${
-                notification.type === 'warning' ? 'bg-yellow-500' :
-                notification.type === 'success' ? 'bg-green-500' :
-                'bg-blue-500'
-              }`} />
-              <div className="flex-1">
-                <p className="text-sm text-gray-900">{notification.message}</p>
-                <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -356,8 +292,7 @@ const StudentDashboard = () => {
           {[
             { id: 'timetable', label: 'Timetable', icon: Calendar },
             { id: 'courses', label: 'Courses', icon: BookOpen },
-            { id: 'assignments', label: 'Assignments', icon: CheckCircle },
-            { id: 'notifications', label: 'Notifications', icon: Bell }
+            
           ].map((tab) => (
             <button
               key={tab.id}
@@ -377,8 +312,7 @@ const StudentDashboard = () => {
         {/* Content */}
         {activeTab === 'timetable' && renderTimetable()}
         {activeTab === 'courses' && renderCourses()}
-        {activeTab === 'assignments' && renderAssignments()}
-        {activeTab === 'notifications' && renderNotifications()}
+        
       </div>
     </div>
   );
