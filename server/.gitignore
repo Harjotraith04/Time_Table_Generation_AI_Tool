@@ -1,0 +1,27 @@
+# Node server
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Environment
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+pids/
+*.pid
+
+# Runtime
+dist/
+build/
+coverage/
+
+# Editor
+.vscode/
+.idea/
+
+# Misc
+.DS_Store

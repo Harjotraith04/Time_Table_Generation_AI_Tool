@@ -95,15 +95,6 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
-        {/* TODO: Uncomment when other pages are fixed
-        <Route 
-          path="/programs-data" 
-          element={
-            <ProtectedRoute allowedUserType="admin">
-              <ProgramsData />
-            </ProtectedRoute>
-          } 
-        />
         <Route 
           path="/infrastructure-data" 
           element={
@@ -128,7 +119,6 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
-        */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
