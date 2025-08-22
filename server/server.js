@@ -5,34 +5,15 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const winston = require('winston');
 require('dotenv').config();
+
+// Import logger
+const logger = require('./utils/logger');
 
 const authRoutes = require('./routes/auth');
 const dataRoutes = require('./routes/data');
 const timetableRoutes = require('./routes/timetables');
 const algorithmRoutes = require('./routes/algorithms');
-
-// Configure logging
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'timetable-generator' },
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
-    })
-  ]
-});
 
 const app = express();
 const server = createServer(app);
@@ -68,10 +49,7 @@ app.use((req, res, next) => {
 });
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/timetable_generator', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/timetable_generator')
 .then(() => logger.info('Connected to MongoDB'))
 .catch(err => {
   logger.error('MongoDB connection error:', err);

@@ -198,7 +198,43 @@ export const validateAlgorithmParameters = async (algorithm, parameters) => {
   return response.data
 }
 
-export const getAlgorithmRecommendations = async (dataSize) => {
-  const response = await api.post('/algorithm/recommend', { dataSize })
+export const addTimetableComment = async (id, comment) => {
+  const response = await api.post(`/timetables/${id}/comments`, { comment })
+  return response.data
+}
+
+export const getTimetableStatistics = async () => {
+  const response = await api.get('/timetables/statistics/overview')
+  return response.data
+}
+
+export const getAlgorithmRecommendations = async (dataSize, constraints = [], priorities = {}, timeLimit = 1800) => {
+  const response = await api.post('/algorithm/recommend', { 
+    dataSize, 
+    constraints, 
+    priorities, 
+    timeLimit 
+  })
+  return response.data
+}
+
+// Additional utility functions
+export const uploadCSV = async (file, type) => {
+  const formData = new FormData()
+  formData.append('csv', file)
+  
+  const response = await api.post(`/data/${type}/bulk-import`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+  return response.data
+}
+
+export const exportData = async (type, format = 'csv') => {
+  const response = await api.get(`/data/${type}/export`, {
+    params: { format },
+    responseType: 'blob'
+  })
   return response.data
 }

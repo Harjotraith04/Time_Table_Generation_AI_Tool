@@ -1,6 +1,6 @@
 const CSPSolver = require('./CSPSolver');
 const GeneticAlgorithm = require('./GeneticAlgorithm');
-const { logger } = require('../server');
+const logger = require('../utils/logger');
 
 /**
  * Advanced Optimization Engine for Timetable Generation

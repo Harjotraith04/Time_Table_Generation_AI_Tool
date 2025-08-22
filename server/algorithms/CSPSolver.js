@@ -1,4 +1,4 @@
-const { logger } = require('../server');
+const logger = require('../utils/logger');
 
 /**
  * Constraint Satisfaction Problem (CSP) Solver for Timetable Generation

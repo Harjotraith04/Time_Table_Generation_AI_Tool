@@ -7,7 +7,7 @@ const Teacher = require('../models/Teacher');
 const Classroom = require('../models/Classroom');
 const Course = require('../models/Course');
 const { authenticateToken } = require('./auth');
-const { logger } = require('../server');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -497,6 +497,202 @@ router.post('/classrooms', [
   }
 });
 
+/**
+ * @route   PUT /api/data/classrooms/:id
+ * @desc    Update a classroom
+ * @access  Private
+ */
+router.put('/classrooms/:id', [
+  body('name').optional().trim().isLength({ min: 2, max: 100 }),
+  body('building').optional().trim().notEmpty(),
+  body('floor').optional().trim().notEmpty(),
+  body('capacity').optional().isInt({ min: 1, max: 500 }),
+  body('type').optional().isIn(['Lecture Hall', 'Tutorial Room', 'Computer Lab', 'Science Lab', 'Seminar Hall', 'Workshop']),
+  body('features').optional().isArray(),
+  body('priority').optional().isIn(['low', 'medium', 'high']),
+  body('status').optional().isIn(['available', 'maintenance', 'reserved', 'out_of_order'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const classroom = await Classroom.findOneAndUpdate(
+      { id: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!classroom) {
+      return res.status(404).json({
+        success: false,
+        message: 'Classroom not found'
+      });
+    }
+
+    logger.info('Classroom updated', { classroomId: classroom.id, updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Classroom updated successfully',
+      data: classroom
+    });
+
+  } catch (error) {
+    logger.error('Error updating classroom:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating classroom'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/classrooms/:id
+ * @desc    Delete a classroom
+ * @access  Private
+ */
+router.delete('/classrooms/:id', async (req, res) => {
+  try {
+    const classroom = await Classroom.findOneAndDelete({ id: req.params.id });
+
+    if (!classroom) {
+      return res.status(404).json({
+        success: false,
+        message: 'Classroom not found'
+      });
+    }
+
+    logger.info('Classroom deleted', { classroomId: classroom.id, deletedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Classroom deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting classroom:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting classroom'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/classrooms/bulk-import
+ * @desc    Bulk import classrooms from CSV
+ * @access  Private
+ */
+router.post('/classrooms/bulk-import', upload.single('csv'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV file is required'
+      });
+    }
+
+    const csvData = req.file.buffer.toString();
+    const records = [];
+    const errors = [];
+
+    // Parse CSV
+    csv.parse(csvData, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    }, async (err, data) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid CSV format',
+          error: err.message
+        });
+      }
+
+      // Validate and process each record
+      for (let i = 0; i < data.length; i++) {
+        const record = data[i];
+        try {
+          // Basic validation
+          if (!record.id || !record.name || !record.building || !record.type) {
+            errors.push(`Row ${i + 1}: Missing required fields (id, name, building, type)`);
+            continue;
+          }
+
+          // Parse features (comma-separated)
+          const features = record.features ? record.features.split(',').map(f => f.trim()) : [];
+          
+          // Parse availability if provided
+          const availability = record.availability ? JSON.parse(record.availability) : undefined;
+
+          const classroomData = {
+            id: record.id,
+            name: record.name,
+            building: record.building,
+            floor: record.floor || 'Ground Floor',
+            capacity: parseInt(record.capacity) || 30,
+            type: record.type,
+            features,
+            availability,
+            priority: record.priority || 'medium',
+            status: record.status || 'available'
+          };
+
+          records.push(classroomData);
+        } catch (parseError) {
+          errors.push(`Row ${i + 1}: ${parseError.message}`);
+        }
+      }
+
+      if (errors.length > 0 && records.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No valid records found',
+          errors
+        });
+      }
+
+      // Bulk insert valid records
+      try {
+        const result = await Classroom.insertMany(records, { ordered: false });
+        
+        logger.info('Bulk classroom import completed', { 
+          imported: result.length,
+          errors: errors.length,
+          importedBy: req.user.userId 
+        });
+
+        res.json({
+          success: true,
+          message: `Successfully imported ${result.length} classrooms`,
+          imported: result.length,
+          errors: errors.length > 0 ? errors : undefined
+        });
+      } catch (insertError) {
+        logger.error('Bulk classroom import error:', insertError);
+        res.status(500).json({
+          success: false,
+          message: 'Error importing classrooms',
+          errors: [insertError.message]
+        });
+      }
+    });
+
+  } catch (error) {
+    logger.error('Bulk import error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk import'
+    });
+  }
+});
+
 // ==================== COURSES ROUTES ====================
 
 /**
@@ -624,6 +820,207 @@ router.post('/courses', [
     res.status(500).json({
       success: false,
       message: 'Internal server error while creating course'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/courses/:id
+ * @desc    Update a course
+ * @access  Private
+ */
+router.put('/courses/:id', [
+  body('name').optional().trim().isLength({ min: 2, max: 150 }),
+  body('code').optional().trim().notEmpty(),
+  body('department').optional().trim().notEmpty(),
+  body('program').optional().trim().notEmpty(),
+  body('year').optional().isInt({ min: 1, max: 5 }),
+  body('semester').optional().isInt({ min: 1, max: 2 }),
+  body('credits').optional().isInt({ min: 1, max: 10 }),
+  body('totalHoursPerWeek').optional().isInt({ min: 1, max: 20 }),
+  body('enrolledStudents').optional().isInt({ min: 1, max: 500 }),
+  body('assignedTeachers').optional().isArray({ min: 1 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const course = await Course.findOneAndUpdate(
+      { id: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
+
+    logger.info('Course updated', { courseId: course.id, updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Course updated successfully',
+      data: course
+    });
+
+  } catch (error) {
+    logger.error('Error updating course:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating course'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/courses/:id
+ * @desc    Delete a course
+ * @access  Private
+ */
+router.delete('/courses/:id', async (req, res) => {
+  try {
+    const course = await Course.findOneAndDelete({ id: req.params.id });
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
+
+    logger.info('Course deleted', { courseId: course.id, deletedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Course deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting course:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting course'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/courses/bulk-import
+ * @desc    Bulk import courses from CSV
+ * @access  Private
+ */
+router.post('/courses/bulk-import', upload.single('csv'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV file is required'
+      });
+    }
+
+    const csvData = req.file.buffer.toString();
+    const records = [];
+    const errors = [];
+
+    // Parse CSV
+    csv.parse(csvData, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    }, async (err, data) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid CSV format',
+          error: err.message
+        });
+      }
+
+      // Validate and process each record
+      for (let i = 0; i < data.length; i++) {
+        const record = data[i];
+        try {
+          // Basic validation
+          if (!record.id || !record.name || !record.code || !record.department) {
+            errors.push(`Row ${i + 1}: Missing required fields (id, name, code, department)`);
+            continue;
+          }
+
+          // Parse assigned teachers (comma-separated)
+          const assignedTeachers = record.assignedTeachers ? 
+            record.assignedTeachers.split(',').map(t => ({ teacherId: t.trim() })) : [];
+
+          const courseData = {
+            id: record.id,
+            name: record.name,
+            code: record.code,
+            department: record.department,
+            program: record.program || 'General',
+            year: parseInt(record.year) || 1,
+            semester: parseInt(record.semester) || 1,
+            credits: parseInt(record.credits) || 3,
+            totalHoursPerWeek: parseInt(record.totalHoursPerWeek) || 3,
+            enrolledStudents: parseInt(record.enrolledStudents) || 30,
+            assignedTeachers,
+            requirements: {
+              roomType: record.requiredRoomType || 'Lecture Hall'
+            },
+            isActive: record.isActive !== 'false'
+          };
+
+          records.push(courseData);
+        } catch (parseError) {
+          errors.push(`Row ${i + 1}: ${parseError.message}`);
+        }
+      }
+
+      if (errors.length > 0 && records.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No valid records found',
+          errors
+        });
+      }
+
+      // Bulk insert valid records
+      try {
+        const result = await Course.insertMany(records, { ordered: false });
+        
+        logger.info('Bulk course import completed', { 
+          imported: result.length,
+          errors: errors.length,
+          importedBy: req.user.userId 
+        });
+
+        res.json({
+          success: true,
+          message: `Successfully imported ${result.length} courses`,
+          imported: result.length,
+          errors: errors.length > 0 ? errors : undefined
+        });
+      } catch (insertError) {
+        logger.error('Bulk course import error:', insertError);
+        res.status(500).json({
+          success: false,
+          message: 'Error importing courses',
+          errors: [insertError.message]
+        });
+      }
+    });
+
+  } catch (error) {
+    logger.error('Bulk import error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk import'
     });
   }
 });
@@ -762,6 +1159,176 @@ router.get('/statistics', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching statistics'
+    });
+  }
+});
+
+// ==================== EXPORT ROUTES ====================
+
+/**
+ * @route   GET /api/data/teachers/export
+ * @desc    Export teachers data as CSV
+ * @access  Private
+ */
+router.get('/teachers/export', async (req, res) => {
+  try {
+    const { format = 'csv' } = req.query;
+    
+    if (format !== 'csv') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only CSV format is currently supported'
+      });
+    }
+
+    const teachers = await Teacher.find({ status: 'active' });
+    
+    const csvData = teachers.map(teacher => ({
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone || '',
+      department: teacher.department,
+      designation: teacher.designation,
+      qualification: teacher.qualification || '',
+      experience: teacher.experience || '',
+      subjects: teacher.subjects ? teacher.subjects.join(', ') : '',
+      maxHoursPerWeek: teacher.maxHoursPerWeek,
+      availability: teacher.availability ? JSON.stringify(teacher.availability) : '',
+      priority: teacher.priority,
+      status: teacher.status
+    }));
+
+    csvStringify.stringify(csvData, { header: true }, (err, output) => {
+      if (err) {
+        logger.error('CSV generation error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error generating CSV'
+        });
+      }
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="teachers.csv"');
+      res.send(output);
+    });
+
+  } catch (error) {
+    logger.error('Error exporting teachers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while exporting teachers'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/classrooms/export
+ * @desc    Export classrooms data as CSV
+ * @access  Private
+ */
+router.get('/classrooms/export', async (req, res) => {
+  try {
+    const { format = 'csv' } = req.query;
+    
+    if (format !== 'csv') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only CSV format is currently supported'
+      });
+    }
+
+    const classrooms = await Classroom.find({ status: 'available' });
+    
+    const csvData = classrooms.map(classroom => ({
+      id: classroom.id,
+      name: classroom.name,
+      building: classroom.building,
+      floor: classroom.floor,
+      capacity: classroom.capacity,
+      type: classroom.type,
+      features: classroom.features ? classroom.features.join(', ') : '',
+      availability: classroom.availability ? JSON.stringify(classroom.availability) : '',
+      priority: classroom.priority,
+      status: classroom.status
+    }));
+
+    csvStringify.stringify(csvData, { header: true }, (err, output) => {
+      if (err) {
+        logger.error('CSV generation error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error generating CSV'
+        });
+      }
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="classrooms.csv"');
+      res.send(output);
+    });
+
+  } catch (error) {
+    logger.error('Error exporting classrooms:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while exporting classrooms'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/courses/export
+ * @desc    Export courses data as CSV
+ * @access  Private
+ */
+router.get('/courses/export', async (req, res) => {
+  try {
+    const { format = 'csv' } = req.query;
+    
+    if (format !== 'csv') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only CSV format is currently supported'
+      });
+    }
+
+    const courses = await Course.find({ isActive: true });
+    
+    const csvData = courses.map(course => ({
+      id: course.id,
+      name: course.name,
+      code: course.code,
+      department: course.department,
+      program: course.program,
+      year: course.year,
+      semester: course.semester,
+      credits: course.credits,
+      totalHoursPerWeek: course.totalHoursPerWeek,
+      enrolledStudents: course.enrolledStudents,
+      assignedTeachers: course.assignedTeachers ? course.assignedTeachers.map(t => t.teacherId).join(', ') : '',
+      requiredRoomType: course.requirements ? course.requirements.roomType : '',
+      isActive: course.isActive
+    }));
+
+    csvStringify.stringify(csvData, { header: true }, (err, output) => {
+      if (err) {
+        logger.error('CSV generation error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error generating CSV'
+        });
+      }
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="courses.csv"');
+      res.send(output);
+    });
+
+  } catch (error) {
+    logger.error('Error exporting courses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while exporting courses'
     });
   }
 });

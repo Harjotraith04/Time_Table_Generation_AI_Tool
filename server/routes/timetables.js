@@ -7,7 +7,7 @@ const Course = require('../models/Course');
 const Timetable = require('../models/Timetable');
 const OptimizationEngine = require('../algorithms/OptimizationEngine');
 const { authenticateToken } = require('./auth');
-const { logger } = require('../server');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 

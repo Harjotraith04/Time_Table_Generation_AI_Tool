@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { authenticateToken } = require('./auth');
-const { logger } = require('../server');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -24,6 +24,15 @@ import {
   Phone,
   GraduationCap
 } from 'lucide-react';
+import { 
+  getTeachers, 
+  createTeacher, 
+  updateTeacher, 
+  deleteTeacher, 
+  bulkImportTeachers,
+  uploadCSV,
+  exportData 
+} from '../services/api';
 
 const TeachersData = () => {
   const { user, logout } = useAuth();
@@ -55,50 +64,9 @@ const TeachersData = () => {
     priority: 'medium'
   });
 
-  const [teachers, setTeachers] = useState([
-    {
-      id: 'T001',
-      name: 'Dr. Sarah Johnson',
-      email: 'sarah.johnson@university.edu',
-      phone: '+1-555-0123',
-      department: 'Computer Science',
-      designation: 'Professor',
-      qualification: 'Ph.D. Computer Science',
-      experience: '12 years',
-      subjects: ['Data Structures', 'Algorithms', 'Machine Learning'],
-      maxHoursPerWeek: '20',
-      priority: 'high',
-      status: 'active'
-    },
-    {
-      id: 'T002',
-      name: 'Prof. Michael Chen',
-      email: 'michael.chen@university.edu',
-      phone: '+1-555-0124',
-      department: 'Computer Science',
-      designation: 'Associate Professor',
-      qualification: 'Ph.D. Software Engineering',
-      experience: '8 years',
-      subjects: ['Software Engineering', 'Database Systems', 'Web Development'],
-      maxHoursPerWeek: '18',
-      priority: 'high',
-      status: 'active'
-    },
-    {
-      id: 'T003',
-      name: 'Dr. Emily Rodriguez',
-      email: 'emily.rodriguez@university.edu',
-      phone: '+1-555-0125',
-      department: 'Mathematics',
-      designation: 'Assistant Professor',
-      qualification: 'Ph.D. Applied Mathematics',
-      experience: '5 years',
-      subjects: ['Calculus', 'Linear Algebra', 'Statistics'],
-      maxHoursPerWeek: '16',
-      priority: 'medium',
-      status: 'active'
-    }
-  ]);
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const departments = ['Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Engineering'];
   const designations = ['Professor', 'Associate Professor', 'Assistant Professor', 'Lecturer', 'Teaching Assistant'];
@@ -112,6 +80,25 @@ const TeachersData = () => {
   ];
 
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  // Load teachers data on component mount
+  useEffect(() => {
+    loadTeachers();
+  }, []);
+
+  const loadTeachers = async () => {
+    try {
+      setLoading(true);
+      const response = await getTeachers();
+      setTeachers(response.data || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading teachers:', err);
+      setError('Failed to load teachers data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBack = () => {
     navigate('/create-timetable');
@@ -150,18 +137,32 @@ const TeachersData = () => {
     setShowAddForm(true);
   };
 
-  const handleDeleteTeacher = (teacherId) => {
-    setTeachers(teachers.filter(t => t.id !== teacherId));
+  const handleDeleteTeacher = async (teacherId) => {
+    try {
+      await deleteTeacher(teacherId);
+      // Reload teachers after deletion
+      loadTeachers();
+    } catch (err) {
+      console.error('Error deleting teacher:', err);
+      alert('Failed to delete teacher: ' + err.message);
+    }
   };
 
-  const handleSaveTeacher = () => {
-    if (editingTeacher) {
-      setTeachers(teachers.map(t => t.id === editingTeacher ? teacherForm : t));
-    } else {
-      setTeachers([...teachers, { ...teacherForm, status: 'active' }]);
+  const handleSaveTeacher = async () => {
+    try {
+      if (editingTeacher) {
+        await updateTeacher(editingTeacher, teacherForm);
+      } else {
+        await createTeacher({ ...teacherForm, status: 'active' });
+      }
+      // Reload teachers after save
+      loadTeachers();
+      setShowAddForm(false);
+      setEditingTeacher(null);
+    } catch (err) {
+      console.error('Error saving teacher:', err);
+      alert('Failed to save teacher: ' + err.message);
     }
-    setShowAddForm(false);
-    setEditingTeacher(null);
   };
 
   const handleSubjectToggle = (subject) => {
@@ -190,6 +191,46 @@ const TeachersData = () => {
         }
       }
     });
+  };
+
+  const handleCSVImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const response = await uploadCSV(file, 'teachers');
+      if (response.success) {
+        alert(`Successfully imported ${response.imported} teachers. ${response.errors || 0} errors.`);
+        // Refresh the teachers list
+        window.location.reload();
+      } else {
+        alert('Failed to import CSV: ' + response.message);
+      }
+    } catch (error) {
+      console.error('CSV import error:', error);
+      alert('Error importing CSV file: ' + error.message);
+    }
+
+    // Clear the input
+    event.target.value = '';
+  };
+
+  const handleExport = async () => {
+    try {
+      const data = await exportData('teachers', 'csv');
+      const blob = new Blob([data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `teachers_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Error exporting data: ' + error.message);
+    }
   };
 
   const renderTeacherForm = () => (
@@ -407,10 +448,39 @@ const TeachersData = () => {
     </div>
   );
 
-  const renderTeachersList = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+  const renderTeachersList = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <div>
+              <h3 className="font-medium text-red-900 dark:text-red-100">Error Loading Teachers</h3>
+              <p className="text-red-700 dark:text-red-300">{error}</p>
+              <button 
+                onClick={loadTeachers}
+                className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
@@ -461,11 +531,20 @@ const TeachersData = () => {
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Teachers List</h3>
             <div className="flex space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+              <label className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer">
                 <Upload className="w-4 h-4" />
                 <span>Import CSV</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCSVImport}
+                  className="hidden"
+                />
+              </label>
+              <button 
+                onClick={handleExport}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
                 <Download className="w-4 h-4" />
                 <span>Export</span>
               </button>
@@ -494,8 +573,26 @@ const TeachersData = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {teachers.map((teacher) => (
-                <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              {teachers.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Teachers Found</h3>
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">Get started by adding your first teacher.</p>
+                      <button 
+                        onClick={handleAddTeacher}
+                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add First Teacher
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                teachers.map((teacher) => (
+                  <tr key={teacher.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -564,7 +661,8 @@ const TeachersData = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

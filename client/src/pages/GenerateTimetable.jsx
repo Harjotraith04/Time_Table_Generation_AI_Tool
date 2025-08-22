@@ -85,19 +85,26 @@ const GenerateTimetable = () => {
 
   const loadInitialData = async () => {
     try {
-      const [algorithmsData, constraintsData, goalsData, validationData] = await Promise.all([
+      const [algorithmsResponse, constraintsResponse, goalsResponse, validationResponse] = await Promise.all([
         getAlgorithms(),
         getConstraints(),
         getOptimizationGoals(),
         validateData()
       ]);
 
-      setAlgorithmsData(algorithmsData.algorithms || []);
-      setConstraintsData(constraintsData.constraints || []);
-      setOptimizationGoalsData(goalsData.goals || []);
-      setDataValidation(validationData);
+      setAlgorithmsData(algorithmsResponse.data?.algorithms || []);
+      setConstraintsData(constraintsResponse.data || {});
+      setOptimizationGoalsData(goalsResponse.data || []);
+      setDataValidation(validationResponse.data || {});
     } catch (error) {
       console.error('Error loading initial data:', error);
+      // Set default data structure if API fails
+      setDataValidation({
+        teachers: { status: 'unknown', count: 0, issues: 0 },
+        classrooms: { status: 'unknown', count: 0, issues: 0 },
+        courses: { status: 'unknown', count: 0, issues: 0 },
+        overall: { status: 'unknown', ready: false }
+      });
     }
   };
 
@@ -111,7 +118,8 @@ const GenerateTimetable = () => {
     { id: 7, name: 'Final Validation', description: 'Performing final quality checks' }
   ];
 
-  const algorithms = [
+  // Use algorithmsData and optimizationGoalsData from API
+  const algorithms = algorithmsData.length > 0 ? algorithmsData : [
     { 
       id: 'genetic', 
       name: 'Genetic Algorithm', 
@@ -120,22 +128,22 @@ const GenerateTimetable = () => {
       cons: ['Longer generation time', 'May need parameter tuning']
     },
     { 
-      id: 'backtracking', 
-      name: 'Backtracking', 
-      description: 'Fast and reliable for smaller datasets',
-      pros: ['Fast generation', 'Guaranteed solution', 'Simple'],
-      cons: ['May struggle with large datasets', 'Less optimization']
+      id: 'csp', 
+      name: 'CSP Solver', 
+      description: 'Fast and reliable constraint satisfaction',
+      pros: ['Fast generation', 'Guaranteed solution', 'Handles constraints well'],
+      cons: ['May struggle with optimization', 'Less flexible']
     },
     { 
-      id: 'simulated_annealing', 
-      name: 'Simulated Annealing', 
-      description: 'Good balance between speed and optimization',
-      pros: ['Good optimization', 'Handles local minima', 'Flexible'],
-      cons: ['Requires parameter tuning', 'Variable results']
+      id: 'hybrid', 
+      name: 'Hybrid CSP-GA', 
+      description: 'Best of both worlds - feasibility and optimization',
+      pros: ['High quality solutions', 'Robust performance', 'Adaptive'],
+      cons: ['More complex', 'Higher computation time']
     }
   ];
 
-  const optimizationGoals = [
+  const optimizationGoals = optimizationGoalsData.length > 0 ? optimizationGoalsData : [
     { id: 'minimize_conflicts', name: 'Minimize Conflicts', description: 'Reduce scheduling conflicts' },
     { id: 'balanced_schedule', name: 'Balanced Schedule', description: 'Distribute classes evenly' },
     { id: 'teacher_preferences', name: 'Teacher Preferences', description: 'Respect teacher availability' },
@@ -199,11 +207,13 @@ const GenerateTimetable = () => {
   const pollProgress = async (timetableId) => {
     const pollInterval = setInterval(async () => {
       try {
-        const progress = await getTimetableProgress(timetableId);
+        const response = await getTimetableProgress(timetableId);
+        const progress = response.data || response;
         setProgressData(progress);
 
         if (progress.progress) {
-          setGenerationStep(Math.min(progress.progress.generation / 100, generationSteps.length));
+          const percentage = progress.progress.percentage || 0;
+          setGenerationStep(Math.min((percentage / 100) * generationSteps.length, generationSteps.length));
         }
 
         if (progress.status === 'completed') {
@@ -211,7 +221,7 @@ const GenerateTimetable = () => {
           setIsGenerating(false);
           setGenerationComplete(true);
           setGenerationStep(generationSteps.length);
-        } else if (progress.status === 'draft') {
+        } else if (progress.status === 'draft' || progress.status === 'failed') {
           clearInterval(pollInterval);
           setIsGenerating(false);
           alert('Timetable generation failed. Please try again.');
@@ -220,6 +230,7 @@ const GenerateTimetable = () => {
         console.error('Error polling progress:', error);
         clearInterval(pollInterval);
         setIsGenerating(false);
+        alert('Error checking generation progress. Please try again.');
       }
     }, 2000); // Poll every 2 seconds
   };
@@ -256,47 +267,66 @@ const GenerateTimetable = () => {
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Validation Status</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(dataValidation).map(([key, data]) => (
+        {Object.entries(dataValidation).filter(([key]) => key !== 'overall').map(([key, data]) => (
           <div key={key} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div className="flex items-center space-x-3">
               <div className={`p-2 rounded-full ${
-                data.status === 'completed' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'
+                data.status === 'completed' ? 'bg-green-100 dark:bg-green-900' : 
+                data.status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-gray-100 dark:bg-gray-700'
               }`}>
                 {data.status === 'completed' ? (
                   <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                ) : (
+                ) : data.status === 'warning' ? (
                   <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                ) : (
+                  <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                 )}
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">
-                  {key.replace('_', ' ')}
+                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {data.count} items • {data.issues} issues
+                  {data.count || 0} items • {data.issues || 0} issues
                 </p>
               </div>
             </div>
             <span className={`px-2 py-1 text-xs rounded ${
               data.status === 'completed' 
                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                : data.status === 'warning'
+                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
             }`}>
-              {data.status}
+              {data.status || 'Unknown'}
             </span>
           </div>
         ))}
       </div>
       
-      {Object.values(dataValidation).some(d => d.issues > 0) && (
+      {Object.values(dataValidation).some(d => (d.issues || 0) > 0) && (
         <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
           <div className="flex items-start space-x-3">
             <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
             <div>
               <h4 className="font-medium text-yellow-900 dark:text-yellow-100 mb-1">Minor Issues Detected</h4>
               <p className="text-yellow-700 dark:text-yellow-300 text-sm">
-                Some minor issues were found in the course data. The timetable generation can proceed, 
+                Some minor issues were found in the data. The timetable generation can proceed, 
                 but you may want to review and fix these issues for optimal results.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {dataValidation.overall?.ready && (
+        <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="flex items-start space-x-3">
+            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-green-900 dark:text-green-100 mb-1">Ready for Generation</h4>
+              <p className="text-green-700 dark:text-green-300 text-sm">
+                All required data is validated and ready for timetable generation.
               </p>
             </div>
           </div>
@@ -669,7 +699,7 @@ const GenerateTimetable = () => {
                 </div>
                 <button
                   onClick={handleStartGeneration}
-                  disabled={Object.values(dataValidation).some(d => d.status !== 'completed')}
+                  disabled={!dataValidation.overall?.ready}
                   className="flex items-center space-x-2 px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-lg"
                 >
                   <Zap className="w-5 h-5" />

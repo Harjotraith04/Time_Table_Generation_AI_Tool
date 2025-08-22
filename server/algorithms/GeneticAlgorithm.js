@@ -1,4 +1,4 @@
-const { logger } = require('../server');
+const logger = require('../utils/logger');
 
 /**
  * Genetic Algorithm for Timetable Optimization

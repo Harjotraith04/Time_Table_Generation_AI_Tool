@@ -25,7 +25,8 @@ const courseSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    index: true
   },
   name: {
     type: String,
@@ -38,7 +39,8 @@ const courseSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    uppercase: true
+    uppercase: true,
+    index: true
   },
   department: {
     type: String,
@@ -141,8 +143,6 @@ const courseSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-courseSchema.index({ id: 1 });
-courseSchema.index({ code: 1 });
 courseSchema.index({ department: 1, year: 1, semester: 1 });
 courseSchema.index({ program: 1 });
 courseSchema.index({ 'assignedTeachers.teacherId': 1 });

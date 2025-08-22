@@ -11,7 +11,8 @@ const teacherSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    index: true
   },
   name: {
     type: String,
@@ -107,7 +108,6 @@ const teacherSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-teacherSchema.index({ id: 1 });
 teacherSchema.index({ department: 1 });
 teacherSchema.index({ status: 1 });
 teacherSchema.index({ subjects: 1 });

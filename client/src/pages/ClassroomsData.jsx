@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -25,6 +25,14 @@ import {
   Layers,
   Home
 } from 'lucide-react';
+import { 
+  getClassrooms, 
+  createClassroom, 
+  updateClassroom, 
+  deleteClassroom,
+  uploadCSV,
+  exportData 
+} from '../services/api';
 
 const ClassroomsData = () => {
   const { user, logout } = useAuth();
@@ -53,63 +61,9 @@ const ClassroomsData = () => {
     status: 'available'
   });
 
-  const [classrooms, setClassrooms] = useState([
-    {
-      id: 'R101',
-      name: 'Lecture Hall A',
-      building: 'Engineering Block',
-      floor: '1st Floor',
-      capacity: '120',
-      type: 'Lecture Hall',
-      features: ['Projector', 'Sound System', 'Air Conditioning', 'WiFi'],
-      priority: 'high',
-      status: 'available'
-    },
-    {
-      id: 'R201',
-      name: 'Computer Lab 1',
-      building: 'CS Building',
-      floor: '2nd Floor',
-      capacity: '40',
-      type: 'Computer Lab',
-      features: ['Computers', 'Projector', 'Air Conditioning', 'WiFi'],
-      priority: 'high',
-      status: 'available'
-    },
-    {
-      id: 'R102',
-      name: 'Tutorial Room B',
-      building: 'Engineering Block',
-      floor: '1st Floor',
-      capacity: '30',
-      type: 'Tutorial Room',
-      features: ['Whiteboard', 'Projector', 'Air Conditioning'],
-      priority: 'medium',
-      status: 'available'
-    },
-    {
-      id: 'L301',
-      name: 'Physics Lab',
-      building: 'Science Block',
-      floor: '3rd Floor',
-      capacity: '25',
-      type: 'Science Lab',
-      features: ['Lab Equipment', 'Safety Equipment', 'Ventilation', 'Storage'],
-      priority: 'high',
-      status: 'available'
-    },
-    {
-      id: 'R202',
-      name: 'Seminar Hall',
-      building: 'Main Building',
-      floor: '2nd Floor',
-      capacity: '80',
-      type: 'Seminar Hall',
-      features: ['Projector', 'Sound System', 'Air Conditioning', 'WiFi', 'Stage'],
-      priority: 'medium',
-      status: 'available'
-    }
-  ]);
+  const [classrooms, setClassrooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const buildings = ['Engineering Block', 'CS Building', 'Science Block', 'Main Building', 'Arts Building'];
   const floors = ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor'];
@@ -121,6 +75,25 @@ const ClassroomsData = () => {
   ];
 
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  // Load classrooms data on component mount
+  useEffect(() => {
+    loadClassrooms();
+  }, []);
+
+  const loadClassrooms = async () => {
+    try {
+      setLoading(true);
+      const response = await getClassrooms();
+      setClassrooms(response.data || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading classrooms:', err);
+      setError('Failed to load classrooms data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBack = () => {
     navigate('/teachers-data');
@@ -157,18 +130,32 @@ const ClassroomsData = () => {
     setShowAddForm(true);
   };
 
-  const handleDeleteRoom = (roomId) => {
-    setClassrooms(classrooms.filter(r => r.id !== roomId));
+  const handleDeleteRoom = async (roomId) => {
+    try {
+      await deleteClassroom(roomId);
+      // Reload classrooms after deletion
+      loadClassrooms();
+    } catch (err) {
+      console.error('Error deleting classroom:', err);
+      alert('Failed to delete classroom: ' + err.message);
+    }
   };
 
-  const handleSaveRoom = () => {
-    if (editingRoom) {
-      setClassrooms(classrooms.map(r => r.id === editingRoom ? roomForm : r));
-    } else {
-      setClassrooms([...classrooms, roomForm]);
+  const handleSaveRoom = async () => {
+    try {
+      if (editingRoom) {
+        await updateClassroom(editingRoom, roomForm);
+      } else {
+        await createClassroom(roomForm);
+      }
+      // Reload classrooms after save
+      loadClassrooms();
+      setShowAddForm(false);
+      setEditingRoom(null);
+    } catch (err) {
+      console.error('Error saving classroom:', err);
+      alert('Failed to save classroom: ' + err.message);
     }
-    setShowAddForm(false);
-    setEditingRoom(null);
   };
 
   const handleFeatureToggle = (feature) => {
@@ -412,10 +399,39 @@ const ClassroomsData = () => {
     </div>
   );
 
-  const renderRoomsList = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+  const renderRoomsList = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <div>
+              <h3 className="font-medium text-red-900 dark:text-red-100">Error Loading Classrooms</h3>
+              <p className="text-red-700 dark:text-red-300">{error}</p>
+              <button 
+                onClick={loadClassrooms}
+                className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
@@ -499,10 +515,28 @@ const ClassroomsData = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {classrooms.map((room) => {
-                const RoomIcon = getRoomTypeIcon(room.type);
-                return (
-                  <tr key={room.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              {classrooms.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Classrooms Found</h3>
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">Get started by adding your first classroom.</p>
+                      <button 
+                        onClick={handleAddRoom}
+                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add First Room
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                classrooms.map((room) => {
+                  const RoomIcon = getRoomTypeIcon(room.type);
+                  return (
+                    <tr key={room.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -577,8 +611,9 @@ const ClassroomsData = () => {
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

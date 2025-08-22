@@ -11,7 +11,8 @@ const classroomSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    index: true
   },
   name: {
     type: String,
@@ -93,7 +94,6 @@ const classroomSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-classroomSchema.index({ id: 1 });
 classroomSchema.index({ building: 1, floor: 1 });
 classroomSchema.index({ type: 1 });
 classroomSchema.index({ capacity: 1 });
