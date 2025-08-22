@@ -1,0 +1,4 @@
+id,name,building,floor,capacity,type,features,suitableFor
+B101,Room B101,Science Building,2nd Floor,25,Science Lab,"Lab Equipment,Safety Equipment","Practical,Workshop"
+B102,Room B102,Science Building,2nd Floor,20,Computer Lab,"Computers,Projector","Practical,Theory"
+C201,Room C201,Arts Building,3rd Floor,40,Lecture Hall,"Projector,Sound System","Theory,Seminar"
