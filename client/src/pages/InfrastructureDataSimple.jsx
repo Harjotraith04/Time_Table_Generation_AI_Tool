@@ -38,7 +38,13 @@ const InfrastructureData = () => {
     preferredClassroomUtilization: 80,
     allowBackToBackLabs: false,
     prioritizeTeacherPreferences: true,
-    allowSplitSessions: false
+    allowSplitSessions: false,
+    maxStudentsPerClass: 60,
+    minRoomCapacityBuffer: 10,
+    allowOverlappingLabs: false,
+    prioritizeCoreBefore: true,
+    avoidFirstLastPeriod: false,
+    requireLabAssistant: true
   });
 
   const [workingHours, setWorkingHours] = useState({
@@ -48,7 +54,11 @@ const InfrastructureData = () => {
     lunchBreakEnd: '13:30',
     periodDuration: 50,
     breakDuration: 10,
-    labPeriodDuration: 120
+    labPeriodDuration: 120,
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxPeriodsPerDay: 8,
+    earlyMorningStart: '08:00',
+    eveningEndTime: '18:00'
   });
 
   const [holidays, setHolidays] = useState([
@@ -89,6 +99,17 @@ const InfrastructureData = () => {
     totalWeeks: 16,
     examWeeks: 2,
     vacationWeeks: 4
+  });
+
+  const [constraintRules, setConstraintRules] = useState({
+    minGapBetweenExams: 2,
+    maxSubjectsPerDay: 6,
+    preferMorningLabs: true,
+    avoidFridayAfternoon: true,
+    balanceWorkload: true,
+    groupSimilarSubjects: false,
+    maintainTeacherContinuity: true,
+    prioritizePopularSlots: false
   });
 
   const [holidayForm, setHolidayForm] = useState({
@@ -145,6 +166,10 @@ const InfrastructureData = () => {
 
   const handleCalendarChange = (key, value) => {
     setAcademicCalendar(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleConstraintChange = (key, value) => {
+    setConstraintRules(prev => ({ ...prev, [key]: value }));
   };
 
   const renderHolidayForm = () => (
@@ -398,6 +423,16 @@ const InfrastructureData = () => {
               >
                 Holidays & Events
               </button>
+              <button
+                onClick={() => setActiveTab('constraints')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'constraints'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                Advanced Constraints
+              </button>
             </nav>
           </div>
 
@@ -463,6 +498,34 @@ const InfrastructureData = () => {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Maximum Students Per Class
+                    </label>
+                    <input
+                      type="number"
+                      value={generalPolicies.maxStudentsPerClass}
+                      onChange={(e) => handlePolicyChange('maxStudentsPerClass', parseInt(e.target.value))}
+                      min="20"
+                      max="100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Room Capacity Buffer (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={generalPolicies.minRoomCapacityBuffer}
+                      onChange={(e) => handlePolicyChange('minRoomCapacityBuffer', parseInt(e.target.value))}
+                      min="5"
+                      max="25"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -502,6 +565,58 @@ const InfrastructureData = () => {
                     />
                     <label htmlFor="allowSplitSessions" className="text-sm text-gray-700 dark:text-gray-300">
                       Allow split course sessions across different days
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="allowOverlappingLabs"
+                      checked={generalPolicies.allowOverlappingLabs}
+                      onChange={(e) => handlePolicyChange('allowOverlappingLabs', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="allowOverlappingLabs" className="text-sm text-gray-700 dark:text-gray-300">
+                      Allow overlapping lab sessions for different batches
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="prioritizeCoreBefore"
+                      checked={generalPolicies.prioritizeCoreBefore}
+                      onChange={(e) => handlePolicyChange('prioritizeCoreBefore', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="prioritizeCoreBefore" className="text-sm text-gray-700 dark:text-gray-300">
+                      Schedule core subjects before electives
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="avoidFirstLastPeriod"
+                      checked={generalPolicies.avoidFirstLastPeriod}
+                      onChange={(e) => handlePolicyChange('avoidFirstLastPeriod', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="avoidFirstLastPeriod" className="text-sm text-gray-700 dark:text-gray-300">
+                      Avoid scheduling in first and last periods when possible
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="requireLabAssistant"
+                      checked={generalPolicies.requireLabAssistant}
+                      onChange={(e) => handlePolicyChange('requireLabAssistant', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="requireLabAssistant" className="text-sm text-gray-700 dark:text-gray-300">
+                      Require lab assistant availability for lab sessions
                     </label>
                   </div>
                 </div>
@@ -595,6 +710,39 @@ const InfrastructureData = () => {
                       />
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max Periods Per Day</label>
+                      <input
+                        type="number"
+                        value={workingHours.maxPeriodsPerDay}
+                        onChange={(e) => handleWorkingHoursChange('maxPeriodsPerDay', parseInt(e.target.value))}
+                        min="6"
+                        max="10"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Working Days</label>
+                      <select
+                        multiple
+                        value={workingHours.workingDays}
+                        onChange={(e) => {
+                          const selectedDays = Array.from(e.target.selectedOptions, option => option.value);
+                          handleWorkingHoursChange('workingDays', selectedDays);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
@@ -619,6 +767,14 @@ const InfrastructureData = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Lab Duration:</span>
                       <span className="text-gray-900 dark:text-white">{workingHours.labPeriodDuration} minutes</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Max Periods/Day:</span>
+                      <span className="text-gray-900 dark:text-white">{workingHours.maxPeriodsPerDay}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Working Days:</span>
+                      <span className="text-gray-900 dark:text-white">{workingHours.workingDays.length} days</span>
                     </div>
                   </div>
                 </div>
@@ -798,6 +954,134 @@ const InfrastructureData = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Advanced Constraints Tab */}
+          {activeTab === 'constraints' && (
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Advanced Scheduling Constraints</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Minimum Gap Between Exams (days)
+                    </label>
+                    <input
+                      type="number"
+                      value={constraintRules.minGapBetweenExams}
+                      onChange={(e) => handleConstraintChange('minGapBetweenExams', parseInt(e.target.value))}
+                      min="1"
+                      max="7"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Maximum Subjects Per Day
+                    </label>
+                    <input
+                      type="number"
+                      value={constraintRules.maxSubjectsPerDay}
+                      onChange={(e) => handleConstraintChange('maxSubjectsPerDay', parseInt(e.target.value))}
+                      min="4"
+                      max="8"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="preferMorningLabs"
+                      checked={constraintRules.preferMorningLabs}
+                      onChange={(e) => handleConstraintChange('preferMorningLabs', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="preferMorningLabs" className="text-sm text-gray-700 dark:text-gray-300">
+                      Prefer scheduling labs in morning hours
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="avoidFridayAfternoon"
+                      checked={constraintRules.avoidFridayAfternoon}
+                      onChange={(e) => handleConstraintChange('avoidFridayAfternoon', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="avoidFridayAfternoon" className="text-sm text-gray-700 dark:text-gray-300">
+                      Avoid Friday afternoon scheduling when possible
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="balanceWorkload"
+                      checked={constraintRules.balanceWorkload}
+                      onChange={(e) => handleConstraintChange('balanceWorkload', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="balanceWorkload" className="text-sm text-gray-700 dark:text-gray-300">
+                      Balance daily workload across the week
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="groupSimilarSubjects"
+                      checked={constraintRules.groupSimilarSubjects}
+                      onChange={(e) => handleConstraintChange('groupSimilarSubjects', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="groupSimilarSubjects" className="text-sm text-gray-700 dark:text-gray-300">
+                      Group similar subjects on same day
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="maintainTeacherContinuity"
+                      checked={constraintRules.maintainTeacherContinuity}
+                      onChange={(e) => handleConstraintChange('maintainTeacherContinuity', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="maintainTeacherContinuity" className="text-sm text-gray-700 dark:text-gray-300">
+                      Maintain teacher continuity in sequential periods
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="prioritizePopularSlots"
+                      checked={constraintRules.prioritizePopularSlots}
+                      onChange={(e) => handleConstraintChange('prioritizePopularSlots', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="prioritizePopularSlots" className="text-sm text-gray-700 dark:text-gray-300">
+                      Prioritize popular time slots for core subjects
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Constraint Summary</h4>
+                <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                  <p>• Active constraints will be considered during timetable generation</p>
+                  <p>• These rules help optimize the schedule for better learning outcomes</p>
+                  <p>• Conflicts between constraints will be resolved based on priority</p>
+                </div>
               </div>
             </div>
           )}

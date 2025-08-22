@@ -11,7 +11,7 @@ import CreateTimetable from './pages/CreateTimetable';
 import TeachersData from './pages/TeachersDataFull';
 import ClassroomsData from './pages/ClassroomsDataFull';
 import ProgramsData from './pages/ProgramsDataFull';
-// import InfrastructureData from './pages/InfrastructureDataSimple';
+import InfrastructureData from './pages/InfrastructureDataSimple';
 // import GenerateTimetable from './pages/GenerateTimetable';
 // import ViewTimetable from './pages/ViewTimetable';
 
@@ -118,23 +118,15 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
-        {/* TODO: Uncomment when other pages are fixed
-        <Route 
-          path="/programs-data" 
-          element={
-            <ProtectedRoute allowedRole="admin">
-              <ProgramsData />
-            </ProtectedRoute>
-          } 
-        />
         <Route 
           path="/infrastructure-data" 
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={["admin", "faculty"]}>
               <InfrastructureData />
             </ProtectedRoute>
           } 
         />
+        {/* TODO: Uncomment when other pages are fixed
         <Route 
           path="/generate-timetable" 
           element={
