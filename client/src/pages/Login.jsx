@@ -17,8 +17,7 @@ import {
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    userType: 'student'
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,44 +33,33 @@ const Login = () => {
     }));
   };
 
-  const handleUserTypeChange = (userType) => {
-    setFormData(prev => ({
-      ...prev,
-      userType
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Dummy authentication - accept any email/password
-    if (formData.email && formData.password) {
-      const userData = {
-        id: Date.now(),
+    try {
+      const result = await login({
         email: formData.email,
-        name: formData.email.split('@')[0], // Use email prefix as name
-        userType: formData.userType,
-        avatar: `https://ui-avatars.com/api/?name=${formData.email.split('@')[0]}&background=random`
-      };
+        password: formData.password
+      });
 
-      login(userData);
-      
-      // Navigate based on user type
-      if (formData.userType === 'admin') {
-        navigate('/admin-dashboard');
+      if (result.success) {
+        // Navigate based on user role from server response
+        if (result.user.role === 'admin' || result.user.role === 'faculty') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/student-dashboard');
+        }
       } else {
-        navigate('/student-dashboard');
+        setError(result.message || 'Login failed. Please check your credentials.');
       }
-    } else {
-      setError('Please fill in all fields');
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -96,40 +84,6 @@ const Login = () => {
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-          {/* User Type Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select User Type
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleUserTypeChange('student')}
-                className={`p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center space-y-2 ${
-                  formData.userType === 'student'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                }`}
-              >
-                <GraduationCap className="w-6 h-6" />
-                <span className="text-sm font-medium">Student</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => handleUserTypeChange('admin')}
-                className={`p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center space-y-2 ${
-                  formData.userType === 'admin'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                }`}
-              >
-                <Shield className="w-6 h-6" />
-                <span className="text-sm font-medium">Admin</span>
-              </button>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
@@ -187,14 +141,13 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Demo Credentials */}
+          {/* Demo Information */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Authentication:</h4>
             <div className="space-y-1 text-xs text-gray-600">
-              <p><strong>Email:</strong> any@email.com</p>
-              <p><strong>Password:</strong> any password</p>
+              <p>Use your registered email and password to sign in.</p>
               <p className="text-xs text-gray-500 mt-2">
-                Select your user type above and use any email/password combination
+                Your role (admin, faculty, or student) will be determined automatically.
               </p>
             </div>
           </div>
@@ -205,10 +158,18 @@ const Login = () => {
           <p className="text-sm text-gray-600">
             Don't have an account?{' '}
             <button 
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/register')}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Go back to landing
+              Sign up here
+            </button>
+          </p>
+          <p className="text-sm text-gray-600 mt-2">
+            <button 
+              onClick={() => navigate('/')}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ← Back to landing page
             </button>
           </p>
         </div>

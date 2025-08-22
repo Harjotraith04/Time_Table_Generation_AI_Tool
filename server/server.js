@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+// const rateLimit = require('express-rate-limit'); // Disabled for development
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
@@ -19,7 +19,11 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      process.env.CLIENT_URL
+    ].filter(Boolean),
     methods: ["GET", "POST"]
   }
 });
@@ -27,17 +31,30 @@ const io = new Server(server, {
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173", 
+    process.env.CLIENT_URL
+  ].filter(Boolean),
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
+// Rate limiting disabled for development
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Higher limit for development
+//   message: {
+//     success: false,
+//     message: 'Too many requests from this IP, please try again later.'
+//   },
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   skip: (req) => {
+//     // Skip rate limiting for development if needed
+//     return process.env.NODE_ENV === 'development' && process.env.SKIP_RATE_LIMIT === 'true';
+//   }
+// });
+// app.use('/api/', limiter); // Disabled for development
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
