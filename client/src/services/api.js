@@ -104,6 +104,11 @@ export const getTeachers = async (params = {}) => {
   return response.data
 }
 
+export const getTeacher = async (id) => {
+  const response = await api.get(`/data/teachers/${id}`)
+  return response.data
+}
+
 export const createTeacher = async (teacherData) => {
   const response = await api.post('/data/teachers', teacherData)
   return response.data
@@ -119,8 +124,15 @@ export const deleteTeacher = async (id) => {
   return response.data
 }
 
-export const bulkImportTeachers = async (teachers) => {
-  const response = await api.post('/data/teachers/bulk-import', { teachers })
+export const bulkImportTeachers = async (file) => {
+  const formData = new FormData()
+  formData.append('csv', file)
+  
+  const response = await api.post('/data/teachers/bulk-import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
   return response.data
 }
 
