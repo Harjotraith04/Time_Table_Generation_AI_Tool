@@ -34,7 +34,18 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isFirstLogin: {
+    type: Boolean,
+    default: true
+  },
+  mustChangePassword: {
+    type: Boolean,
+    default: false
+  },
   lastLogin: {
+    type: Date
+  },
+  passwordChangedAt: {
     type: Date
   },
   preferences: {
@@ -59,6 +70,13 @@ userSchema.pre('save', async function(next) {
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
+    
+    // Track password change
+    if (!this.isNew) {
+      this.passwordChangedAt = new Date();
+      this.mustChangePassword = false;
+    }
+    
     next();
   } catch (error) {
     next(error);

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const emailService = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -163,8 +164,11 @@ router.post('/login', [
       });
     }
 
-    // Update last login
+    // Update last login and first login status
     user.lastLogin = new Date();
+    if (user.isFirstLogin) {
+      user.isFirstLogin = false;
+    }
     await user.save();
 
     // Generate JWT token
@@ -190,7 +194,9 @@ router.post('/login', [
         email: user.email,
         role: user.role,
         department: user.department,
-        preferences: user.preferences
+        preferences: user.preferences,
+        mustChangePassword: user.mustChangePassword,
+        isFirstLogin: user.isFirstLogin
       }
     });
 
@@ -397,17 +403,108 @@ router.put('/change-password', authenticateToken, [
 
     // Update password
     user.password = newPassword;
+    user.isFirstLogin = false;
+    user.mustChangePassword = false;
     await user.save();
 
-    logger.info('User password changed', { userId: user._id });
+    // Send password change confirmation email
+    const emailSent = await emailService.sendPasswordChangeConfirmation({
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+
+    logger.info('User password changed', { 
+      userId: user._id, 
+      emailSent: emailSent 
+    });
 
     res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Password changed successfully',
+      emailSent
     });
 
   } catch (error) {
     logger.error('Password change error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while changing password'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/auth/first-time-password-change
+ * @desc    Change password for first-time users (no current password required)
+ * @access  Private
+ */
+router.put('/first-time-password-change', authenticateToken, [
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long'),
+  body('confirmPassword')
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Password confirmation does not match');
+      }
+      return true;
+    })
+], async (req, res) => {
+  try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { newPassword } = req.body;
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Only allow this for users who must change their password
+    if (!user.mustChangePassword && !user.isFirstLogin) {
+      return res.status(403).json({
+        success: false,
+        message: 'This endpoint is only for first-time password changes'
+      });
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.isFirstLogin = false;
+    user.mustChangePassword = false;
+    await user.save();
+
+    // Send password change confirmation email
+    const emailSent = await emailService.sendPasswordChangeConfirmation({
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+
+    logger.info('First-time password changed', { 
+      userId: user._id,
+      emailSent: emailSent 
+    });
+
+    res.json({
+      success: true,
+      message: 'Password set successfully. You can now use all features of the system.',
+      emailSent
+    });
+
+  } catch (error) {
+    logger.error('First-time password change error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error while changing password'

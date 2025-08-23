@@ -155,24 +155,65 @@ router.post('/teachers', [
       });
     }
 
-    // Check if email already exists
-    const existingEmail = await Teacher.findOne({ email: req.body.email });
-    if (existingEmail) {
+    // Check if email already exists in Teacher collection
+    const existingTeacherEmail = await Teacher.findOne({ email: req.body.email });
+    if (existingTeacherEmail) {
       return res.status(400).json({
         success: false,
         message: 'Teacher with this email already exists'
       });
     }
 
+    // Check if email already exists in User collection
+    const existingUser = await User.findOne({ email: req.body.email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Generate temporary password
+    const tempPassword = emailService.generateSecurePassword(10);
+
+    // Create Teacher record
     const teacher = new Teacher(req.body);
     await teacher.save();
 
-    logger.info('Teacher created', { teacherId: teacher.id, createdBy: req.user.userId });
+    // Create User account for teacher
+    const userAccount = new User({
+      name: teacher.name,
+      email: teacher.email,
+      password: tempPassword,
+      role: 'faculty',
+      department: teacher.department,
+      isFirstLogin: true,
+      mustChangePassword: true
+    });
+    await userAccount.save();
+
+    // Send credentials email
+    const emailSent = await emailService.sendTeacherCredentials(teacher, tempPassword);
+
+    logger.info('Teacher and user account created', { 
+      teacherId: teacher.id, 
+      userId: userAccount._id,
+      emailSent,
+      createdBy: req.user.userId 
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Teacher created successfully',
-      data: teacher
+      message: `Teacher created successfully${emailSent ? ' and credentials sent via email' : ' (email sending failed)'}`,
+      data: {
+        teacher,
+        userAccount: {
+          id: userAccount._id,
+          email: userAccount.email,
+          role: userAccount.role
+        },
+        emailSent
+      }
     });
 
   } catch (error) {
@@ -379,6 +420,168 @@ router.post('/teachers/bulk-import', upload.single('csv'), async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error during bulk import'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/teachers/bulk-create
+ * @desc    Create multiple teachers with user accounts and send credentials
+ * @access  Private
+ */
+router.post('/teachers/bulk-create', [
+  body('teachers').isArray({ min: 1 }).withMessage('Teachers array is required'),
+  body('teachers.*.id').notEmpty().trim(),
+  body('teachers.*.name').notEmpty().trim(),
+  body('teachers.*.email').isEmail().normalizeEmail(),
+  body('teachers.*.department').notEmpty().trim(),
+  body('teachers.*.designation').isIn(['Professor', 'Associate Professor', 'Assistant Professor', 'Lecturer', 'Teaching Assistant']),
+  body('sendCredentials').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { teachers, sendCredentials = false } = req.body;
+    const results = {
+      created: [],
+      failed: [],
+      userAccountsCreated: []
+    };
+
+    for (const teacherData of teachers) {
+      try {
+        // Check if teacher already exists
+        const existingTeacher = await Teacher.findOne({
+          $or: [
+            { id: teacherData.id },
+            { email: teacherData.email }
+          ]
+        });
+
+        if (existingTeacher) {
+          results.failed.push({
+            teacherId: teacherData.id,
+            email: teacherData.email,
+            reason: 'Teacher already exists'
+          });
+          continue;
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: teacherData.email });
+        if (existingUser) {
+          results.failed.push({
+            teacherId: teacherData.id,
+            email: teacherData.email,
+            reason: 'User account already exists'
+          });
+          continue;
+        }
+
+        // Create teacher
+        const teacher = new Teacher(teacherData);
+        await teacher.save();
+        results.created.push(teacher);
+
+        // Create user account if requested
+        if (sendCredentials) {
+          try {
+            const tempPassword = emailService.generateSecurePassword(10);
+            
+            const userData = {
+              name: teacherData.name,
+              email: teacherData.email,
+              password: tempPassword,
+              role: 'faculty',
+              department: teacherData.department,
+              isFirstLogin: true,
+              mustChangePassword: true
+            };
+
+            const user = new User(userData);
+            await user.save();
+
+            const credentialData = {
+              teacherId: teacherData.id,
+              email: teacherData.email,
+              tempPassword: tempPassword,
+              userId: user._id
+            };
+
+            results.userAccountsCreated.push(credentialData);
+
+            // Send credentials email
+            const emailSent = await emailService.sendTeacherCredentials(teacherData, tempPassword);
+            
+            if (emailSent) {
+              logger.info(`Credentials email sent to teacher: ${teacherData.id}`);
+            } else {
+              logger.warn(`Failed to send credentials email to teacher: ${teacherData.id}`);
+            }
+
+          } catch (userError) {
+            logger.error(`Failed to create user account for teacher ${teacherData.id}:`, userError);
+            results.failed.push({
+              teacherId: teacherData.id,
+              email: teacherData.email,
+              reason: `User account creation failed: ${userError.message}`
+            });
+          }
+        }
+
+      } catch (error) {
+        results.failed.push({
+          teacherId: teacherData.id,
+          email: teacherData.email,
+          reason: error.message
+        });
+      }
+    }
+
+    logger.info(`Bulk teacher creation completed: ${results.created.length} created, ${results.failed.length} failed`);
+
+    // Send summary email to admin if there were successful account creations
+    if (results.userAccountsCreated.length > 0) {
+      try {
+        const adminUser = await User.findById(req.user.userId);
+        const adminEmail = adminUser ? adminUser.email : req.user.email;
+        
+        // Adapt the summary for teachers
+        const teacherSummary = results.userAccountsCreated.map(account => ({
+          studentId: account.teacherId, // Reuse the field name for consistency
+          email: account.email,
+          tempPassword: account.tempPassword
+        }));
+        
+        const emailSent = await emailService.sendBulkCreationSummary(teacherSummary, adminEmail);
+        if (emailSent) {
+          logger.info(`Bulk teacher creation summary email sent to admin: ${adminEmail}`);
+        } else {
+          logger.warn('Failed to send bulk teacher creation summary email to admin');
+        }
+      } catch (emailError) {
+        logger.error('Failed to send bulk teacher creation summary email:', emailError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Bulk operation completed: ${results.created.length} teachers created, ${results.failed.length} failed`,
+      data: results
+    });
+
+  } catch (error) {
+    logger.error('Error in bulk teacher creation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk teacher creation'
     });
   }
 });
@@ -1447,7 +1650,7 @@ router.post('/students', [
       });
     }
 
-    // Check if student ID or email already exists
+    // Check if student ID or email already exists in Student collection
     const existingStudent = await Student.findOne({
       $or: [
         { studentId: req.body.studentId },
@@ -1462,15 +1665,70 @@ router.post('/students', [
       });
     }
 
+    // Check if email already exists in User collection
+    const existingUser = await User.findOne({ email: req.body.personalInfo.email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Generate temporary password
+    const tempPassword = emailService.generateSecurePassword(10);
+
+    // Create Student record
     const student = new Student(req.body);
     await student.save();
 
-    logger.info(`Student created: ${student.studentId} by user ${req.user.id}`);
+    // Create User account for student
+    const userAccount = new User({
+      name: `${student.personalInfo.firstName} ${student.personalInfo.lastName}`,
+      email: student.personalInfo.email,
+      password: tempPassword,
+      role: 'student',
+      department: student.academicInfo.department,
+      isFirstLogin: true,
+      mustChangePassword: true
+    });
+    await userAccount.save();
+
+    // Prepare student data for email
+    const studentEmailData = {
+      studentId: student.studentId,
+      firstName: student.personalInfo.firstName,
+      lastName: student.personalInfo.lastName,
+      email: student.personalInfo.email,
+      rollNumber: student.academicInfo.rollNumber,
+      department: student.academicInfo.department,
+      program: student.academicInfo.program,
+      year: student.academicInfo.year,
+      semester: student.academicInfo.semester,
+      division: student.academicInfo.division,
+      batch: student.academicInfo.batch
+    };
+
+    // Send credentials email
+    const emailSent = await emailService.sendStudentCredentials(studentEmailData, tempPassword);
+
+    logger.info(`Student and user account created: ${student.studentId} by user ${req.user.userId}`, {
+      studentId: student.studentId,
+      userId: userAccount._id,
+      emailSent
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Student created successfully',
-      data: { student }
+      message: `Student created successfully${emailSent ? ' and credentials sent via email' : ' (email sending failed)'}`,
+      data: { 
+        student,
+        userAccount: {
+          id: userAccount._id,
+          email: userAccount.email,
+          role: userAccount.role
+        },
+        emailSent
+      }
     });
 
   } catch (error) {
@@ -1554,15 +1812,28 @@ router.post('/students/bulk-create', [
         // Create user account if requested
         if (sendCredentials) {
           try {
-            // Generate a temporary password
-            const tempPassword = Math.random().toString(36).slice(-8);
+            // Check if user already exists
+            const existingUser = await User.findOne({ email: studentData.personalInfo.email });
+            if (existingUser) {
+              results.failed.push({
+                studentId: studentData.studentId,
+                email: studentData.personalInfo.email,
+                reason: 'User account already exists'
+              });
+              continue;
+            }
+
+            // Generate a secure temporary password
+            const tempPassword = emailService.generateSecurePassword(10);
             
             const userData = {
               name: `${studentData.personalInfo.firstName} ${studentData.personalInfo.lastName}`,
               email: studentData.personalInfo.email,
               password: tempPassword,
               role: 'student',
-              department: studentData.academicInfo.department
+              department: studentData.academicInfo.department,
+              isFirstLogin: true,
+              mustChangePassword: true
             };
 
             const user = new User(userData);
@@ -1571,32 +1842,31 @@ router.post('/students/bulk-create', [
             const credentialData = {
               studentId: studentData.studentId,
               email: studentData.personalInfo.email,
-              tempPassword: tempPassword
+              tempPassword: tempPassword,
+              userId: user._id
             };
 
             results.userAccountsCreated.push(credentialData);
 
-            // Send email with credentials if email service is configured
-            if (emailService.isConfigured()) {
-              try {
-                await emailService.sendStudentCredentials({
-                  studentId: studentData.studentId,
-                  firstName: studentData.personalInfo.firstName,
-                  lastName: studentData.personalInfo.lastName,
-                  email: studentData.personalInfo.email,
-                  rollNumber: studentData.academicInfo.rollNumber,
-                  department: studentData.academicInfo.department,
-                  program: studentData.academicInfo.program,
-                  year: studentData.academicInfo.year,
-                  semester: studentData.academicInfo.semester,
-                  division: studentData.academicInfo.division,
-                  batch: studentData.academicInfo.batch
-                }, tempPassword);
-                
-                logger.info(`Credentials email sent to student: ${studentData.studentId}`);
-              } catch (emailError) {
-                logger.error(`Failed to send email to student ${studentData.studentId}:`, emailError);
-              }
+            // Send email with credentials
+            const emailSent = await emailService.sendStudentCredentials({
+              studentId: studentData.studentId,
+              firstName: studentData.personalInfo.firstName,
+              lastName: studentData.personalInfo.lastName,
+              email: studentData.personalInfo.email,
+              rollNumber: studentData.academicInfo.rollNumber,
+              department: studentData.academicInfo.department,
+              program: studentData.academicInfo.program,
+              year: studentData.academicInfo.year,
+              semester: studentData.academicInfo.semester,
+              division: studentData.academicInfo.division,
+              batch: studentData.academicInfo.batch
+            }, tempPassword);
+            
+            if (emailSent) {
+              logger.info(`Credentials email sent to student: ${studentData.studentId}`);
+            } else {
+              logger.warn(`Failed to send credentials email to student: ${studentData.studentId}`);
             }
 
           } catch (userError) {
@@ -1616,10 +1886,17 @@ router.post('/students/bulk-create', [
     logger.info(`Bulk student creation completed: ${results.created.length} created, ${results.failed.length} failed`);
 
     // Send summary email to admin if there were successful account creations
-    if (results.userAccountsCreated.length > 0 && emailService.isConfigured()) {
+    if (results.userAccountsCreated.length > 0) {
       try {
-        await emailService.sendBulkCreationSummary(results.userAccountsCreated, req.user.email);
-        logger.info(`Bulk creation summary email sent to admin: ${req.user.email}`);
+        const adminUser = await User.findById(req.user.userId);
+        const adminEmail = adminUser ? adminUser.email : req.user.email;
+        
+        const emailSent = await emailService.sendBulkCreationSummary(results.userAccountsCreated, adminEmail);
+        if (emailSent) {
+          logger.info(`Bulk creation summary email sent to admin: ${adminEmail}`);
+        } else {
+          logger.warn('Failed to send bulk creation summary email to admin');
+        }
       } catch (emailError) {
         logger.error('Failed to send bulk creation summary email:', emailError);
       }
