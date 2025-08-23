@@ -35,9 +35,10 @@ const CreateTimetable = () => {
   const steps = [
     { id: 1, title: 'Basic Information', icon: FileText },
     { id: 2, title: 'Teachers Data', icon: Users },
-    { id: 3, title: 'Classrooms & Labs', icon: Building2 },
-    { id: 4, title: 'Programs & Courses', icon: BookOpen },
-    { id: 5, title: 'Infrastructure & Policy', icon: Settings }
+    { id: 3, title: 'Students Data', icon: GraduationCap },
+    { id: 4, title: 'Classrooms & Labs', icon: Building2 },
+    { id: 5, title: 'Programs & Courses', icon: BookOpen },
+    { id: 6, title: 'Infrastructure & Policy', icon: Settings }
   ];
 
   const dataCategories = [
@@ -50,6 +51,16 @@ const CreateTimetable = () => {
       route: '/teachers-data',
       status: 'pending',
       items: ['Teacher Profiles', 'Subject Assignments', 'Availability & Priority', 'Teaching Hours per Week']
+    },
+    {
+      id: 'students',
+      title: 'Students Data',
+      description: 'Manage student profiles, enrollment, and academic information',
+      icon: GraduationCap,
+      color: 'indigo',
+      route: '/student-management',
+      status: 'pending',
+      items: ['Student Profiles', 'Academic Information', 'Division & Batch Assignment', 'Course Enrollment']
     },
     {
       id: 'classrooms',

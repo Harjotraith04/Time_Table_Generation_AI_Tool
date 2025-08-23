@@ -6,8 +6,11 @@ const multer = require('multer');
 const Teacher = require('../models/Teacher');
 const Classroom = require('../models/Classroom');
 const Course = require('../models/Course');
+const Student = require('../models/Student');
+const User = require('../models/User');
 const { authenticateToken } = require('./auth');
 const logger = require('../utils/logger');
+const emailService = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -1329,6 +1332,732 @@ router.get('/courses/export', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while exporting courses'
+    });
+  }
+});
+
+// ==================== STUDENTS ROUTES ====================
+
+/**
+ * @route   GET /api/data/students
+ * @desc    Get all students with optional filtering
+ * @access  Private
+ */
+router.get('/students', [
+  query('department').optional().trim(),
+  query('program').optional().trim(),
+  query('year').optional().isInt({ min: 1, max: 5 }),
+  query('semester').optional().isInt({ min: 1, max: 2 }),
+  query('division').optional().trim(),
+  query('status').optional().isIn(['Active', 'Inactive', 'Graduated', 'Suspended', 'Transferred']),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { 
+      department, 
+      program, 
+      year, 
+      semester, 
+      division, 
+      status = 'Active',
+      page = 1, 
+      limit = 50 
+    } = req.query;
+
+    // Build filter object
+    const filter = { status };
+    if (department) filter['academicInfo.department'] = new RegExp(department, 'i');
+    if (program) filter['academicInfo.program'] = new RegExp(program, 'i');
+    if (year) filter['academicInfo.year'] = parseInt(year);
+    if (semester) filter['academicInfo.semester'] = parseInt(semester);
+    if (division) filter['academicInfo.division'] = new RegExp(division, 'i');
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [students, total] = await Promise.all([
+      Student.find(filter)
+        .select('-notes')
+        .sort({ 'academicInfo.rollNumber': 1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Student.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        students,
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
+          total,
+          hasNext: skip + students.length < total,
+          hasPrev: parseInt(page) > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error fetching students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching students'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/students
+ * @desc    Create a new student
+ * @access  Private
+ */
+router.post('/students', [
+  body('studentId').notEmpty().trim().withMessage('Student ID is required'),
+  body('personalInfo.firstName').notEmpty().trim().withMessage('First name is required'),
+  body('personalInfo.lastName').notEmpty().trim().withMessage('Last name is required'),
+  body('personalInfo.email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('personalInfo.phone').optional().matches(/^\d{10}$/).withMessage('Phone must be 10 digits'),
+  body('academicInfo.department').notEmpty().trim().withMessage('Department is required'),
+  body('academicInfo.program').notEmpty().trim().withMessage('Program is required'),
+  body('academicInfo.year').isInt({ min: 1, max: 5 }).withMessage('Year must be between 1 and 5'),
+  body('academicInfo.semester').isInt({ min: 1, max: 2 }).withMessage('Semester must be 1 or 2'),
+  body('academicInfo.division').notEmpty().trim().withMessage('Division is required'),
+  body('academicInfo.rollNumber').notEmpty().trim().withMessage('Roll number is required'),
+  body('academicInfo.admissionDate').isISO8601().withMessage('Valid admission date is required'),
+  body('academicInfo.academicYear').notEmpty().trim().withMessage('Academic year is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    // Check if student ID or email already exists
+    const existingStudent = await Student.findOne({
+      $or: [
+        { studentId: req.body.studentId },
+        { 'personalInfo.email': req.body.personalInfo.email }
+      ]
+    });
+
+    if (existingStudent) {
+      return res.status(409).json({
+        success: false,
+        message: 'Student with this ID or email already exists'
+      });
+    }
+
+    const student = new Student(req.body);
+    await student.save();
+
+    logger.info(`Student created: ${student.studentId} by user ${req.user.id}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Student created successfully',
+      data: { student }
+    });
+
+  } catch (error) {
+    logger.error('Error creating student:', error);
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Student with this information already exists'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while creating student'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/students/bulk-create
+ * @desc    Create multiple students and their user accounts
+ * @access  Private
+ */
+router.post('/students/bulk-create', [
+  body('students').isArray({ min: 1 }).withMessage('Students array is required'),
+  body('students.*.studentId').notEmpty().trim(),
+  body('students.*.personalInfo.firstName').notEmpty().trim(),
+  body('students.*.personalInfo.lastName').notEmpty().trim(),
+  body('students.*.personalInfo.email').isEmail().normalizeEmail(),
+  body('students.*.academicInfo.department').notEmpty().trim(),
+  body('students.*.academicInfo.program').notEmpty().trim(),
+  body('students.*.academicInfo.year').isInt({ min: 1, max: 5 }),
+  body('students.*.academicInfo.semester').isInt({ min: 1, max: 2 }),
+  body('students.*.academicInfo.division').notEmpty().trim(),
+  body('students.*.academicInfo.rollNumber').notEmpty().trim(),
+  body('students.*.academicInfo.academicYear').notEmpty().trim(),
+  body('sendCredentials').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { students, sendCredentials = false } = req.body;
+    const results = {
+      created: [],
+      failed: [],
+      userAccountsCreated: []
+    };
+
+    for (const studentData of students) {
+      try {
+        // Check if student already exists
+        const existing = await Student.findOne({
+          $or: [
+            { studentId: studentData.studentId },
+            { 'personalInfo.email': studentData.personalInfo.email }
+          ]
+        });
+
+        if (existing) {
+          results.failed.push({
+            studentId: studentData.studentId,
+            email: studentData.personalInfo.email,
+            reason: 'Student already exists'
+          });
+          continue;
+        }
+
+        // Create student
+        const student = new Student(studentData);
+        await student.save();
+        results.created.push(student);
+
+        // Create user account if requested
+        if (sendCredentials) {
+          try {
+            // Generate a temporary password
+            const tempPassword = Math.random().toString(36).slice(-8);
+            
+            const userData = {
+              name: `${studentData.personalInfo.firstName} ${studentData.personalInfo.lastName}`,
+              email: studentData.personalInfo.email,
+              password: tempPassword,
+              role: 'student',
+              department: studentData.academicInfo.department
+            };
+
+            const user = new User(userData);
+            await user.save();
+
+            const credentialData = {
+              studentId: studentData.studentId,
+              email: studentData.personalInfo.email,
+              tempPassword: tempPassword
+            };
+
+            results.userAccountsCreated.push(credentialData);
+
+            // Send email with credentials if email service is configured
+            if (emailService.isConfigured()) {
+              try {
+                await emailService.sendStudentCredentials({
+                  studentId: studentData.studentId,
+                  firstName: studentData.personalInfo.firstName,
+                  lastName: studentData.personalInfo.lastName,
+                  email: studentData.personalInfo.email,
+                  rollNumber: studentData.academicInfo.rollNumber,
+                  department: studentData.academicInfo.department,
+                  program: studentData.academicInfo.program,
+                  year: studentData.academicInfo.year,
+                  semester: studentData.academicInfo.semester,
+                  division: studentData.academicInfo.division,
+                  batch: studentData.academicInfo.batch
+                }, tempPassword);
+                
+                logger.info(`Credentials email sent to student: ${studentData.studentId}`);
+              } catch (emailError) {
+                logger.error(`Failed to send email to student ${studentData.studentId}:`, emailError);
+              }
+            }
+
+          } catch (userError) {
+            logger.error(`Failed to create user account for student ${studentData.studentId}:`, userError);
+          }
+        }
+
+      } catch (error) {
+        results.failed.push({
+          studentId: studentData.studentId,
+          email: studentData.personalInfo.email,
+          reason: error.message
+        });
+      }
+    }
+
+    logger.info(`Bulk student creation completed: ${results.created.length} created, ${results.failed.length} failed`);
+
+    // Send summary email to admin if there were successful account creations
+    if (results.userAccountsCreated.length > 0 && emailService.isConfigured()) {
+      try {
+        await emailService.sendBulkCreationSummary(results.userAccountsCreated, req.user.email);
+        logger.info(`Bulk creation summary email sent to admin: ${req.user.email}`);
+      } catch (emailError) {
+        logger.error('Failed to send bulk creation summary email:', emailError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Bulk operation completed: ${results.created.length} students created, ${results.failed.length} failed`,
+      data: results
+    });
+
+  } catch (error) {
+    logger.error('Error in bulk student creation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk student creation'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/students/upload
+ * @desc    Upload students via CSV file
+ * @access  Private
+ */
+router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV file is required'
+      });
+    }
+
+    const csvData = req.file.buffer.toString('utf8');
+    const records = [];
+    const errors = [];
+
+    await new Promise((resolve, reject) => {
+      csv.parse(csvData, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      })
+      .on('data', (record) => records.push(record))
+      .on('error', reject)
+      .on('end', resolve);
+    });
+
+    if (records.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV file is empty or invalid'
+      });
+    }
+
+    const studentsToCreate = [];
+    const { sendCredentials = false } = req.body;
+
+    // Process each record
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const rowNumber = i + 2; // CSV row number (including header)
+
+      try {
+        // Validate required fields
+        const requiredFields = [
+          'studentId', 'firstName', 'lastName', 'email', 
+          'department', 'program', 'year', 'semester', 
+          'division', 'rollNumber', 'academicYear'
+        ];
+
+        for (const field of requiredFields) {
+          if (!record[field]) {
+            errors.push({
+              row: rowNumber,
+              field,
+              message: `${field} is required`
+            });
+          }
+        }
+
+        if (errors.length > 0) continue;
+
+        // Validate email format
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+        if (!emailRegex.test(record.email)) {
+          errors.push({
+            row: rowNumber,
+            field: 'email',
+            message: 'Invalid email format'
+          });
+          continue;
+        }
+
+        // Validate phone if provided
+        if (record.phone && !/^\d{10}$/.test(record.phone)) {
+          errors.push({
+            row: rowNumber,
+            field: 'phone',
+            message: 'Phone must be 10 digits'
+          });
+          continue;
+        }
+
+        // Create student object
+        const studentData = {
+          studentId: record.studentId.trim(),
+          personalInfo: {
+            firstName: record.firstName.trim(),
+            lastName: record.lastName.trim(),
+            email: record.email.toLowerCase().trim(),
+            phone: record.phone ? record.phone.trim() : undefined,
+            dateOfBirth: record.dateOfBirth ? new Date(record.dateOfBirth) : undefined,
+            gender: record.gender || undefined,
+            address: {
+              street: record.street || '',
+              city: record.city || '',
+              state: record.state || '',
+              zipCode: record.zipCode || '',
+              country: record.country || 'India'
+            }
+          },
+          academicInfo: {
+            department: record.department.trim(),
+            program: record.program.trim(),
+            year: parseInt(record.year),
+            semester: parseInt(record.semester),
+            division: record.division.trim(),
+            batch: record.batch ? record.batch.trim() : undefined,
+            rollNumber: record.rollNumber.trim(),
+            admissionDate: record.admissionDate ? new Date(record.admissionDate) : new Date(),
+            academicYear: record.academicYear.trim()
+          },
+          guardianInfo: {
+            name: record.guardianName || '',
+            relationship: record.guardianRelation || '',
+            phone: record.guardianPhone || '',
+            email: record.guardianEmail || ''
+          }
+        };
+
+        // Add courses if provided
+        if (record.courses) {
+          const courseIds = record.courses.split(',').map(id => id.trim()).filter(id => id);
+          studentData.enrolledCourses = courseIds.map(courseId => ({
+            courseId,
+            enrollmentDate: new Date()
+          }));
+        }
+
+        studentsToCreate.push(studentData);
+
+      } catch (error) {
+        errors.push({
+          row: rowNumber,
+          message: `Processing error: ${error.message}`
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV validation failed',
+        errors: errors.slice(0, 10) // Limit to first 10 errors
+      });
+    }
+
+    // Bulk create students
+    const bulkResult = await new Promise((resolve) => {
+      req.body = { students: studentsToCreate, sendCredentials };
+      resolve();
+    });
+
+    // Call bulk create endpoint logic
+    const results = {
+      created: [],
+      failed: [],
+      userAccountsCreated: []
+    };
+
+    for (const studentData of studentsToCreate) {
+      try {
+        const existing = await Student.findOne({
+          $or: [
+            { studentId: studentData.studentId },
+            { 'personalInfo.email': studentData.personalInfo.email }
+          ]
+        });
+
+        if (existing) {
+          results.failed.push({
+            studentId: studentData.studentId,
+            email: studentData.personalInfo.email,
+            reason: 'Student already exists'
+          });
+          continue;
+        }
+
+        const student = new Student(studentData);
+        await student.save();
+        results.created.push(student);
+
+        if (sendCredentials) {
+          try {
+            const tempPassword = Math.random().toString(36).slice(-8);
+            
+            const userData = {
+              name: `${studentData.personalInfo.firstName} ${studentData.personalInfo.lastName}`,
+              email: studentData.personalInfo.email,
+              password: tempPassword,
+              role: 'student',
+              department: studentData.academicInfo.department
+            };
+
+            const user = new User(userData);
+            await user.save();
+
+            const credentialData = {
+              studentId: studentData.studentId,
+              email: studentData.personalInfo.email,
+              tempPassword: tempPassword
+            };
+
+            results.userAccountsCreated.push(credentialData);
+
+            // Send email with credentials if email service is configured
+            if (emailService.isConfigured()) {
+              try {
+                await emailService.sendStudentCredentials({
+                  studentId: studentData.studentId,
+                  firstName: studentData.personalInfo.firstName,
+                  lastName: studentData.personalInfo.lastName,
+                  email: studentData.personalInfo.email,
+                  rollNumber: studentData.academicInfo.rollNumber,
+                  department: studentData.academicInfo.department,
+                  program: studentData.academicInfo.program,
+                  year: studentData.academicInfo.year,
+                  semester: studentData.academicInfo.semester,
+                  division: studentData.academicInfo.division,
+                  batch: studentData.academicInfo.batch
+                }, tempPassword);
+                
+                logger.info(`Credentials email sent to student: ${studentData.studentId}`);
+              } catch (emailError) {
+                logger.error(`Failed to send email to student ${studentData.studentId}:`, emailError);
+              }
+            }
+
+          } catch (userError) {
+            logger.error(`Failed to create user account for student ${studentData.studentId}:`, userError);
+          }
+        }
+
+      } catch (error) {
+        results.failed.push({
+          studentId: studentData.studentId,
+          email: studentData.personalInfo.email,
+          reason: error.message
+        });
+      }
+    }
+
+    logger.info(`CSV student upload completed: ${results.created.length} created, ${results.failed.length} failed`);
+
+    // Send summary email to admin if there were successful account creations
+    if (results.userAccountsCreated.length > 0 && emailService.isConfigured()) {
+      try {
+        await emailService.sendBulkCreationSummary(results.userAccountsCreated, req.user.email);
+        logger.info(`CSV upload summary email sent to admin: ${req.user.email}`);
+      } catch (emailError) {
+        logger.error('Failed to send CSV upload summary email:', emailError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `CSV upload completed: ${results.created.length} students created, ${results.failed.length} failed`,
+      data: results
+    });
+
+  } catch (error) {
+    logger.error('Error uploading students CSV:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while uploading students'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/students/export
+ * @desc    Export students as CSV
+ * @access  Private
+ */
+router.get('/students/export', [
+  query('department').optional().trim(),
+  query('program').optional().trim(),
+  query('year').optional().isInt({ min: 1, max: 5 }),
+  query('semester').optional().isInt({ min: 1, max: 2 }),
+  query('division').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { department, program, year, semester, division } = req.query;
+
+    // Build filter
+    const filter = { status: 'Active' };
+    if (department) filter['academicInfo.department'] = new RegExp(department, 'i');
+    if (program) filter['academicInfo.program'] = new RegExp(program, 'i');
+    if (year) filter['academicInfo.year'] = parseInt(year);
+    if (semester) filter['academicInfo.semester'] = parseInt(semester);
+    if (division) filter['academicInfo.division'] = new RegExp(division, 'i');
+
+    const students = await Student.find(filter).lean();
+
+    // Convert to CSV format
+    const csvData = students.map(student => ({
+      studentId: student.studentId,
+      firstName: student.personalInfo.firstName,
+      lastName: student.personalInfo.lastName,
+      email: student.personalInfo.email,
+      phone: student.personalInfo.phone || '',
+      dateOfBirth: student.personalInfo.dateOfBirth ? student.personalInfo.dateOfBirth.toISOString().split('T')[0] : '',
+      gender: student.personalInfo.gender || '',
+      department: student.academicInfo.department,
+      program: student.academicInfo.program,
+      year: student.academicInfo.year,
+      semester: student.academicInfo.semester,
+      division: student.academicInfo.division,
+      batch: student.academicInfo.batch || '',
+      rollNumber: student.academicInfo.rollNumber,
+      admissionDate: student.academicInfo.admissionDate.toISOString().split('T')[0],
+      academicYear: student.academicInfo.academicYear,
+      status: student.status,
+      guardianName: student.guardianInfo?.name || '',
+      guardianPhone: student.guardianInfo?.phone || '',
+      guardianEmail: student.guardianInfo?.email || '',
+      courses: student.enrolledCourses?.map(c => c.courseId).join(',') || '',
+      street: student.personalInfo.address?.street || '',
+      city: student.personalInfo.address?.city || '',
+      state: student.personalInfo.address?.state || '',
+      zipCode: student.personalInfo.address?.zipCode || '',
+      country: student.personalInfo.address?.country || 'India'
+    }));
+
+    csvStringify.stringify(csvData, {
+      header: true,
+      columns: [
+        'studentId', 'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'gender',
+        'department', 'program', 'year', 'semester', 'division', 'batch', 'rollNumber',
+        'admissionDate', 'academicYear', 'status', 'guardianName', 'guardianPhone', 
+        'guardianEmail', 'courses', 'street', 'city', 'state', 'zipCode', 'country'
+      ]
+    }, (err, output) => {
+      if (err) {
+        logger.error('Error generating CSV:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error generating CSV'
+        });
+      }
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="students.csv"');
+      res.send(output);
+    });
+
+  } catch (error) {
+    logger.error('Error exporting students:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while exporting students'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/students/stats
+ * @desc    Get student statistics
+ * @access  Private
+ */
+router.get('/students/stats', async (req, res) => {
+  try {
+    const stats = await Student.aggregate([
+      {
+        $group: {
+          _id: {
+            department: '$academicInfo.department',
+            program: '$academicInfo.program',
+            year: '$academicInfo.year',
+            semester: '$academicInfo.semester'
+          },
+          totalStudents: { $sum: 1 },
+          divisions: { $addToSet: '$academicInfo.division' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.department',
+          programs: {
+            $push: {
+              program: '$_id.program',
+              year: '$_id.year',
+              semester: '$_id.semester',
+              totalStudents: '$totalStudents',
+              divisions: '$divisions'
+            }
+          },
+          departmentTotal: { $sum: '$totalStudents' }
+        }
+      }
+    ]);
+
+    const totalStudents = await Student.countDocuments({ status: 'Active' });
+
+    res.json({
+      success: true,
+      data: {
+        totalStudents,
+        departments: stats
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error fetching student stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching student statistics'
     });
   }
 });

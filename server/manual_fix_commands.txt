@@ -1,0 +1,25 @@
+# Manual MongoDB Commands to Fix the Issue
+# You can run these in MongoDB Compass or any MongoDB client
+
+# 1. Switch to your database
+use test
+
+# 2. Drop the problematic index
+db.students.dropIndex("id_1")
+
+# 3. Remove null id fields from documents
+db.students.updateMany(
+  { id: null }, 
+  { $unset: { id: "" } }
+)
+
+# 4. Check current indexes
+db.students.getIndexes()
+
+# 5. Ensure proper indexes exist
+db.students.createIndex({ studentId: 1 }, { unique: true })
+db.students.createIndex({ "personalInfo.email": 1 }, { unique: true })
+
+# 6. Verify no documents have problematic fields
+db.students.find({ id: { $exists: true } }).count()
+db.students.find({ studentId: null }).count()

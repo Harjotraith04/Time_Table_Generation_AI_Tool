@@ -8,7 +8,9 @@ import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import CreateTimetable from './pages/CreateTimetable';
-import TeachersData from './pages/TeachersDataFull';
+import UserManagement from './pages/UserManagement';
+import StudentManagement from './pages/StudentManagement';
+import TeachersData from './pages/TeachersManagement';
 import ClassroomsData from './pages/ClassroomsDataFull';
 import ProgramsData from './pages/ProgramsDataFull';
 import InfrastructureData from './pages/InfrastructureDataSimple';
@@ -95,10 +97,26 @@ const AppContent = () => {
           } 
         />
         <Route 
+          path="/user-management" 
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <UserManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/teachers-data" 
           element={
             <ProtectedRoute allowedRole={["admin", "faculty"]}>
               <TeachersData />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/student-management" 
+          element={
+            <ProtectedRoute allowedRole={["admin", "faculty"]}>
+              <StudentManagement />
             </ProtectedRoute>
           } 
         />

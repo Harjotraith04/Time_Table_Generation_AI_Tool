@@ -56,6 +56,22 @@ export const getProfile = async () => {
   return response.data
 }
 
+// User Management (Admin only)
+export const createUser = async (userData) => {
+  const response = await api.post('/auth/create-user', userData)
+  return response.data
+}
+
+export const getUsers = async (params = {}) => {
+  const response = await api.get('/auth/users', { params })
+  return response.data
+}
+
+export const deleteUser = async (userId) => {
+  const response = await api.delete(`/auth/users/${userId}`)
+  return response.data
+}
+
 // ==================== TIMETABLE API ====================
 export const generateTimetable = async (data) => {
   const response = await api.post('/timetables/generate', data)

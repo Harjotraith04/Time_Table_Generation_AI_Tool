@@ -82,7 +82,7 @@ const AdminDashboard = () => {
           <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button 
               onClick={() => navigate('/create-timetable')}
               className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors group"
@@ -91,16 +91,41 @@ const AdminDashboard = () => {
               <span className="font-medium text-blue-900">Create New Timetable</span>
             </button>
             <button 
+              onClick={() => navigate('/user-management')}
               className="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors group"
             >
               <Users className="w-6 h-6 text-green-600 mr-3" />
-              <span className="font-medium text-green-900">Manage Teachers</span>
+              <span className="font-medium text-green-900">Manage Users</span>
             </button>
             <button 
+              onClick={() => navigate('/student-management')}
+              className="flex items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors group"
+            >
+              <GraduationCap className="w-6 h-6 text-indigo-600 mr-3" />
+              <span className="font-medium text-indigo-900">Manage Students</span>
+            </button>
+            <button 
+              onClick={() => navigate('/teachers-data')}
+              className="flex items-center justify-center p-4 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg transition-colors group"
+            >
+              <Users className="w-6 h-6 text-yellow-600 mr-3" />
+              <span className="font-medium text-yellow-900">Manage Teachers</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <button 
+              onClick={() => navigate('/classrooms-data')}
               className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
             >
               <Building2 className="w-6 h-6 text-purple-600 mr-3" />
               <span className="font-medium text-purple-900">Manage Rooms</span>
+            </button>
+            <button 
+              onClick={() => navigate('/programs-data')}
+              className="flex items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors group"
+            >
+              <BookOpen className="w-6 h-6 text-orange-600 mr-3" />
+              <span className="font-medium text-orange-900">Manage Programs</span>
             </button>
           </div>
         </div>

@@ -22,7 +22,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student',
+    role: 'admin',
     department: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -37,13 +37,6 @@ const Register = () => {
     setFormData(prev => ({
       ...prev,
       [field]: event.target.value
-    }));
-  };
-
-  const handleRoleChange = (role) => {
-    setFormData(prev => ({
-      ...prev,
-      role
     }));
   };
 
@@ -119,57 +112,33 @@ const Register = () => {
           </div>
           <div className="flex items-center justify-center space-x-2 mb-2">
             <Sparkles className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-gray-600">Join us today!</span>
+            <span className="text-sm text-gray-600">Admin Registration</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Create your account</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Create Admin Account</h2>
         </div>
 
         {/* Registration Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-          {/* Role Selection */}
+          {/* Admin Role Display */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Select Your Role
+              Account Type
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleRoleChange('student')}
-                className={`p-3 rounded-xl border-2 transition-all duration-300 flex flex-col items-center space-y-1 ${
-                  formData.role === 'student'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                }`}
-              >
-                <GraduationCap className="w-5 h-5" />
-                <span className="text-xs font-medium">Student</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => handleRoleChange('faculty')}
-                className={`p-3 rounded-xl border-2 transition-all duration-300 flex flex-col items-center space-y-1 ${
-                  formData.role === 'faculty'
-                    ? 'border-green-500 bg-green-50 text-green-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                }`}
-              >
-                <UserCheck className="w-5 h-5" />
-                <span className="text-xs font-medium">Faculty</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleChange('admin')}
-                className={`p-3 rounded-xl border-2 transition-all duration-300 flex flex-col items-center space-y-1 ${
-                  formData.role === 'admin'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                }`}
-              >
-                <Shield className="w-5 h-5" />
-                <span className="text-xs font-medium">Admin</span>
-              </button>
+            <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Shield className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-purple-800">Administrator</h3>
+                  <p className="text-sm text-purple-600">Full system access and user management</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <strong>Note:</strong> Only administrators can create accounts. Teachers and students will receive login credentials from the admin.
+              </p>
             </div>
           </div>
 
@@ -208,7 +177,7 @@ const Register = () => {
               <Building className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Department (Optional)"
+                placeholder="Institution/Department (Optional)"
                 value={formData.department}
                 onChange={handleInputChange('department')}
                 className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
@@ -274,11 +243,12 @@ const Register = () => {
 
           {/* Registration Info */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Account Creation:</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Admin Account Creation:</h4>
             <div className="space-y-1 text-xs text-gray-600">
               <p>• Password must be at least 6 characters long</p>
-              <p>• Choose your role carefully as it determines your access level</p>
-              <p>• All fields except department are required</p>
+              <p>• Admin accounts have full system access</p>
+              <p>• You can create teacher and student accounts from the dashboard</p>
+              <p>• Department field is optional but recommended</p>
             </div>
           </div>
         </div>
@@ -286,7 +256,7 @@ const Register = () => {
         {/* Footer */}
         <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
-            Already have an account?{' '}
+            Already have an admin account?{' '}
             <button 
               onClick={() => navigate('/login')}
               className="text-blue-600 hover:text-blue-700 font-medium"

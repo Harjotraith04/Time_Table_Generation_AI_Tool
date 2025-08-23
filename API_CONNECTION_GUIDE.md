@@ -3,13 +3,25 @@
 ## Overview
 All frontend components are now fully connected to the backend API endpoints. The website is fully functional with complete CRUD operations, data validation, and real-time timetable generation.
 
+**Authentication Model**: 
+- Only administrators can register accounts through the registration page
+- Teachers and students receive login credentials from administrators
+- Hierarchical user management system with role-based access control
+
 ## Connected Features
 
 ### ✅ Authentication System
 - **Login**: `POST /api/auth/login`
-- **Register**: `POST /api/auth/register`
+- **Register**: `POST /api/auth/register` (Admin only)
 - **Profile Management**: `GET /api/auth/profile`, `PUT /api/auth/profile`
 - **Token Verification**: `GET /api/auth/verify-token`
+
+### ✅ User Management System (Admin Only)
+- **Create Users**: Admin creates teacher and student accounts
+- **User Listing**: View all users with filtering by role and department
+- **Account Deletion**: Remove teacher and student accounts
+- **Credential Distribution**: Auto-generated login credentials for new users
+- **Frontend**: `UserManagement.jsx` → Backend: `/api/auth/create-user`, `/api/auth/users/*`
 
 ### ✅ Teachers Data Management
 - **CRUD Operations**: Create, Read, Update, Delete teachers
@@ -51,12 +63,17 @@ All frontend components are now fully connected to the backend API endpoints. Th
 ### Authentication Endpoints
 ```
 POST   /api/auth/login           - User login
-POST   /api/auth/register        - User registration
+POST   /api/auth/register        - Admin registration only
 POST   /api/auth/logout          - User logout
 GET    /api/auth/profile         - Get user profile
 PUT    /api/auth/profile         - Update user profile
 PUT    /api/auth/change-password - Change password
 GET    /api/auth/verify-token    - Verify JWT token
+
+# User Management (Admin Only)
+POST   /api/auth/create-user     - Admin creates teacher/student accounts
+GET    /api/auth/users          - Get all users (with filtering)
+DELETE /api/auth/users/:id      - Delete user account
 ```
 
 ### Data Management Endpoints
