@@ -333,7 +333,7 @@ router.get('/:id', [
       updatedAt: timetable.updatedAt
     };
   } else if (format === 'matrix') {
-    responseData = this.formatTimetableMatrix(timetable);
+    responseData = formatTimetableMatrix(timetable);
   }
 
   res.json({
@@ -556,7 +556,7 @@ router.post('/:id/validate', [
 /**
  * Format timetable as a matrix (day vs time)
  */
-formatTimetableMatrix(timetable) {
+function formatTimetableMatrix(timetable) {
   const matrix = {};
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   

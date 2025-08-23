@@ -10,9 +10,9 @@ import CreateTimetable from './pages/CreateTimetable';
 import TeachersData from './pages/TeachersDataFull';
 import ClassroomsData from './pages/ClassroomsDataFull';
 import ProgramsData from './pages/ProgramsDataFull';
-// import InfrastructureData from './pages/InfrastructureDataSimple';
-// import GenerateTimetable from './pages/GenerateTimetable';
-// import ViewTimetable from './pages/ViewTimetable';
+import InfrastructureData from './pages/InfrastructureDataSimple';
+import GenerateTimetable from './pages/GenerateTimetable';
+import ViewTimetable from './pages/ViewTimetable';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedUserType }) => {

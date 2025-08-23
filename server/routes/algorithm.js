@@ -337,7 +337,7 @@ router.get('/constraints', asyncHandler(async (req, res) => {
           'Prefer rooms with specific equipment'
         ]
       }
-    }
+    ]
   };
 
   res.json({

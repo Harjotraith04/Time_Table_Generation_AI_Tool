@@ -156,7 +156,7 @@ const timetableSchema = new mongoose.Schema({
         required: true
       },
       endTime: {
-        type: true,
+        type: String,
         required: true
       },
       isBreak: {
