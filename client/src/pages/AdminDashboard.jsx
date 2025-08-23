@@ -105,27 +105,27 @@ const AdminDashboard = () => {
               <span className="font-medium text-yellow-900">Manage Teachers</span>
             </button>
             <button 
-              onClick={() => navigate('/infrastructure-data')}
+              onClick={() => navigate('/classrooms-data')}
               className="flex items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors group"
             >
               <Settings className="w-6 h-6 text-orange-600 mr-3" />
-              <span className="font-medium text-orange-900">Infrastructure & Policy</span>
+              <span className="font-medium text-orange-900">Manage Rooms</span>
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <button 
-              onClick={() => navigate('/classrooms-data')}
+              onClick={() => navigate('/programs-data')}
               className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
             >
               <Building2 className="w-6 h-6 text-purple-600 mr-3" />
-              <span className="font-medium text-purple-900">Manage Rooms</span>
+              <span className="font-medium text-purple-900">Manage Programs</span>
             </button>
             <button 
-              onClick={() => navigate('/programs-data')}
+              onClick={() => navigate('/infrastructure-data')}
               className="flex items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg transition-colors group"
             >
               <BookOpen className="w-6 h-6 text-orange-600 mr-3" />
-              <span className="font-medium text-orange-900">Manage Programs</span>
+              <span className="font-medium text-orange-900">Infrastructure & Policy</span>
             </button>
           </div>
         </div>
