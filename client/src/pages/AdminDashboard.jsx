@@ -65,19 +65,47 @@ const AdminDashboard = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className={`rounded-xl p-6 border transition-all duration-300 hover:shadow-lg ${
-            isDarkMode 
-              ? 'bg-gray-800 border-gray-700 hover:shadow-gray-900/20' 
-              : 'bg-white border-gray-200 hover:shadow-lg'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{stat.title}</p>
-                <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
-                <p className="text-sm text-green-600">{stat.change}</p>
-              </div>
-              <div className={`p-3 rounded-lg bg-${stat.color}-100`}>
-                <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+          <div 
+            key={index} 
+            className={`group relative rounded-2xl p-6 border transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer ${
+              isDarkMode 
+                ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-gray-500 hover:shadow-blue-500/20' 
+                : 'bg-gradient-to-br from-white to-gray-50 border-gray-200 hover:border-gray-300 hover:shadow-blue-500/20'
+            }`}
+            style={{
+              transformStyle: 'preserve-3d',
+              perspective: '1000px',
+              animationDelay: `${index * 100}ms`
+            }}
+          >
+            {/* 3D Background Glow */}
+            <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${
+              stat.color === 'blue' ? 'bg-gradient-to-r from-blue-500/10 to-cyan-500/10' :
+              stat.color === 'green' ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/10' :
+              stat.color === 'purple' ? 'bg-gradient-to-r from-purple-500/10 to-pink-500/10' :
+              'bg-gradient-to-r from-orange-500/10 to-red-500/10'
+            }`} />
+
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-medium transition-colors duration-300 ${isDarkMode ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600 group-hover:text-gray-700'}`}>{stat.title}</p>
+                  <p className={`text-2xl font-bold transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'} group-hover:text-glow`}>{stat.value}</p>
+                  <p className="text-sm text-green-600 font-medium">{stat.change}</p>
+                </div>
+                <div className={`p-3 rounded-xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 shadow-lg group-hover:shadow-xl ${
+                  stat.color === 'blue' ? 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800' :
+                  stat.color === 'green' ? 'bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800' :
+                  stat.color === 'purple' ? 'bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800' :
+                  'bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-800'
+                }`}>
+                  <stat.icon className={`w-6 h-6 transition-all duration-300 ${
+                    stat.color === 'blue' ? 'text-blue-600 group-hover:text-blue-500' :
+                    stat.color === 'green' ? 'text-green-600 group-hover:text-green-500' :
+                    stat.color === 'purple' ? 'text-purple-600 group-hover:text-purple-500' :
+                    'text-orange-600 group-hover:text-orange-500'
+                  }`} />
+                </div>
               </div>
             </div>
           </div>
@@ -103,82 +131,82 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button 
               onClick={() => navigate('/create-timetable')}
-              className={`flex items-center justify-center p-4 border rounded-lg transition-colors group ${
+              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-blue-900/30 hover:bg-blue-900/50 border-blue-700/50' 
-                  : 'bg-blue-50 hover:bg-blue-100 border-blue-200'
+                  ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/20 hover:from-blue-900/50 hover:to-blue-800/40 border-blue-700/50 hover:border-blue-600 hover:shadow-blue-500/20' 
+                  : 'bg-gradient-to-br from-blue-50 to-blue-100/50 hover:from-blue-100 hover:to-blue-200 border-blue-200 hover:border-blue-300 hover:shadow-blue-500/20'
               }`}
             >
-              <Plus className="w-6 h-6 text-blue-600 mr-3" />
-              <span className={`font-medium ${
-                isDarkMode ? 'text-blue-300' : 'text-blue-900'
+              <Plus className="w-6 h-6 text-blue-600 mr-3 transform group-hover:rotate-180 transition-transform duration-300" />
+              <span className={`font-medium transition-all duration-300 ${
+                isDarkMode ? 'text-blue-300 group-hover:text-blue-200' : 'text-blue-900 group-hover:text-blue-800'
               }`}>Create New Timetable</span>
             </button>
             <button 
               onClick={() => navigate('/student-management')}
-              className={`flex items-center justify-center p-4 border rounded-lg transition-colors group ${
+              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-indigo-900/30 hover:bg-indigo-900/50 border-indigo-700/50' 
-                  : 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200'
+                  ? 'bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 hover:from-indigo-900/50 hover:to-indigo-800/40 border-indigo-700/50 hover:border-indigo-600 hover:shadow-indigo-500/20' 
+                  : 'bg-gradient-to-br from-indigo-50 to-indigo-100/50 hover:from-indigo-100 hover:to-indigo-200 border-indigo-200 hover:border-indigo-300 hover:shadow-indigo-500/20'
               }`}
             >
-              <GraduationCap className="w-6 h-6 text-indigo-600 mr-3" />
-              <span className={`font-medium ${
-                isDarkMode ? 'text-indigo-300' : 'text-indigo-900'
+              <GraduationCap className="w-6 h-6 text-indigo-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
+              <span className={`font-medium transition-all duration-300 ${
+                isDarkMode ? 'text-indigo-300 group-hover:text-indigo-200' : 'text-indigo-900 group-hover:text-indigo-800'
               }`}>Manage Students</span>
             </button>
             <button 
               onClick={() => navigate('/teachers-data')}
-              className={`flex items-center justify-center p-4 border rounded-lg transition-colors group ${
+              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-yellow-900/30 hover:bg-yellow-900/50 border-yellow-700/50' 
-                  : 'bg-yellow-50 hover:bg-yellow-100 border-yellow-200'
+                  ? 'bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 hover:from-yellow-900/50 hover:to-yellow-800/40 border-yellow-700/50 hover:border-yellow-600 hover:shadow-yellow-500/20' 
+                  : 'bg-gradient-to-br from-yellow-50 to-yellow-100/50 hover:from-yellow-100 hover:to-yellow-200 border-yellow-200 hover:border-yellow-300 hover:shadow-yellow-500/20'
               }`}
             >
-              <Users className="w-6 h-6 text-yellow-600 mr-3" />
-              <span className={`font-medium ${
-                isDarkMode ? 'text-yellow-300' : 'text-yellow-900'
+              <Users className="w-6 h-6 text-yellow-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
+              <span className={`font-medium transition-all duration-300 ${
+                isDarkMode ? 'text-yellow-300 group-hover:text-yellow-200' : 'text-yellow-900 group-hover:text-yellow-800'
               }`}>Manage Teachers</span>
             </button>
             <button 
               onClick={() => navigate('/classrooms-data')}
-              className={`flex items-center justify-center p-4 border rounded-lg transition-colors group ${
+              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-orange-900/30 hover:bg-orange-900/50 border-orange-700/50' 
-                  : 'bg-orange-50 hover:bg-orange-100 border-orange-200'
+                  ? 'bg-gradient-to-br from-orange-900/30 to-orange-800/20 hover:from-orange-900/50 hover:to-orange-800/40 border-orange-700/50 hover:border-orange-600 hover:shadow-orange-500/20' 
+                  : 'bg-gradient-to-br from-orange-50 to-orange-100/50 hover:from-orange-100 hover:to-orange-200 border-orange-200 hover:border-orange-300 hover:shadow-orange-500/20'
               }`}
             >
-              <Settings className="w-6 h-6 text-orange-600 mr-3" />
-              <span className={`font-medium ${
-                isDarkMode ? 'text-orange-300' : 'text-orange-900'
+              <Settings className="w-6 h-6 text-orange-600 mr-3 transform group-hover:rotate-90 transition-transform duration-300" />
+              <span className={`font-medium transition-all duration-300 ${
+                isDarkMode ? 'text-orange-300 group-hover:text-orange-200' : 'text-orange-900 group-hover:text-orange-800'
               }`}>Manage Rooms</span>
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <button 
               onClick={() => navigate('/programs-data')}
-              className={`flex items-center justify-center p-4 border rounded-lg transition-colors group ${
+              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-purple-900/30 hover:bg-purple-900/50 border-purple-700/50' 
-                  : 'bg-purple-50 hover:bg-purple-100 border-purple-200'
+                  ? 'bg-gradient-to-br from-purple-900/30 to-purple-800/20 hover:from-purple-900/50 hover:to-purple-800/40 border-purple-700/50 hover:border-purple-600 hover:shadow-purple-500/20' 
+                  : 'bg-gradient-to-br from-purple-50 to-purple-100/50 hover:from-purple-100 hover:to-purple-200 border-purple-200 hover:border-purple-300 hover:shadow-purple-500/20'
               }`}
             >
-              <Building2 className="w-6 h-6 text-purple-600 mr-3" />
-              <span className={`font-medium ${
-                isDarkMode ? 'text-purple-300' : 'text-purple-900'
+              <Building2 className="w-6 h-6 text-purple-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
+              <span className={`font-medium transition-all duration-300 ${
+                isDarkMode ? 'text-purple-300 group-hover:text-purple-200' : 'text-purple-900 group-hover:text-purple-800'
               }`}>Manage Programs</span>
             </button>
             <button 
               onClick={() => navigate('/infrastructure-data')}
-              className={`flex items-center justify-center p-4 border rounded-lg transition-colors group ${
+              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-orange-900/30 hover:bg-orange-900/50 border-orange-700/50' 
-                  : 'bg-orange-50 hover:bg-orange-100 border-orange-200'
+                  ? 'bg-gradient-to-br from-green-900/30 to-green-800/20 hover:from-green-900/50 hover:to-green-800/40 border-green-700/50 hover:border-green-600 hover:shadow-green-500/20' 
+                  : 'bg-gradient-to-br from-green-50 to-green-100/50 hover:from-green-100 hover:to-green-200 border-green-200 hover:border-green-300 hover:shadow-green-500/20'
               }`}
             >
-              <BookOpen className="w-6 h-6 text-orange-600 mr-3" />
-              <span className={`font-medium ${
-                isDarkMode ? 'text-orange-300' : 'text-orange-900'
+              <BookOpen className="w-6 h-6 text-green-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
+              <span className={`font-medium transition-all duration-300 ${
+                isDarkMode ? 'text-green-300 group-hover:text-green-200' : 'text-green-900 group-hover:text-green-800'
               }`}>Infrastructure & Policy</span>
             </button>
           </div>
@@ -521,50 +549,76 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className={`min-h-screen transition-all duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen relative overflow-hidden transition-all duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Floating Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+        <div className="absolute top-40 right-10 w-64 h-64 bg-gradient-to-r from-yellow-400/10 to-pink-400/10 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-64 h-64 bg-gradient-to-r from-green-400/10 to-blue-400/10 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+        
+        {/* Geometric shapes */}
+        <div className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="w-6 h-6 border border-blue-200/20 rotate-45 animate-spin-slow"></div>
+        </div>
+        <div className="absolute top-3/4 right-1/4 transform translate-x-1/2 translate-y-1/2">
+          <div className="w-8 h-8 border border-purple-200/20 rotate-12 animate-pulse"></div>
+        </div>
+        <div className="absolute top-1/2 right-1/3 transform translate-x-1/2 -translate-y-1/2">
+          <div className="w-4 h-4 bg-gradient-to-r from-pink-400/20 to-yellow-400/20 rounded-full animate-bounce-slow"></div>
+        </div>
+      </div>
       {/* Header */}
-      <header className={`border-b transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      <header className={`relative border-b backdrop-blur-sm transition-all duration-300 z-10 ${isDarkMode ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                <Calendar className="w-8 h-8 text-white" />
+              <div className="group p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 hover:rotate-3">
+                <Calendar className="w-8 h-8 text-white transition-transform duration-300 group-hover:scale-110" />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:text-glow transition-all duration-300">
                 Admin Dashboard
               </h1>
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
-                <Bell className="w-5 h-5" />
+              <button className={`relative p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-lg ${
+                isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}>
+                <Bell className="w-5 h-5 transition-transform duration-300 hover:animate-pulse" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
               </button>
               
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 ${
+                className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 transform hover:shadow-lg ${
                   isDarkMode 
-                    ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600 hover:shadow-yellow-400/20' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-gray-400/20'
                 }`}
               >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {isDarkMode ? (
+                  <Sun className="w-5 h-5 transition-transform duration-300 hover:rotate-180" />
+                ) : (
+                  <Moon className="w-5 h-5 transition-transform duration-300 hover:rotate-12" />
+                )}
               </button>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 p-2 rounded-lg bg-opacity-50 hover:bg-opacity-70 transition-all duration-300">
                 <img 
                   src={user?.avatar || 'https://via.placeholder.com/32'} 
                   alt={user?.name}
-                  className="w-8 h-8 rounded-full"
+                  className="w-8 h-8 rounded-full border-2 border-blue-500/30 hover:border-blue-500 transition-colors duration-300 transform hover:scale-110"
                 />
-                <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>{user?.name}</span>
+                <span className={`text-sm font-medium transition-colors duration-300 ${isDarkMode ? 'text-gray-200 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>{user?.name}</span>
               </div>
               <button 
                 onClick={handleLogout}
-                className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-400 hover:text-red-600'}`}
+                className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 transform hover:shadow-lg ${
+                  isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:shadow-red-400/20' : 'text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-red-400/20'
+                }`}
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-5 h-5 transition-transform duration-300 hover:scale-110" />
               </button>
             </div>
           </div>
@@ -573,30 +627,49 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation Tabs */}
-        <div className={`flex space-x-1 rounded-lg p-1 border mb-8 ${
+        <div className={`flex space-x-1 rounded-xl p-1 border mb-8 backdrop-blur-sm shadow-lg ${
           isDarkMode 
-            ? 'bg-gray-800 border-gray-700' 
-            : 'bg-white border-gray-200'
+            ? 'bg-gray-800/80 border-gray-700' 
+            : 'bg-white/80 border-gray-200'
         }`}>
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'timetables', label: 'Timetables', icon: Calendar },
             { id: 'users', label: 'Users', icon: Users },
             { id: 'analytics', label: 'Analytics', icon: TrendingUp }
-          ].map((tab) => (
+          ].map((tab, index) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${
+              className={`group relative flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 ${
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-500/30'
                   : isDarkMode 
-                    ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    ? 'text-gray-400 hover:text-gray-200 hover:bg-gradient-to-r hover:from-gray-700 hover:to-gray-600'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200'
               }`}
+              style={{
+                animationDelay: `${index * 50}ms`
+              }}
             >
-              <tab.icon className="w-4 h-4" />
-              <span className="font-medium">{tab.label}</span>
+              {/* Active indicator */}
+              {activeTab === tab.id && (
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 opacity-90"></div>
+              )}
+              
+              <tab.icon className={`w-4 h-4 relative z-10 transition-transform duration-300 ${
+                activeTab === tab.id ? 'animate-pulse' : 'group-hover:scale-110'
+              }`} />
+              <span className={`font-medium relative z-10 transition-all duration-300 ${
+                activeTab === tab.id ? 'text-white' : ''
+              }`}>{tab.label}</span>
+              
+              {/* Hover glow effect */}
+              <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                activeTab === tab.id 
+                  ? 'bg-gradient-to-r from-blue-400/20 to-blue-600/20' 
+                  : 'bg-gradient-to-r from-blue-500/10 to-purple-500/10'
+              }`} />
             </button>
           ))}
         </div>

@@ -543,17 +543,23 @@ const TeachersData = () => {
               </label>
               <button 
                 onClick={handleExport}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="group relative flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-xl hover:shadow-green-500/25 overflow-hidden"
               >
-                <Download className="w-4 h-4" />
-                <span>Export</span>
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                
+                <Download className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:scale-110" />
+                <span className="relative z-10">Export</span>
               </button>
               <button 
                 onClick={handleAddTeacher}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="group relative flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/25 overflow-hidden"
               >
-                <Plus className="w-4 h-4" />
-                <span>Add Teacher</span>
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                
+                <Plus className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover:rotate-180" />
+                <span className="relative z-10">Add Teacher</span>
               </button>
             </div>
           </div>
