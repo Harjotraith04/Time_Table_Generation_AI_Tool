@@ -1,3 +1,6 @@
+/* Import 3D Effects */
+@import './components/3d-effects.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -30,4 +33,109 @@
   .card {
     @apply bg-white rounded-lg shadow-md p-6;
   }
+}
+
+/* 3D Animations and Effects */
+@keyframes float3d {
+  0%, 100% { 
+    transform: perspective(1000px) rotateX(25deg) rotateY(25deg) translateY(0px) translateZ(0px);
+  }
+  50% { 
+    transform: perspective(1000px) rotateX(25deg) rotateY(25deg) translateY(-20px) translateZ(20px);
+  }
+}
+
+@keyframes rotate3d {
+  0% { 
+    transform: perspective(1000px) rotateX(15deg) rotateY(45deg) rotateZ(0deg);
+  }
+  100% { 
+    transform: perspective(1000px) rotateX(15deg) rotateY(45deg) rotateZ(360deg);
+  }
+}
+
+@keyframes morph3d {
+  0%, 100% { 
+    transform: perspective(1000px) rotateX(-15deg) rotateY(-30deg) scale(1);
+    border-radius: 50% 10% 50% 10%;
+  }
+  33% { 
+    transform: perspective(1000px) rotateX(-15deg) rotateY(-30deg) scale(1.1);
+    border-radius: 10% 50% 10% 50%;
+  }
+  66% { 
+    transform: perspective(1000px) rotateX(-15deg) rotateY(-30deg) scale(0.9);
+    border-radius: 25% 75% 25% 75%;
+  }
+}
+
+@keyframes textGlow {
+  0% { 
+    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+  }
+  100% { 
+    filter: drop-shadow(0 0 20px rgba(147, 51, 234, 0.8));
+  }
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(45deg) translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(5deg) translateY(0px);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0px);
+  }
+}
+
+@keyframes backgroundFloat {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(5deg); }
+}
+
+/* 3D Card effects */
+.card-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.card-3d:hover {
+  transform: perspective(1000px) rotateX(-5deg) rotateY(5deg) translateZ(20px) scale(1.02);
+}
+
+/* Utility classes for 3D effects */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-3d {
+  transform-style: preserve-3d;
 } 
