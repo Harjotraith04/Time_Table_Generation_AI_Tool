@@ -1,0 +1,56 @@
+.grid-distortion {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.8;
+}
+
+.grid-distortion canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Animation keyframes for fallback effects */
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes gridFlow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-20px);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .grid-distortion {
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-distortion {
+    opacity: 0.3;
+  }
+}
+
+/* Performance optimizations */
+.grid-distortion {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}

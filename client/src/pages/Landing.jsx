@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
+<<<<<<< Updated upstream
+=======
+import GridDistortion from '../components/GridDistortion';
+>>>>>>> Stashed changes
 import { 
   Calendar, 
   Sparkles, 
@@ -153,6 +157,7 @@ const Landing = () => {
 
   return (
     <div className={`min-h-screen transition-all duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
+<<<<<<< Updated upstream
       {/* Enhanced 3D Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div 
@@ -202,6 +207,17 @@ const Landing = () => {
           animation: 'morph3d 12s ease-in-out infinite'
         }} />
       </div>
+=======
+      {/* Grid Distortion Background */}
+      <GridDistortion isDarkMode={isDarkMode} />
+      
+      {/* Blur Overlay for Text Readability */}
+      <div className="fixed inset-0 pointer-events-none z-10" style={{
+        background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.8) 100%)',
+        backdropFilter: 'blur(1px)',
+        WebkitBackdropFilter: 'blur(1px)'
+      }} />
+>>>>>>> Stashed changes
 
       {/* Header */}
       <nav className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-all duration-300 ${
@@ -254,6 +270,7 @@ const Landing = () => {
         </div>
       </nav>
 
+<<<<<<< Updated upstream
       {/* Enhanced Hero Section with 3D Elements */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 relative">
         {/* 3D Calendar Icon Animation */}
@@ -301,17 +318,56 @@ const Landing = () => {
           <p className={`text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed ${
             isDarkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
+=======
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 relative z-20">
+        
+        <div className="text-center mb-16">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight" style={{ 
+            fontFamily: '"Bookman Old Style", "Book Antiqua", Palatino, serif',
+            color: '#E6E6FA', // Lavender color
+            textShadow: '2px 2px 0px #D8BFD8, 4px 4px 0px #DDA0DD, 6px 6px 0px #DA70D6, 8px 8px 12px rgba(218,112,214,0.5)',
+            transform: 'perspective(300px) rotateX(5deg)',
+            letterSpacing: '0.02em',
+            filter: 'drop-shadow(0 10px 20px rgba(218,112,214,0.3))'
+          }}>
+            <span style={{
+              display: 'inline-block',
+              transform: 'scaleY(0.95)',
+              textShadow: 'inherit'
+            }}>
+              AI For Generating Timetable
+            </span>
+            <br />
+            <span style={{
+              display: 'inline-block',
+              transform: 'scaleY(0.95)',
+              textShadow: 'inherit'
+            }}>
+              and Optimization
+            </span>
+          </h1>
+          
+          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed" style={{
+            color: '#00BFFF', // Electric blue color
+            textShadow: '0 0 10px rgba(0,191,255,0.5), 0 0 20px rgba(0,191,255,0.3), 0 0 30px rgba(0,191,255,0.2)'
+          }}>
+>>>>>>> Stashed changes
             Revolutionary AI-powered timetable generation and optimization platform. Create perfect schedules for schools, universities, and organizations in minutes.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <button
               onClick={() => window.location.href = '/login'}
+<<<<<<< Updated upstream
               className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/25 flex items-center justify-center relative overflow-hidden"
               style={{
                 transform: 'perspective(1000px) translateZ(0)',
                 boxShadow: '0 12px 40px rgba(59, 130, 246, 0.3)'
               }}
+=======
+              className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center"
+>>>>>>> Stashed changes
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                    style={{ 
@@ -319,9 +375,10 @@ const Landing = () => {
                      transition: 'transform 0.6s ease'
                    }} />
               Start Creating Timetables
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-5 h-5 ml-2" />
             </button>
             
+<<<<<<< Updated upstream
             <button className={`group px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center border-2 relative overflow-hidden ${
               isDarkMode 
                 ? 'border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white' 
@@ -334,6 +391,14 @@ const Landing = () => {
             }}>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+=======
+            <button className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center border-2 ${
+              isDarkMode 
+                ? 'border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white' 
+                : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900'
+            }`}>
+              <Play className="w-5 h-5 mr-2" />
+>>>>>>> Stashed changes
               See Demo
             </button>
           </div>
@@ -355,8 +420,10 @@ const Landing = () => {
           </div>
         </div>
 
+
+
         {/* Features Section */}
-        <div className="mb-20">
+        <div className="mb-20 relative z-20">
           <div className="text-center mb-16">
             <h2 className={`text-4xl md:text-5xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Advanced Timetabling Features
@@ -370,11 +437,16 @@ const Landing = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
+<<<<<<< Updated upstream
                 className={`group p-8 rounded-2xl transition-all duration-500 border relative overflow-hidden card-3d ${
+=======
+                className={`p-8 rounded-2xl transition-all duration-300 border hover:scale-105 ${
+>>>>>>> Stashed changes
                   isDarkMode 
                     ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
                     : 'bg-white/70 border-gray-200 hover:border-gray-300'
                 } backdrop-blur-sm`}
+<<<<<<< Updated upstream
                 style={{ 
                   animationDelay: `${index * 100}ms`,
                   transform: 'perspective(1000px) rotateX(2deg) rotateY(2deg)',
@@ -397,17 +469,30 @@ const Landing = () => {
                        animation: `float3d 3s ease-in-out infinite ${index * 0.5}s`
                      }}>
                   <div className="text-white relative z-10">
+=======
+              >
+                <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mb-6`}>
+                  <div className="text-white">
+>>>>>>> Stashed changes
                     {feature.icon}
                   </div>
                   {/* Glow effect */}
                   <div className={`absolute inset-0 rounded-xl bg-gradient-to-r ${feature.gradient} opacity-50 blur-lg group-hover:opacity-75 transition-opacity duration-300`} />
                 </div>
                 
+<<<<<<< Updated upstream
                 <h3 className={`text-xl font-bold mb-4 relative z-10 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {feature.title}
                 </h3>
                 
                 <p className={`leading-relaxed relative z-10 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+=======
+                <h3 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {feature.title}
+                </h3>
+                
+                <p className={`leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+>>>>>>> Stashed changes
                   {feature.description}
                 </p>
                 
@@ -448,7 +533,7 @@ const Landing = () => {
                     : 'bg-white/50 border-gray-200 hover:border-gray-300'
                 } backdrop-blur-sm hover:shadow-2xl`}
               >
-                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-r ${useCase.gradient} flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-r ${useCase.gradient} flex items-center justify-center mx-auto mb-6`}>
                   <div className="text-white">
                     {useCase.icon}
                   </div>

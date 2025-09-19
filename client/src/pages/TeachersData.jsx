@@ -675,6 +675,7 @@ const TeachersData = () => {
       </div>
     </div>
   );
+  }; // Close renderTeachersList function
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
