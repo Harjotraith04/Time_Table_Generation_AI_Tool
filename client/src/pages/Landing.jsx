@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import GridDistortion from '../components/GridDistortion';
 import { 
   Calendar, 
@@ -31,15 +32,19 @@ import {
 
 const Landing = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+  const { register } = useAuth();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [registrationError, setRegistrationError] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     name: '',
     confirmPassword: '',
+    department: '',
     feedbackName: '',
     feedbackEmail: '',
     feedbackComment: ''
@@ -131,9 +136,59 @@ const Landing = () => {
     setSignInOpen(false);
   };
 
-  const handleSignUp = () => {
-    console.log('Sign up:', formData);
-    setSignUpOpen(false);
+  const handleSignUp = async () => {
+    setRegistrationError('');
+    setIsRegistering(true);
+
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setRegistrationError('All fields are required');
+      setIsRegistering(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setRegistrationError('Passwords do not match');
+      setIsRegistering(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setRegistrationError('Password must be at least 6 characters long');
+      setIsRegistering(false);
+      return;
+    }
+
+    try {
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: 'admin', // Based on the screenshot, this is admin registration
+        department: formData.department || 'AI&DS'
+      });
+
+      if (result.success) {
+        setSignUpOpen(false);
+        // Clear form
+        setFormData(prev => ({
+          ...prev,
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          department: ''
+        }));
+        alert('Registration successful! You are now logged in.');
+      } else {
+        setRegistrationError(result.message || 'Registration failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setRegistrationError('Registration failed. Please try again.');
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   const handleFeedbackSubmit = () => {
@@ -535,6 +590,17 @@ const Landing = () => {
               </div>
               
               <div className="relative">
+                <Building2 className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Department (e.g., AI&DS)"
+                  value={formData.department}
+                  onChange={handleInputChange('department')}
+                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-white/20 bg-white/10 text-slate-100 placeholder-gray-400 transition-all duration-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm"
+                />
+              </div>
+              
+              <div className="relative">
                 <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -563,11 +629,18 @@ const Landing = () => {
                 />
               </div>
               
+              {registrationError && (
+                <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
+                  {registrationError}
+                </div>
+              )}
+              
               <button
                 onClick={handleSignUp}
-                className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25"
+                disabled={isRegistering}
+                className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                Create Account
+                {isRegistering ? 'Creating Account...' : 'Create Account'}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { 
   Calendar, 
   BookOpen, 
@@ -20,11 +21,14 @@ import {
   Info,
   ChevronRight,
   ChevronLeft,
-  Plus
+  Plus,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const StudentDashboard = () => {
   const { user, logout } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('timetable');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -84,13 +88,13 @@ const StudentDashboard = () => {
     <div className="space-y-6">
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">This Week's Schedule</h3>
+        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>This Week's Schedule</h3>
         <div className="flex items-center space-x-2">
-          <button className="p-2 text-gray-400 hover:text-gray-600">
+          <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm font-medium text-gray-600">Week of March 15-19</span>
-          <button className="p-2 text-gray-400 hover:text-gray-600">
+          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Week of March 15-19</span>
+          <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -99,26 +103,26 @@ const StudentDashboard = () => {
       {/* Timetable Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {currentWeek.map((day, index) => (
-          <div key={index} className="bg-white rounded-xl border border-gray-200 p-4">
+          <div key={index} className={`rounded-xl border p-4 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="text-center mb-4">
-              <h4 className="font-semibold text-gray-900">{day.day}</h4>
-              <p className="text-sm text-gray-500">March {day.date}</p>
+              <h4 className={`font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{day.day}</h4>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>March {day.date}</p>
             </div>
             
             <div className="space-y-3">
               {day.classes.map((classItem, classIndex) => (
-                <div key={classIndex} className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div key={classIndex} className={`p-3 rounded-lg border transition-colors duration-300 ${isDarkMode ? 'bg-blue-900/30 border-blue-700/50' : 'bg-blue-50 border-blue-200'}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-blue-700">{classItem.time}</span>
-                    <span className="text-xs text-blue-600">{classItem.room}</span>
+                    <span className={`text-xs font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>{classItem.time}</span>
+                    <span className={`text-xs ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{classItem.room}</span>
                   </div>
-                  <h5 className="font-medium text-gray-900 text-sm mb-1">{classItem.subject}</h5>
-                  <p className="text-xs text-gray-600">{classItem.teacher}</p>
+                  <h5 className={`font-medium text-sm mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{classItem.subject}</h5>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{classItem.teacher}</p>
                 </div>
               ))}
               
               {day.classes.length === 0 && (
-                <div className="text-center py-4 text-gray-400">
+                <div className={`text-center py-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                   <p className="text-sm">No classes</p>
                 </div>
               )}
@@ -133,7 +137,7 @@ const StudentDashboard = () => {
           <Download className="w-4 h-4" />
           <span>Download Timetable</span>
         </button>
-        <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2">
+        <button className={`px-4 py-2 border rounded-lg transition-colors flex items-center space-x-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
           <Eye className="w-4 h-4" />
           <span>View Full Schedule</span>
         </button>
@@ -144,7 +148,7 @@ const StudentDashboard = () => {
   const renderCourses = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900">My Courses</h3>
+        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>My Courses</h3>
         <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
           <Plus className="w-4 h-4" />
           <span>Add Course</span>
@@ -153,29 +157,31 @@ const StudentDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map((course) => (
-          <div key={course.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300">
+          <div key={course.id} className={`rounded-xl border p-6 hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
                 <BookOpen className="w-6 h-6 text-blue-600" />
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                course.grade === 'A' || course.grade === 'A-' ? 'bg-green-100 text-green-800' :
-                course.grade === 'B+' || course.grade === 'B' ? 'bg-blue-100 text-blue-800' :
-                'bg-yellow-100 text-yellow-800'
+                course.grade === 'A' || course.grade === 'A-' ? 
+                  (isDarkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-800') :
+                course.grade === 'B+' || course.grade === 'B' ? 
+                  (isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800') :
+                  (isDarkMode ? 'bg-yellow-900/30 text-yellow-400' : 'bg-yellow-100 text-yellow-800')
               }`}>
                 {course.grade}
               </span>
             </div>
             
-            <h4 className="font-semibold text-gray-900 mb-1">{course.name}</h4>
-            <p className="text-sm text-gray-600 mb-3">{course.code} • {course.credits} credits</p>
+            <h4 className={`font-semibold mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{course.name}</h4>
+            <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{course.code} • {course.credits} credits</p>
             
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Progress</span>
-                <span className="text-sm font-medium text-gray-900">{course.progress}%</span>
+                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Progress</span>
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{course.progress}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                 <div 
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${course.progress}%` }}
@@ -249,9 +255,9 @@ const StudentDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className={`border-b transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
@@ -264,20 +270,28 @@ const StudentDashboard = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-600">
+              <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
                 <Bell className="w-5 h-5" />
               </button>
+              
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+              >
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+              
               <div className="flex items-center space-x-3">
                 <img 
                   src={user?.avatar} 
                   alt={user?.name}
                   className="w-8 h-8 rounded-full"
                 />
-                <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{user?.name}</span>
               </div>
               <button 
                 onClick={handleLogout}
-                className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-400 hover:text-red-600'}`}
               >
                 <LogOut className="w-5 h-5" />
               </button>
@@ -302,47 +316,47 @@ const StudentDashboard = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Courses</p>
-                <p className="text-2xl font-bold text-gray-900">5</p>
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Courses</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>5</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
                 <BookOpen className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Classes Today</p>
-                <p className="text-2xl font-bold text-gray-900">3</p>
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Classes Today</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>3</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-lg">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
                 <Clock className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Assignments Due</p>
-                <p className="text-2xl font-bold text-gray-900">2</p>
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Assignments Due</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>2</p>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-lg">
+              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-100'}`}>
                 <AlertCircle className="w-6 h-6 text-yellow-600" />
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">GPA</p>
-                <p className="text-2xl font-bold text-gray-900">3.7</p>
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>GPA</p>
+                <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>3.7</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
@@ -352,7 +366,7 @@ const StudentDashboard = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 bg-white rounded-lg p-1 border border-gray-200 mb-8">
+        <div className={`flex space-x-1 rounded-lg p-1 border mb-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           {[
             { id: 'timetable', label: 'Timetable', icon: Calendar },
             { id: 'courses', label: 'Courses', icon: BookOpen },
@@ -365,7 +379,9 @@ const StudentDashboard = () => {
               className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${
                 activeTab === tab.id
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  : isDarkMode 
+                    ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
               <tab.icon className="w-4 h-4" />
