@@ -11,15 +11,29 @@ const GridDistortion = ({ isDarkMode = true }) => {
     // Scene setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: true, 
+      preserveDrawingBuffer: false,
+      powerPreference: "high-performance"
+    });
     
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0x000000, 0); // Transparent background
+    
+    // Ensure canvas takes full viewport from the start
+    renderer.domElement.style.width = '100vw';
+    renderer.domElement.style.height = '100vh';
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    
     mountRef.current.appendChild(renderer.domElement);
 
-    // Grid geometry
-    const gridSize = 50;
-    const gridDivisions = 100;
+    // Grid geometry - larger size to ensure full coverage
+    const gridSize = 100;
+    const gridDivisions = 120;
     
     // Create custom grid geometry with more vertices for distortion
     const geometry = new THREE.PlaneGeometry(gridSize, gridSize, gridDivisions, gridDivisions);
@@ -100,8 +114,8 @@ const GridDistortion = ({ isDarkMode = true }) => {
     mesh.rotation.x = -Math.PI / 3; // Tilt the grid
     scene.add(mesh);
 
-    // Position camera
-    camera.position.set(0, 15, 20);
+    // Position camera - adjusted for larger grid
+    camera.position.set(0, 20, 25);
     camera.lookAt(0, 0, 0);
 
     // Mouse tracking
@@ -116,9 +130,19 @@ const GridDistortion = ({ isDarkMode = true }) => {
 
     // Resize handler
     const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      
+      // Ensure canvas takes full viewport
+      if (renderer.domElement) {
+        renderer.domElement.style.width = '100vw';
+        renderer.domElement.style.height = '100vh';
+      }
     };
 
     window.addEventListener('resize', handleResize);
