@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
+import Demo from './pages/Demo';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import CreateTimetable from './pages/CreateTimetable';
@@ -69,6 +70,7 @@ const AppContent = () => {
     <div className="App">
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="/login" element={<Auth />} />
         <Route path="/register" element={<Auth />} />
         <Route 

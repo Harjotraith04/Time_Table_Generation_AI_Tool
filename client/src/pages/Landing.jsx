@@ -215,13 +215,15 @@ const Landing = () => {
               <ArrowRight className="w-5 h-5 ml-2" />
             </button>
             
-            <button className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center border-2 ${
+            <button 
+              onClick={() => window.location.href = '/demo'}
+              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center border-2 ${
               isDarkMode 
                 ? 'border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white' 
                 : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900'
             }`}>
               <Play className="w-5 h-5 mr-2" />
-              See Demo
+              Try Live Demo
             </button>
           </div>
           
