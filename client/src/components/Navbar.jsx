@@ -14,7 +14,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <Calendar className="h-8 w-8 text-primary-600" />
-            <span className="text-xl font-bold text-gray-800">AI Timetable Generator</span>
+            <span className="text-xl font-bold text-gray-800">AlmanacAI</span>
           </Link>
           
           <div className="flex space-x-8">

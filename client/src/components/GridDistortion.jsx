@@ -67,11 +67,12 @@ const GridDistortion = ({ isDarkMode = true }) => {
       }
     `;
 
-    // Fragment shader for grid appearance
+    // Fragment shader for grid appearance with teal accents
     const fragmentShader = `
       uniform float uTime;
       uniform vec3 uColor1;
       uniform vec3 uColor2;
+      uniform vec3 uAccentColor;
       varying vec2 vUv;
       varying float vElevation;
       
@@ -81,21 +82,26 @@ const GridDistortion = ({ isDarkMode = true }) => {
         float line = min(grid.x, grid.y);
         float gridMask = 1.0 - min(line, 1.0);
         
-        // Color based on elevation and time
-        vec3 color = mix(uColor1, uColor2, vElevation * 0.5 + 0.5);
-        color = mix(color, uColor2 * 1.5, sin(uTime + vElevation * 10.0) * 0.3 + 0.3);
+        // Color based on elevation and time with teal accents
+        vec3 baseColor = mix(uColor1, uColor2, vElevation * 0.5 + 0.5);
+        float tealInfluence = sin(uTime * 0.8 + vElevation * 8.0) * 0.5 + 0.5;
+        vec3 color = mix(baseColor, uAccentColor, tealInfluence * 0.3);
+        
+        // Pulse effect
+        color = mix(color, uAccentColor * 1.2, sin(uTime + vElevation * 12.0) * 0.2 + 0.2);
         
         // Fade edges
         float fadeX = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.9, vUv.x);
         float fadeY = smoothstep(0.0, 0.1, vUv.y) * smoothstep(1.0, 0.9, vUv.y);
         float fade = fadeX * fadeY;
         
-        gl_FragColor = vec4(color, gridMask * fade * 0.9);
+        gl_FragColor = vec4(color, gridMask * fade * 0.7);
       }
     `;
 
-    // Material with custom shaders - theme-aware colors
+    // Material with custom shaders - theme-aware colors with teal accents
     const gridColor = isDarkMode ? 0xffffff : 0x333333; // White for dark mode, dark gray for light mode
+    const tealAccent = 0x14b8a6; // Teal accent color
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -103,7 +109,8 @@ const GridDistortion = ({ isDarkMode = true }) => {
         uTime: { value: 0 },
         uMouse: { value: new THREE.Vector2(0.5, 0.5) },
         uColor1: { value: new THREE.Color(gridColor) },
-        uColor2: { value: new THREE.Color(gridColor) }
+        uColor2: { value: new THREE.Color(gridColor) },
+        uAccentColor: { value: new THREE.Color(tealAccent) }
       },
       transparent: true,
       side: THREE.DoubleSide,

@@ -123,8 +123,14 @@ const Landing = () => {
     <div className={`min-h-screen transition-all duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
       <GridDistortion isDarkMode={isDarkMode} />
       
+      {/* Enhanced gradient overlays for depth */}
       <div className="fixed inset-0 pointer-events-none z-10" style={{
-        background: 'radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.8) 100%)',
+        background: `
+          radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+          radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0.8) 100%)
+        `,
         backdropFilter: 'blur(1px)',
         WebkitBackdropFilter: 'blur(1px)'
       }} />
@@ -141,7 +147,7 @@ const Landing = () => {
                 <Calendar className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                AI Timetable Generator
+                AlmanacAI
               </h1>
             </div>
             
@@ -175,33 +181,28 @@ const Landing = () => {
         
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight" style={{ 
-            fontFamily: '"Bookman Old Style", "Book Antiqua", Palatino, serif',
-            color: '#E6E6FA',
-            textShadow: '2px 2px 0px #D8BFD8, 4px 4px 0px #DDA0DD, 6px 6px 0px #DA70D6, 8px 8px 12px rgba(218,112,214,0.5)',
-            transform: 'perspective(300px) rotateX(5deg)',
-            letterSpacing: '0.02em',
-            filter: 'drop-shadow(0 10px 20px rgba(218,112,214,0.3))'
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            fontWeight: '900',
+            background: 'linear-gradient(135deg, #ffffff 0%, #e879f9 50%, #8b5cf6 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 4px 20px rgba(139, 92, 246, 0.3)',
+            letterSpacing: '-0.02em',
+            lineHeight: '1.1'
           }}>
-            <span style={{
-              display: 'inline-block',
-              transform: 'scaleY(0.95)',
-              textShadow: 'inherit'
-            }}>
+            <span style={{ display: 'block' }}>
               AI For Generating Timetable
             </span>
-            <br />
-            <span style={{
-              display: 'inline-block',
-              transform: 'scaleY(0.95)',
-              textShadow: 'inherit'
-            }}>
+            <span style={{ display: 'block' }}>
               and Optimization
             </span>
           </h1>
           
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed" style={{
-            color: '#00BFFF',
-            textShadow: '0 0 10px rgba(0,191,255,0.5), 0 0 20px rgba(0,191,255,0.3), 0 0 30px rgba(0,191,255,0.2)'
+          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed font-medium" style={{
+            color: '#cbd5e1',
+            lineHeight: '1.7',
+            letterSpacing: '0.01em'
           }}>
             Revolutionary AI-powered timetable generation and optimization platform. Create perfect schedules for schools, universities, and organizations in minutes.
           </p>
@@ -209,34 +210,59 @@ const Landing = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <button
               onClick={() => window.location.href = '/login'}
-              className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center"
+              className="group px-8 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 text-white rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 flex items-center justify-center backdrop-blur-sm border border-purple-500/20"
+              style={{
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #3b82f6 100%)',
+                boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
             >
               Start Creating Timetables
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
             </button>
             
             <button 
               onClick={() => window.location.href = '/demo'}
-              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center border-2 ${
-              isDarkMode 
-                ? 'border-gray-600 text-gray-300 hover:border-gray-500 hover:text-white' 
-                : 'border-gray-300 text-gray-700 hover:border-gray-400 hover:text-gray-900'
-            }`}>
-              <Play className="w-5 h-5 mr-2" />
+              className="group px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 flex items-center justify-center border-2 backdrop-blur-md"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#cbd5e1',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.15)';
+                e.target.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.target.style.color = '#cbd5e1';
+              }}
+            >
+              <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform duration-300" />
               Try Live Demo
             </button>
           </div>
           
           <div className="flex flex-wrap justify-center gap-6">
             {benefits.map((benefit, index) => (
-              <div key={index} className="flex items-center space-x-2 transform hover:scale-105 transition-all duration-300"
+              <div key={index} className="group flex items-center space-x-2 transform hover:scale-105 transition-all duration-300 px-4 py-2 rounded-lg backdrop-blur-sm hover:backdrop-blur-md"
                    style={{ 
                      animationDelay: `${index * 0.1}s`,
                      animation: 'fadeInUp 0.6s ease-out forwards',
-                     opacity: 0
+                     opacity: 0,
+                     background: 'rgba(255, 255, 255, 0.05)',
+                     border: '1px solid rgba(255, 255, 255, 0.1)'
                    }}>
-                <CheckCircle className="w-5 h-5 text-green-500 animate-pulse" />
-                <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <div className="w-5 h-5 rounded-full flex items-center justify-center"
+                     style={{
+                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                       boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                     }}>
+                  <CheckCircle className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#cbd5e1' }}>
                   {benefit}
                 </span>
               </div>
@@ -258,23 +284,37 @@ const Landing = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`p-8 rounded-2xl transition-all duration-300 border hover:scale-105 ${
-                  isDarkMode 
-                    ? 'bg-gray-800/50 border-gray-700 hover:border-gray-600' 
-                    : 'bg-white/70 border-gray-200 hover:border-gray-300'
-                } backdrop-blur-sm`}
+                className="group p-8 rounded-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-2 cursor-pointer"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                  e.currentTarget.style.boxShadow = '0 16px 48px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+                }}
               >
-                <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mb-6`}>
+                <div className={`w-16 h-16 rounded-xl bg-gradient-to-r ${feature.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
+                     style={{
+                       boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)'
+                     }}>
                   <div className="text-white">
                     {feature.icon}
                   </div>
                 </div>
                 
-                <h3 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h3 className="text-xl font-bold mb-4 text-white group-hover:text-purple-200 transition-colors duration-300">
                   {feature.title}
                 </h3>
                 
-                <p className={`leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <p className="leading-relaxed" style={{ color: '#cbd5e1' }}>
                   {feature.description}
                 </p>
               </div>
