@@ -8,6 +8,8 @@ const Classroom = require('../models/Classroom');
 const Course = require('../models/Course');
 const Student = require('../models/Student');
 const User = require('../models/User');
+const Program = require('../models/Program');
+const Division = require('../models/Division');
 const { authenticateToken } = require('./auth');
 const logger = require('../utils/logger');
 const emailService = require('../utils/emailService');
@@ -2354,6 +2356,473 @@ router.get('/students/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching student statistics'
+    });
+  }
+});
+
+// ==================== PROGRAMS ROUTES ====================
+
+/**
+ * @route   GET /api/data/programs
+ * @desc    Get all programs with optional filtering
+ * @access  Private
+ */
+router.get('/programs', [
+  query('school').optional().trim(),
+  query('type').optional().isIn(['Bachelor', 'Master', 'Doctorate', 'Diploma', 'Certificate']),
+  query('status').optional().isIn(['Active', 'Inactive', 'Archived']),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { school, type, status, page = 1, limit = 50 } = req.query;
+    
+    // Build query
+    const query = {};
+    if (school) query.school = school;
+    if (type) query.type = type;
+    if (status) query.status = status;
+    else query.status = 'Active'; // Default to active programs
+
+    // Execute query with pagination
+    const skip = (page - 1) * limit;
+    const programs = await Program.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ school: 1, name: 1 });
+
+    const total = await Program.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: programs,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error fetching programs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching programs'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/programs/:id
+ * @desc    Get a specific program
+ * @access  Private
+ */
+router.get('/programs/:id', async (req, res) => {
+  try {
+    const program = await Program.findOne({ id: req.params.id });
+    
+    if (!program) {
+      return res.status(404).json({
+        success: false,
+        message: 'Program not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: program
+    });
+
+  } catch (error) {
+    logger.error('Error fetching program:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching program'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/programs
+ * @desc    Create a new program
+ * @access  Private
+ */
+router.post('/programs', [
+  body('id').trim().notEmpty().withMessage('Program ID is required'),
+  body('name').trim().isLength({ min: 2, max: 150 }).withMessage('Name must be between 2 and 150 characters'),
+  body('code').trim().notEmpty().withMessage('Program code is required'),
+  body('school').trim().notEmpty().withMessage('School is required'),
+  body('type').isIn(['Bachelor', 'Master', 'Doctorate', 'Diploma', 'Certificate']).withMessage('Invalid program type'),
+  body('duration').isInt({ min: 1, max: 8 }).withMessage('Duration must be between 1 and 8 years'),
+  body('totalSemesters').isInt({ min: 1, max: 16 }).withMessage('Total semesters must be between 1 and 16')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    // Check if program ID already exists
+    const existingProgram = await Program.findOne({ id: req.body.id });
+    if (existingProgram) {
+      return res.status(400).json({
+        success: false,
+        message: 'Program with this ID already exists'
+      });
+    }
+
+    // Check if program code already exists
+    const existingCode = await Program.findOne({ code: req.body.code });
+    if (existingCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Program with this code already exists'
+      });
+    }
+
+    const program = new Program(req.body);
+    await program.save();
+
+    logger.info('Program created', { programId: program.id, createdBy: req.user.userId });
+
+    res.status(201).json({
+      success: true,
+      message: 'Program created successfully',
+      data: program
+    });
+
+  } catch (error) {
+    logger.error('Error creating program:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while creating program'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/programs/:id
+ * @desc    Update a program
+ * @access  Private
+ */
+router.put('/programs/:id', [
+  body('name').optional().trim().isLength({ min: 2, max: 150 }),
+  body('code').optional().trim().notEmpty(),
+  body('school').optional().trim().notEmpty(),
+  body('type').optional().isIn(['Bachelor', 'Master', 'Doctorate', 'Diploma', 'Certificate']),
+  body('duration').optional().isInt({ min: 1, max: 8 }),
+  body('totalSemesters').optional().isInt({ min: 1, max: 16 }),
+  body('status').optional().isIn(['Active', 'Inactive', 'Archived'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const program = await Program.findOneAndUpdate(
+      { id: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!program) {
+      return res.status(404).json({
+        success: false,
+        message: 'Program not found'
+      });
+    }
+
+    logger.info('Program updated', { programId: program.id, updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Program updated successfully',
+      data: program
+    });
+
+  } catch (error) {
+    logger.error('Error updating program:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating program'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/programs/:id
+ * @desc    Delete a program
+ * @access  Private
+ */
+router.delete('/programs/:id', async (req, res) => {
+  try {
+    const program = await Program.findOneAndDelete({ id: req.params.id });
+
+    if (!program) {
+      return res.status(404).json({
+        success: false,
+        message: 'Program not found'
+      });
+    }
+
+    logger.info('Program deleted', { programId: program.id, deletedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Program deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting program:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting program'
+    });
+  }
+});
+
+// ==================== DIVISIONS ROUTES ====================
+
+/**
+ * @route   GET /api/data/divisions
+ * @desc    Get all divisions with optional filtering
+ * @access  Private
+ */
+router.get('/divisions', [
+  query('program').optional().trim(),
+  query('year').optional().isInt({ min: 1, max: 5 }),
+  query('semester').optional().isInt({ min: 1, max: 2 }),
+  query('status').optional().isIn(['Active', 'Inactive', 'Archived']),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { program, year, semester, status, page = 1, limit = 50 } = req.query;
+    
+    // Build query
+    const query = {};
+    if (program) query.program = program;
+    if (year) query.year = parseInt(year);
+    if (semester) query.semester = parseInt(semester);
+    if (status) query.status = status;
+    else query.status = 'Active'; // Default to active divisions
+
+    // Execute query with pagination
+    const skip = (page - 1) * limit;
+    const divisions = await Division.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ program: 1, year: 1, semester: 1, name: 1 });
+
+    const total = await Division.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: divisions,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error fetching divisions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching divisions'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/divisions/:id
+ * @desc    Get a specific division
+ * @access  Private
+ */
+router.get('/divisions/:id', async (req, res) => {
+  try {
+    const division = await Division.findOne({ id: req.params.id });
+    
+    if (!division) {
+      return res.status(404).json({
+        success: false,
+        message: 'Division not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: division
+    });
+
+  } catch (error) {
+    logger.error('Error fetching division:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching division'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/divisions
+ * @desc    Create a new division
+ * @access  Private
+ */
+router.post('/divisions', [
+  body('id').trim().notEmpty().withMessage('Division ID is required'),
+  body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name must be between 1 and 100 characters'),
+  body('program').trim().notEmpty().withMessage('Program is required'),
+  body('year').isInt({ min: 1, max: 5 }).withMessage('Year must be between 1 and 5'),
+  body('semester').isInt({ min: 1, max: 2 }).withMessage('Semester must be 1 or 2'),
+  body('studentCount').isInt({ min: 1, max: 500 }).withMessage('Student count must be between 1 and 500'),
+  body('labBatches').optional().isInt({ min: 0 }).withMessage('Lab batches must be 0 or greater')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    // Check if division ID already exists
+    const existingDivision = await Division.findOne({ id: req.body.id });
+    if (existingDivision) {
+      return res.status(400).json({
+        success: false,
+        message: 'Division with this ID already exists'
+      });
+    }
+
+    const division = new Division(req.body);
+    await division.save();
+
+    logger.info('Division created', { divisionId: division.id, createdBy: req.user.userId });
+
+    res.status(201).json({
+      success: true,
+      message: 'Division created successfully',
+      data: division
+    });
+
+  } catch (error) {
+    logger.error('Error creating division:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while creating division'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/divisions/:id
+ * @desc    Update a division
+ * @access  Private
+ */
+router.put('/divisions/:id', [
+  body('name').optional().trim().isLength({ min: 1, max: 100 }),
+  body('program').optional().trim().notEmpty(),
+  body('year').optional().isInt({ min: 1, max: 5 }),
+  body('semester').optional().isInt({ min: 1, max: 2 }),
+  body('studentCount').optional().isInt({ min: 1, max: 500 }),
+  body('labBatches').optional().isInt({ min: 0 }),
+  body('status').optional().isIn(['Active', 'Inactive', 'Archived'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const division = await Division.findOneAndUpdate(
+      { id: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!division) {
+      return res.status(404).json({
+        success: false,
+        message: 'Division not found'
+      });
+    }
+
+    logger.info('Division updated', { divisionId: division.id, updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Division updated successfully',
+      data: division
+    });
+
+  } catch (error) {
+    logger.error('Error updating division:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating division'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/divisions/:id
+ * @desc    Delete a division
+ * @access  Private
+ */
+router.delete('/divisions/:id', async (req, res) => {
+  try {
+    const division = await Division.findOneAndDelete({ id: req.params.id });
+
+    if (!division) {
+      return res.status(404).json({
+        success: false,
+        message: 'Division not found'
+      });
+    }
+
+    logger.info('Division deleted', { divisionId: division.id, deletedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Division deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting division:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting division'
     });
   }
 });

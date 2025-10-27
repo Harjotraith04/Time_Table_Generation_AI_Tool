@@ -204,6 +204,58 @@ export const bulkImportCourses = async (courses) => {
   return response.data
 }
 
+// Programs
+export const getPrograms = async (params = {}) => {
+  const response = await api.get('/data/programs', { params })
+  return response.data
+}
+
+export const getProgram = async (id) => {
+  const response = await api.get(`/data/programs/${id}`)
+  return response.data
+}
+
+export const createProgram = async (programData) => {
+  const response = await api.post('/data/programs', programData)
+  return response.data
+}
+
+export const updateProgram = async (id, programData) => {
+  const response = await api.put(`/data/programs/${id}`, programData)
+  return response.data
+}
+
+export const deleteProgram = async (id) => {
+  const response = await api.delete(`/data/programs/${id}`)
+  return response.data
+}
+
+// Divisions
+export const getDivisions = async (params = {}) => {
+  const response = await api.get('/data/divisions', { params })
+  return response.data
+}
+
+export const getDivision = async (id) => {
+  const response = await api.get(`/data/divisions/${id}`)
+  return response.data
+}
+
+export const createDivision = async (divisionData) => {
+  const response = await api.post('/data/divisions', divisionData)
+  return response.data
+}
+
+export const updateDivision = async (id, divisionData) => {
+  const response = await api.put(`/data/divisions/${id}`, divisionData)
+  return response.data
+}
+
+export const deleteDivision = async (id) => {
+  const response = await api.delete(`/data/divisions/${id}`)
+  return response.data
+}
+
 // Data validation and statistics
 export const validateData = async () => {
   const response = await api.get('/data/validate')
