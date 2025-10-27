@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, User, Building, BookOpen, Sparkles, Eye, Users, MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Building, BookOpen, Sparkles, Eye, Users, MapPin, Clock, ChevronDown, ChevronUp, Loader } from 'lucide-react';
 import TimetableDisplay from '../components/TimetableDisplay';
+import { getTeachers, getClassrooms, getCourses } from '../services/api';
 
 const Demo = () => {
   const [selectedView, setSelectedView] = useState('classroom');
@@ -8,37 +9,39 @@ const Demo = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showSampleData, setShowSampleData] = useState(false);
   const [generatedTimetables, setGeneratedTimetables] = useState(null);
+  
+  // Real data from API
+  const [teachers, setTeachers] = useState([]);
+  const [classrooms, setClassrooms] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample Data
-  const sampleData = {
-    teachers: [
-      { id: 'T001', name: 'Dr. Toral Shah', department: 'Computer Engineering', subjects: ['Discrete Mathematics', 'Indian Knowledge System', 'Essential Electronics Practices'], email: 'toral.shah@nmims.edu' },
-      { id: 'T002', name: 'Prof. Meet Jethwa', department: 'AI & Data Science', subjects: ['Big Data Analytics', 'Machine Learning'], email: 'meet.jethwa@nmims.edu' },
-      { id: 'T003', name: 'Dr. Shailendra Aote', department: 'AI & Data Science', subjects: ['Applied Time Series Analysis', 'Natural Language Processing'], email: 'shailendra.aote@nmims.edu' },
-      { id: 'T004', name: 'Prof. Divesh Kubal', department: 'Computer Engineering', subjects: ['Advanced Topics in ML', 'Computer Networks'], email: 'divesh.kubal@nmims.edu' },
-    ],
-    classrooms: [
-      { id: 'C001', name: 'Room C001', capacity: 60, features: ['Projector', 'AC', 'Whiteboard'], type: 'Theory' },
-      { id: 'L101', name: 'Lab L-101', capacity: 30, features: ['Computers', 'Projector', 'AC'], type: 'Practical' },
-      { id: 'L102', name: 'Lab L-102', capacity: 30, features: ['Computers', 'Projector', 'AC'], type: 'Practical' },
-      { id: 'C005', name: 'Room C005', capacity: 80, features: ['Projector', 'AC', 'Smart Board'], type: 'Theory' },
-    ],
-    programs: [
-      {
-        id: 'BTEC-AI-Y4',
-        name: 'B Tech (AI & Data Science) - Fourth Year',
-        department: 'AI & Data Science',
-        semester: 7,
-        students: 45,
-        divisions: ['B1', 'B2'],
-      }
-    ],
-    courses: [
-      { id: 'CS401', name: 'Applied Time Series Analysis', code: 'ATSA', type: 'Theory', hours: 3 },
-      { id: 'CS402', name: 'Big Data Analytics', code: 'BDA', type: 'Theory', hours: 3 },
-      { id: 'CS403', name: 'Natural Language Processing', code: 'NLP', type: 'Practical', hours: 2 },
-      { id: 'CS404', name: 'Advanced Topics in ML', code: 'ATML', type: 'Theory', hours: 3 },
-    ]
+  // Fetch real data on component mount
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [teachersRes, classroomsRes, coursesRes] = await Promise.all([
+        getTeachers(),
+        getClassrooms(),
+        getCourses()
+      ]);
+      
+      setTeachers(teachersRes.data || teachersRes.teachers || []);
+      setClassrooms(classroomsRes.data || classroomsRes.classrooms || []);
+      setCourses(coursesRes.data || coursesRes.courses || []);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Sample timetables for different views
@@ -281,7 +284,7 @@ const Demo = () => {
         {/* Sample Data Overview */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Sample Institution Data</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Institution Data</h2>
             <button
               onClick={() => setShowSampleData(!showSampleData)}
               className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors"
@@ -291,62 +294,100 @@ const Demo = () => {
             </button>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-blue-600">{sampleData.teachers.length}</div>
-              <div className="text-sm text-gray-600">Teachers</div>
+          {/* Loading State */}
+          {loading && (
+            <div className="p-12 text-center">
+              <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Loading institution data...</p>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <Building className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-green-600">{sampleData.classrooms.length}</div>
-              <div className="text-sm text-gray-600">Classrooms</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <BookOpen className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-purple-600">{sampleData.courses.length}</div>
-              <div className="text-sm text-gray-600">Courses</div>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <Calendar className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-orange-600">45</div>
-              <div className="text-sm text-gray-600">Students</div>
-            </div>
-          </div>
+          )}
 
-          {showSampleData && (
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Teaching Faculty</h3>
-                  <div className="space-y-2 text-sm">
-                    {sampleData.teachers.map(teacher => (
-                      <div key={teacher.id} className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium">{teacher.name}</div>
-                          <div className="text-gray-500">{teacher.department}</div>
-                        </div>
-                        <div className="text-xs text-blue-600">{teacher.subjects.length} subjects</div>
-                      </div>
-                    ))}
-                  </div>
+          {/* Error State */}
+          {error && (
+            <div className="p-12 text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchAllData}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Data Display */}
+          {!loading && !error && (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-600">{teachers.length}</div>
+                  <div className="text-sm text-gray-600">Teachers</div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Classroom Resources</h3>
-                  <div className="space-y-2 text-sm">
-                    {sampleData.classrooms.map(room => (
-                      <div key={room.id} className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium">{room.name}</div>
-                          <div className="text-gray-500">Capacity: {room.capacity}</div>
-                        </div>
-                        <div className="text-xs text-green-600">{room.type}</div>
-                      </div>
-                    ))}
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <Building className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-600">{classrooms.length}</div>
+                  <div className="text-sm text-gray-600">Classrooms</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <BookOpen className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-600">{courses.length}</div>
+                  <div className="text-sm text-gray-600">Courses</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <Calendar className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-orange-600">
+                    {classrooms.reduce((sum, room) => sum + (room.capacity || 0), 0)}
                   </div>
+                  <div className="text-sm text-gray-600">Total Capacity</div>
                 </div>
               </div>
-            </div>
+
+              {showSampleData && (
+                <div className="border-t pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3">Teaching Faculty</h3>
+                      <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
+                        {teachers.length > 0 ? (
+                          teachers.map(teacher => (
+                            <div key={teacher._id || teacher.id} className="flex justify-between items-start">
+                              <div>
+                                <div className="font-medium">{teacher.name}</div>
+                                <div className="text-gray-500">{teacher.department}</div>
+                              </div>
+                              <div className="text-xs text-blue-600">
+                                {teacher.subjects?.length || 0} subjects
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-center py-4">No teachers available</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-3">Classroom Resources</h3>
+                      <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
+                        {classrooms.length > 0 ? (
+                          classrooms.map(room => (
+                            <div key={room._id || room.id} className="flex justify-between items-start">
+                              <div>
+                                <div className="font-medium">{room.name}</div>
+                                <div className="text-gray-500">Capacity: {room.capacity}</div>
+                              </div>
+                              <div className="text-xs text-green-600">{room.type}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-center py-4">No classrooms available</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -387,8 +428,8 @@ const Demo = () => {
                   {generationProgress.toFixed(1)}% Complete
                 </div>
                 <div className="mt-4 text-xs text-gray-500">
-                  AI is analyzing {sampleData.teachers.length} teachers, {sampleData.classrooms.length} rooms, 
-                  and {sampleData.courses.length} courses to find the optimal solution...
+                  AI is analyzing {teachers.length} teachers, {classrooms.length} rooms, 
+                  and {courses.length} courses to find the optimal solution...
                 </div>
               </div>
             )}

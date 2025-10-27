@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import { getCourses, createCourse, updateCourse, deleteCourse } from '../services/api';
 import { 
   BookOpen,
   ArrowLeft,
@@ -20,148 +21,39 @@ import {
   Clock,
   BookOpenCheck,
   FlaskConical,
-  Calendar
+  Calendar,
+  Loader
 } from 'lucide-react';
 
 const ProgramsData = () => {
   const { user, logout } = useAuth();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('programs');
+  const [activeTab, setActiveTab] = useState('courses');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample programs data
-  const [programs, setPrograms] = useState([
-    {
-      id: 'PROG001',
-      name: 'Computer Science',
-      code: 'CS',
-      school: 'Engineering',
-      duration: 4,
-      totalSemesters: 8,
-      type: 'Bachelor',
-      status: 'Active'
-    },
-    {
-      id: 'PROG002',
-      name: 'Business Administration',
-      code: 'BBA',
-      school: 'Business',
-      duration: 3,
-      totalSemesters: 6,
-      type: 'Bachelor',
-      status: 'Active'
-    },
-    {
-      id: 'PROG003',
-      name: 'Mathematics',
-      code: 'MATH',
-      school: 'Sciences',
-      duration: 4,
-      totalSemesters: 8,
-      type: 'Bachelor',
-      status: 'Active'
+  // Fetch courses from API on component mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getCourses();
+      setCourses(response.data || response.courses || []);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+      setError('Failed to load courses. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ]);
-
-  // Sample courses data
-  const [courses, setCourses] = useState([
-    {
-      id: 'CS101',
-      name: 'Introduction to Programming',
-      code: 'CS101',
-      program: 'Computer Science',
-      semester: 1,
-      credits: 3,
-      type: 'Theory',
-      hoursPerWeek: 3,
-      hasLab: true,
-      labHours: 2,
-      prerequisites: [],
-      status: 'Active'
-    },
-    {
-      id: 'CS102',
-      name: 'Data Structures',
-      code: 'CS102',
-      program: 'Computer Science',
-      semester: 2,
-      credits: 4,
-      type: 'Theory',
-      hoursPerWeek: 3,
-      hasLab: true,
-      labHours: 3,
-      prerequisites: ['CS101'],
-      status: 'Active'
-    },
-    {
-      id: 'MATH101',
-      name: 'Calculus I',
-      code: 'MATH101',
-      program: 'Mathematics',
-      semester: 1,
-      credits: 4,
-      type: 'Theory',
-      hoursPerWeek: 4,
-      hasLab: false,
-      labHours: 0,
-      prerequisites: [],
-      status: 'Active'
-    },
-    {
-      id: 'BBA101',
-      name: 'Principles of Management',
-      code: 'BBA101',
-      program: 'Business Administration',
-      semester: 1,
-      credits: 3,
-      type: 'Theory',
-      hoursPerWeek: 3,
-      hasLab: false,
-      labHours: 0,
-      prerequisites: [],
-      status: 'Active'
-    }
-  ]);
-
-  // Sample divisions data
-  const [divisions, setDivisions] = useState([
-    {
-      id: 'DIV001',
-      name: 'CS Semester 1 - Division A',
-      program: 'Computer Science',
-      semester: 1,
-      studentCount: 60,
-      labBatches: 2
-    },
-    {
-      id: 'DIV002',
-      name: 'CS Semester 2 - Division A',
-      program: 'Computer Science',
-      semester: 2,
-      studentCount: 58,
-      labBatches: 2
-    },
-    {
-      id: 'DIV003',
-      name: 'BBA Semester 1 - Division A',
-      program: 'Business Administration',
-      semester: 1,
-      studentCount: 45,
-      labBatches: 0
-    }
-  ]);
-
-  const [programForm, setProgramForm] = useState({
-    name: '',
-    code: '',
-    school: '',
-    duration: '',
-    totalSemesters: '',
-    type: 'Bachelor',
-    status: 'Active'
-  });
+  };
 
   const [courseForm, setCourseForm] = useState({
     name: '',
@@ -190,36 +82,57 @@ const ProgramsData = () => {
     navigate('/infrastructure-data');
   };
 
-  const handleAddProgram = () => {
-    const newProgram = {
-      ...programForm,
-      id: `PROG${String(programs.length + 1).padStart(3, '0')}`
-    };
-    setPrograms([...programs, newProgram]);
-    resetProgramForm();
-    setShowAddForm(false);
+  const handleAddCourse = async () => {
+    try {
+      setLoading(true);
+      await createCourse(courseForm);
+      await fetchCourses(); // Reload courses from API
+      resetCourseForm();
+      setShowAddForm(false);
+    } catch (err) {
+      console.error('Error adding course:', err);
+      alert('Failed to add course. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddCourse = () => {
-    const newCourse = {
-      ...courseForm,
-      id: courseForm.code
-    };
-    setCourses([...courses, newCourse]);
-    resetCourseForm();
-    setShowAddForm(false);
+  const handleEditCourse = (course) => {
+    setCourseForm(course);
+    setEditingItem(course._id || course.id);
+    setActiveTab('courses');
+    setShowAddForm(true);
   };
 
-  const resetProgramForm = () => {
-    setProgramForm({
-      name: '',
-      code: '',
-      school: '',
-      duration: '',
-      totalSemesters: '',
-      type: 'Bachelor',
-      status: 'Active'
-    });
+  const handleUpdateCourse = async () => {
+    try {
+      setLoading(true);
+      await updateCourse(editingItem, courseForm);
+      await fetchCourses(); // Reload courses from API
+      resetCourseForm();
+      setShowAddForm(false);
+      setEditingItem(null);
+    } catch (err) {
+      console.error('Error updating course:', err);
+      alert('Failed to update course. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCourse = async (courseId) => {
+    if (!confirm('Are you sure you want to delete this course?')) return;
+    
+    try {
+      setLoading(true);
+      await deleteCourse(courseId);
+      await fetchCourses(); // Reload courses from API
+    } catch (err) {
+      console.error('Error deleting course:', err);
+      alert('Failed to delete course. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetCourseForm = () => {
@@ -714,13 +627,55 @@ const ProgramsData = () => {
                     setShowAddForm(true);
                     resetCourseForm();
                   }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={loading}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Course</span>
                 </button>
               </div>
               
+              {/* Loading State */}
+              {loading && courses.length === 0 && (
+                <div className="p-12 text-center">
+                  <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">Loading courses...</p>
+                </div>
+              )}
+
+              {/* Error State */}
+              {error && (
+                <div className="p-12 text-center">
+                  <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+                  <button
+                    onClick={fetchCourses}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!loading && !error && courses.length === 0 && (
+                <div className="p-12 text-center">
+                  <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">No courses found. Add your first course to get started.</p>
+                  <button
+                    onClick={() => {
+                      setActiveTab('courses');
+                      setShowAddForm(true);
+                      resetCourseForm();
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Add Course
+                  </button>
+                </div>
+              )}
+              
+              {/* Data Table */}
+              {!loading && !error && courses.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
@@ -777,10 +732,16 @@ const ProgramsData = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-2">
-                            <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                            <button 
+                              onClick={() => handleEditCourse(course)}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                            >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">
+                            <button 
+                              onClick={() => handleDeleteCourse(course._id || course.id)}
+                              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -790,6 +751,7 @@ const ProgramsData = () => {
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
           )}
 

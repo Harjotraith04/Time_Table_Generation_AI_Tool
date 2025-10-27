@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { getTeachers, getClassrooms, getCourses, getTimetables, getDataStatistics } from '../services/api';
 import { 
   Calendar, 
   Users, 
@@ -26,7 +27,8 @@ import {
   Activity,
   PieChart,
   Sun,
-  Moon
+  Moon,
+  Loader
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -34,37 +36,110 @@ const AdminDashboard = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // Real data states
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalTeachers: 0,
+    activeClasses: 0,
+    roomsAvailable: 0
+  });
+  const [recentTimetables, setRecentTimetables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch real data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [teachersRes, classroomsRes, coursesRes, timetablesRes, statsRes] = await Promise.allSettled([
+        getTeachers(),
+        getClassrooms(),
+        getCourses(),
+        getTimetables(),
+        getDataStatistics()
+      ]);
+
+      // Extract data safely
+      const teachers = teachersRes.status === 'fulfilled' ? (teachersRes.value.data || teachersRes.value.teachers || []) : [];
+      const classrooms = classroomsRes.status === 'fulfilled' ? (classroomsRes.value.data || classroomsRes.value.classrooms || []) : [];
+      const courses = coursesRes.status === 'fulfilled' ? (coursesRes.value.data || coursesRes.value.courses || []) : [];
+      const timetables = timetablesRes.status === 'fulfilled' ? (timetablesRes.value.data || timetablesRes.value.timetables || []) : [];
+
+      // Calculate real statistics
+      setStats({
+        totalStudents: 0, // This would come from a students endpoint if available
+        totalTeachers: teachers.length,
+        activeClasses: courses.length,
+        roomsAvailable: classrooms.length
+      });
+
+      // Set recent timetables
+      setRecentTimetables(timetables.slice(0, 4).map(tt => ({
+        id: tt._id || tt.id,
+        name: tt.name || 'Untitled Timetable',
+        status: tt.status || 'Draft',
+        lastUpdated: tt.updatedAt ? new Date(tt.updatedAt).toLocaleDateString() : 'N/A',
+        conflicts: tt.conflicts || 0
+      })));
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const stats = [
-    { title: 'Total Students', value: '1,234', change: '+12%', icon: GraduationCap, color: 'blue' },
-    { title: 'Total Teachers', value: '89', change: '+5%', icon: Users, color: 'green' },
-    { title: 'Active Classes', value: '45', change: '+8%', icon: BookOpen, color: 'purple' },
-    { title: 'Rooms Available', value: '23', change: '+3%', icon: Building2, color: 'orange' }
-  ];
-
-  const recentTimetables = [
-    { id: 1, name: 'Computer Science - Semester 1', status: 'Active', lastUpdated: '2 hours ago', conflicts: 0 },
-    { id: 2, name: 'Engineering - Year 2', status: 'Draft', lastUpdated: '1 day ago', conflicts: 2 },
-    { id: 3, name: 'Business Administration', status: 'Active', lastUpdated: '3 days ago', conflicts: 0 },
-    { id: 4, name: 'Medical Sciences', status: 'Review', lastUpdated: '1 week ago', conflicts: 1 }
+  const statsDisplay = [
+    { title: 'Total Students', value: stats.totalStudents.toString(), change: '', icon: GraduationCap, color: 'blue' },
+    { title: 'Total Teachers', value: stats.totalTeachers.toString(), change: '', icon: Users, color: 'green' },
+    { title: 'Active Classes', value: stats.activeClasses.toString(), change: '', icon: BookOpen, color: 'purple' },
+    { title: 'Rooms Available', value: stats.roomsAvailable.toString(), change: '', icon: Building2, color: 'orange' }
   ];
 
   const notifications = [
-    { id: 1, message: 'New timetable conflict detected in Engineering Year 2', time: '5 min ago', type: 'warning' },
-    { id: 2, message: 'Timetable generation completed for Computer Science', time: '1 hour ago', type: 'success' },
-    { id: 3, message: 'Room booking request from Dr. Smith', time: '2 hours ago', type: 'info' }
+    // These would come from a notifications API endpoint in a real system
   ];
 
   const renderOverview = () => (
     <div className="space-y-6">
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="w-8 h-8 text-blue-600 animate-spin mr-3" />
+          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Loading dashboard data...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+          <p className="text-red-600 dark:text-red-400 mb-2">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Stats Cards */}
+      {!loading && !error && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
+        {statsDisplay.map((stat, index) => (
           <div 
             key={index} 
             className={`group relative rounded-2xl p-6 border transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer ${
@@ -111,8 +186,10 @@ const AdminDashboard = () => {
           </div>
         ))}
       </div>
+      )}
 
       {/* Quick Actions */}
+      {!loading && !error && (
       <div className={`rounded-xl border ${
         isDarkMode 
           ? 'bg-gray-800 border-gray-700' 
@@ -212,8 +289,10 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Recent Timetables */}
+      {!loading && !error && (
       <div className={`rounded-xl border ${
         isDarkMode 
           ? 'bg-gray-800 border-gray-700' 
@@ -229,6 +308,14 @@ const AdminDashboard = () => {
           }`}>Recent Timetables</h3>
         </div>
         <div className="p-6">
+          {recentTimetables.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className={`w-12 h-12 mx-auto mb-3 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                No timetables available. Create your first timetable to get started.
+              </p>
+            </div>
+          ) : (
           <div className="space-y-4">
             {recentTimetables.map((timetable) => (
               <div key={timetable.id} className={`flex items-center justify-between p-4 rounded-lg ${
@@ -276,10 +363,13 @@ const AdminDashboard = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
+      )}
 
       {/* Notifications */}
+      {!loading && !error && notifications.length > 0 && (
       <div className={`rounded-xl border ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
@@ -314,6 +404,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 
@@ -488,31 +579,45 @@ const AdminDashboard = () => {
 
   const renderAnalytics = () => (
     <div className="space-y-6">
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="w-8 h-8 text-blue-600 animate-spin mr-3" />
+          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Loading analytics...</span>
+        </div>
+      )}
+
+      {/* Empty State - No analytics data available yet */}
+      {!loading && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={`rounded-xl border p-6 ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}>
           <h3 className={`text-lg font-semibold mb-4 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>Timetable Conflicts</h3>
+          }`}>Timetable Statistics</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className={`${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>This Week</span>
-              <span className="font-semibold text-red-600">5 conflicts</span>
+              }`}>Total Timetables</span>
+              <span className="font-semibold text-blue-600">{recentTimetables.length}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className={`${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>Last Week</span>
-              <span className="font-semibold text-orange-600">12 conflicts</span>
+              }`}>Active Timetables</span>
+              <span className="font-semibold text-green-600">
+                {recentTimetables.filter(tt => tt.status === 'Active').length}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className={`${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>This Month</span>
-              <span className="font-semibold text-green-600">23 conflicts</span>
+              }`}>Draft Timetables</span>
+              <span className="font-semibold text-orange-600">
+                {recentTimetables.filter(tt => tt.status === 'Draft').length}
+              </span>
             </div>
           </div>
         </div>
@@ -522,29 +627,30 @@ const AdminDashboard = () => {
         }`}>
           <h3 className={`text-lg font-semibold mb-4 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>Room Utilization</h3>
+          }`}>Resource Statistics</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className={`${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>Computer Lab 1</span>
-              <span className="font-semibold text-blue-600">85%</span>
+              }`}>Total Classrooms</span>
+              <span className="font-semibold text-blue-600">{stats.roomsAvailable}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className={`${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>Lecture Hall A</span>
-              <span className="font-semibold text-green-600">92%</span>
+              }`}>Total Teachers</span>
+              <span className="font-semibold text-green-600">{stats.totalTeachers}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className={`${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>Science Lab</span>
-              <span className="font-semibold text-purple-600">78%</span>
+              }`}>Total Courses</span>
+              <span className="font-semibold text-purple-600">{stats.activeClasses}</span>
             </div>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 

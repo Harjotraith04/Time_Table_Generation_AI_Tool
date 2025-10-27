@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { getTimetables } from '../services/api';
 import { 
   Calendar, 
   BookOpen, 
@@ -23,7 +24,8 @@ import {
   ChevronLeft,
   Plus,
   Sun,
-  Moon
+  Moon,
+  Loader
 } from 'lucide-react';
 
 const StudentDashboard = () => {
@@ -32,57 +34,42 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('timetable');
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [timetableData, setTimetableData] = useState(null);
+
+  useEffect(() => {
+    fetchStudentTimetable();
+  }, []);
+
+  const fetchStudentTimetable = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getTimetables();
+      const timetables = response.data || response.timetables || [];
+      // In a real system, you'd filter by student ID
+      if (timetables.length > 0) {
+        setTimetableData(timetables[0]);
+      }
+    } catch (err) {
+      console.error('Error fetching timetable:', err);
+      setError('Failed to load timetable');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const currentWeek = [
-    { day: 'Monday', date: '15', classes: [
-      { time: '09:00 - 10:30', subject: 'Computer Science', room: 'Lab 101', teacher: 'Dr. Smith' },
-      { time: '11:00 - 12:30', subject: 'Mathematics', room: 'Room 205', teacher: 'Prof. Johnson' },
-      { time: '14:00 - 15:30', subject: 'Physics', room: 'Lab 203', teacher: 'Dr. Brown' }
-    ]},
-    { day: 'Tuesday', date: '16', classes: [
-      { time: '09:00 - 10:30', subject: 'English Literature', room: 'Room 301', teacher: 'Prof. Davis' },
-      { time: '11:00 - 12:30', subject: 'Computer Science', room: 'Lab 101', teacher: 'Dr. Smith' }
-    ]},
-    { day: 'Wednesday', date: '17', classes: [
-      { time: '09:00 - 10:30', subject: 'Mathematics', room: 'Room 205', teacher: 'Prof. Johnson' },
-      { time: '11:00 - 12:30', subject: 'History', room: 'Room 401', teacher: 'Dr. Wilson' },
-      { time: '14:00 - 15:30', subject: 'Computer Science', room: 'Lab 101', teacher: 'Dr. Smith' }
-    ]},
-    { day: 'Thursday', date: '18', classes: [
-      { time: '09:00 - 10:30', subject: 'Physics', room: 'Lab 203', teacher: 'Dr. Brown' },
-      { time: '11:00 - 12:30', subject: 'English Literature', room: 'Room 301', teacher: 'Prof. Davis' }
-    ]},
-    { day: 'Friday', date: '19', classes: [
-      { time: '09:00 - 10:30', subject: 'Mathematics', room: 'Room 205', teacher: 'Prof. Johnson' },
-      { time: '11:00 - 12:30', subject: 'Computer Science', room: 'Lab 101', teacher: 'Dr. Smith' },
-      { time: '14:00 - 15:30', subject: 'History', room: 'Room 401', teacher: 'Dr. Wilson' }
-    ]}
-  ];
-
-  const courses = [
-    { id: 1, name: 'Computer Science', code: 'CS101', credits: 4, grade: 'A-', progress: 85 },
-    { id: 2, name: 'Mathematics', code: 'MATH201', credits: 3, grade: 'B+', progress: 78 },
-    { id: 3, name: 'Physics', code: 'PHY101', credits: 4, grade: 'A', progress: 92 },
-    { id: 4, name: 'English Literature', code: 'ENG201', credits: 3, grade: 'B', progress: 70 },
-    { id: 5, name: 'History', code: 'HIST101', credits: 3, grade: 'A-', progress: 88 }
-  ];
-
-  const notifications = [
-    { id: 1, message: 'Assignment due tomorrow: Computer Science Lab Report', time: '2 hours ago', type: 'warning' },
-    { id: 2, message: 'New grade posted for Mathematics Quiz', time: '1 day ago', type: 'success' },
-    { id: 3, message: 'Room change: Physics Lab moved to Lab 205', time: '2 days ago', type: 'info' }
-  ];
-
-  const upcomingAssignments = [
-    { id: 1, subject: 'Computer Science', title: 'Lab Report #3', dueDate: 'Tomorrow', priority: 'high' },
-    { id: 2, subject: 'Mathematics', title: 'Calculus Problem Set', dueDate: 'Friday', priority: 'medium' },
-    { id: 3, subject: 'Physics', title: 'Experiment Report', dueDate: 'Next Monday', priority: 'low' }
-  ];
+  // Empty arrays for now - would come from API in real system
+  const currentWeek = [];
+  const courses = [];
+  const notifications = [];
+  const upcomingAssignments = [];
 
   const renderTimetable = () => (
     <div className="space-y-6">
@@ -93,14 +80,36 @@ const StudentDashboard = () => {
           <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Week of March 15-19</span>
+          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Current Week</span>
           <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="w-8 h-8 text-blue-600 animate-spin mr-3" />
+          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Loading timetable...</span>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && currentWeek.length === 0 && (
+        <div className="text-center py-12">
+          <Calendar className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+          <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            No Timetable Available
+          </h3>
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Your class schedule will appear here once it's published by the administration.
+          </p>
+        </div>
+      )}
+
       {/* Timetable Grid */}
+      {!loading && currentWeek.length > 0 && (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {currentWeek.map((day, index) => (
           <div key={index} className={`rounded-xl border p-4 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -130,6 +139,7 @@ const StudentDashboard = () => {
           </div>
         ))}
       </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex items-center space-x-4">
@@ -155,8 +165,19 @@ const StudentDashboard = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course) => (
+      {courses.length === 0 ? (
+        <div className="text-center py-12">
+          <BookOpen className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+          <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            No Courses Enrolled
+          </h3>
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            You haven't enrolled in any courses yet. Contact your administrator for course registration.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses.map((course) => (
           <div key={course.id} className={`rounded-xl border p-6 hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between mb-4">
               <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
@@ -191,16 +212,28 @@ const StudentDashboard = () => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 
   const renderAssignments = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Upcoming Assignments</h3>
+      <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Upcoming Assignments</h3>
       
-      <div className="space-y-4">
-        {upcomingAssignments.map((assignment) => (
-          <div key={assignment.id} className="bg-white rounded-xl border border-gray-200 p-4">
+      {upcomingAssignments.length === 0 ? (
+        <div className="text-center py-12">
+          <CheckCircle className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+          <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            No Upcoming Assignments
+          </h3>
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            You're all caught up! Check back later for new assignments.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {upcomingAssignments.map((assignment) => (
+          <div key={assignment.id} className={`rounded-xl border p-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className={`w-3 h-3 rounded-full ${
@@ -209,12 +242,12 @@ const StudentDashboard = () => {
                   'bg-green-500'
                 }`} />
                 <div>
-                  <h4 className="font-medium text-gray-900">{assignment.title}</h4>
-                  <p className="text-sm text-gray-600">{assignment.subject}</p>
+                  <h4 className={`font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{assignment.title}</h4>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{assignment.subject}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{assignment.dueDate}</p>
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{assignment.dueDate}</p>
                 <p className={`text-xs ${
                   assignment.priority === 'high' ? 'text-red-600' :
                   assignment.priority === 'medium' ? 'text-yellow-600' :
@@ -227,16 +260,28 @@ const StudentDashboard = () => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 
   const renderNotifications = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">Recent Notifications</h3>
+      <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Recent Notifications</h3>
       
-      <div className="space-y-4">
-        {notifications.map((notification) => (
-          <div key={notification.id} className="bg-white rounded-xl border border-gray-200 p-4">
+      {notifications.length === 0 ? (
+        <div className="text-center py-12">
+          <Bell className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+          <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            No Notifications
+          </h3>
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            You're all up to date! New notifications will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {notifications.map((notification) => (
+          <div key={notification.id} className={`rounded-xl border p-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-start space-x-3">
               <div className={`w-2 h-2 rounded-full mt-2 ${
                 notification.type === 'warning' ? 'bg-yellow-500' :
@@ -244,13 +289,14 @@ const StudentDashboard = () => {
                 'bg-blue-500'
               }`} />
               <div className="flex-1">
-                <p className="text-sm text-gray-900">{notification.message}</p>
-                <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{notification.message}</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>{notification.time}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import { getClassrooms, createClassroom, updateClassroom, deleteClassroom } from '../services/api';
 import { 
   Building2,
   ArrowLeft,
@@ -23,7 +24,8 @@ import {
   Camera,
   Thermometer,
   Lightbulb,
-  Shield
+  Shield,
+  Loader
 } from 'lucide-react';
 
 const ClassroomsData = () => {
@@ -32,82 +34,28 @@ const ClassroomsData = () => {
   const navigate = useNavigate();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
+  const [classrooms, setClassrooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample classrooms data
-  const [classrooms, setClassrooms] = useState([
-    {
-      id: 'R101',
-      name: 'Room 101',
-      building: 'Main Building',
-      floor: '1st Floor',
-      type: 'Lecture Hall',
-      capacity: 60,
-      features: ['Projector', 'Sound System', 'AC', 'WiFi'],
-      availability: {
-        Monday: ['09:00-12:00', '14:00-17:00'],
-        Tuesday: ['09:00-12:00', '14:00-17:00'],
-        Wednesday: ['09:00-12:00', '14:00-17:00'],
-        Thursday: ['09:00-12:00', '14:00-17:00'],
-        Friday: ['09:00-12:00', '14:00-16:00'],
-        Saturday: ['09:00-12:00']
-      },
-      status: 'Active'
-    },
-    {
-      id: 'R102',
-      name: 'Room 102',
-      building: 'Main Building',
-      floor: '1st Floor',
-      type: 'Lecture Hall',
-      capacity: 55,
-      features: ['Projector', 'AC', 'WiFi'],
-      availability: {
-        Monday: ['09:00-12:00', '14:00-17:00'],
-        Tuesday: ['09:00-12:00', '14:00-17:00'],
-        Wednesday: ['09:00-12:00', '14:00-17:00'],
-        Thursday: ['09:00-12:00', '14:00-17:00'],
-        Friday: ['09:00-12:00', '14:00-16:00'],
-        Saturday: []
-      },
-      status: 'Active'
-    },
-    {
-      id: 'L201',
-      name: 'Computer Lab 1',
-      building: 'Technology Building',
-      floor: '2nd Floor',
-      type: 'Computer Lab',
-      capacity: 30,
-      features: ['Computers', 'Projector', 'AC', 'WiFi', 'Sound System'],
-      availability: {
-        Monday: ['09:00-12:00', '14:00-17:00'],
-        Tuesday: ['09:00-12:00', '14:00-17:00'],
-        Wednesday: ['09:00-12:00', '14:00-17:00'],
-        Thursday: ['09:00-12:00', '14:00-17:00'],
-        Friday: ['09:00-12:00'],
-        Saturday: []
-      },
-      status: 'Active'
-    },
-    {
-      id: 'L202',
-      name: 'Physics Lab',
-      building: 'Science Building',
-      floor: '2nd Floor',
-      type: 'Laboratory',
-      capacity: 25,
-      features: ['Lab Equipment', 'Safety Equipment', 'AC', 'WiFi'],
-      availability: {
-        Monday: ['09:00-12:00', '14:00-17:00'],
-        Tuesday: ['09:00-12:00', '14:00-17:00'],
-        Wednesday: ['14:00-17:00'],
-        Thursday: ['09:00-12:00', '14:00-17:00'],
-        Friday: ['09:00-12:00', '14:00-16:00'],
-        Saturday: ['09:00-12:00']
-      },
-      status: 'Active'
+  // Fetch classrooms from API on component mount
+  useEffect(() => {
+    fetchClassrooms();
+  }, []);
+
+  const fetchClassrooms = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getClassrooms();
+      setClassrooms(response.data || response.classrooms || []);
+    } catch (err) {
+      console.error('Error fetching classrooms:', err);
+      setError('Failed to load classrooms. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [roomForm, setRoomForm] = useState({
     name: '',
@@ -162,31 +110,56 @@ const ClassroomsData = () => {
     navigate('/programs-data');
   };
 
-  const handleAddRoom = () => {
-    const newRoom = {
-      ...roomForm,
-      id: `R${String(classrooms.length + 1).padStart(3, '0')}`
-    };
-    setClassrooms([...classrooms, newRoom]);
-    resetForm();
-    setShowAddForm(false);
+  const handleAddRoom = async () => {
+    try {
+      setLoading(true);
+      const response = await createClassroom(roomForm);
+      await fetchClassrooms(); // Reload classrooms from API
+      resetForm();
+      setShowAddForm(false);
+    } catch (err) {
+      console.error('Error adding classroom:', err);
+      alert('Failed to add classroom. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditRoom = (room) => {
     setRoomForm(room);
-    setEditingRoom(room.id);
+    setEditingRoom(room._id || room.id);
     setShowAddForm(true);
   };
 
-  const handleUpdateRoom = () => {
-    setClassrooms(classrooms.map(r => r.id === editingRoom ? roomForm : r));
-    resetForm();
-    setShowAddForm(false);
-    setEditingRoom(null);
+  const handleUpdateRoom = async () => {
+    try {
+      setLoading(true);
+      await updateClassroom(editingRoom, roomForm);
+      await fetchClassrooms(); // Reload classrooms from API
+      resetForm();
+      setShowAddForm(false);
+      setEditingRoom(null);
+    } catch (err) {
+      console.error('Error updating classroom:', err);
+      alert('Failed to update classroom. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteRoom = (roomId) => {
-    setClassrooms(classrooms.filter(r => r.id !== roomId));
+  const handleDeleteRoom = async (roomId) => {
+    if (!confirm('Are you sure you want to delete this classroom?')) return;
+    
+    try {
+      setLoading(true);
+      await deleteClassroom(roomId);
+      await fetchClassrooms(); // Reload classrooms from API
+    } catch (err) {
+      console.error('Error deleting classroom:', err);
+      alert('Failed to delete classroom. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -531,7 +504,8 @@ const ClassroomsData = () => {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Rooms & Laboratories</h3>
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={loading}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Room</span>
@@ -539,6 +513,43 @@ const ClassroomsData = () => {
             </div>
           </div>
           
+          {/* Loading State */}
+          {loading && classrooms.length === 0 && (
+            <div className="p-12 text-center">
+              <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">Loading classrooms...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="p-12 text-center">
+              <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+              <button
+                onClick={fetchClassrooms}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && classrooms.length === 0 && (
+            <div className="p-12 text-center">
+              <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 mb-4">No classrooms found. Add your first classroom to get started.</p>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Add Classroom
+              </button>
+            </div>
+          )}
+
+          {/* Data Table */}
+          {!loading && !error && classrooms.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
@@ -618,7 +629,7 @@ const ClassroomsData = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteRoom(room.id)}
+                          onClick={() => handleDeleteRoom(room._id || room.id)}
                           className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -630,6 +641,7 @@ const ClassroomsData = () => {
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* Navigation */}

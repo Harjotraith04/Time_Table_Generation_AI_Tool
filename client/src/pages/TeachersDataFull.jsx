@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher } from '../services/api';
 import { 
   Calendar, 
   Users, 
@@ -20,7 +21,8 @@ import {
   CheckCircle,
   Star,
   School,
-  FileText
+  FileText,
+  Loader
 } from 'lucide-react';
 
 const TeachersData = () => {
@@ -36,82 +38,28 @@ const TeachersData = () => {
     hasTutorial: false
   });
   const [uploadMethod, setUploadMethod] = useState('form'); // 'form' or 'csv'
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample teachers data
-  const [teachers, setTeachers] = useState([
-    {
-      id: 'T001',
-      name: 'Dr. Sarah Johnson',
-      employeeId: 'EMP001',
-      department: 'Computer Science',
-      designation: 'Professor',
-      subjects: [
-        {name: 'Data Structures', hasLab: true, hasTutorial: false},
-        {name: 'Algorithms', hasLab: false, hasTutorial: true},
-        {name: 'Machine Learning', hasLab: true, hasTutorial: true}
-      ],
-      hoursPerWeek: 18,
-      availability: {
-        Monday: ['09:00-12:00', '14:00-17:00'],
-        Tuesday: ['09:00-12:00', '14:00-16:00'],
-        Wednesday: ['10:00-12:00', '14:00-17:00'],
-        Thursday: ['09:00-12:00', '14:00-16:00'],
-        Friday: ['09:00-12:00'],
-        Saturday: []
-      },
-      priority: 'Core',
-      email: 'sarah.johnson@university.edu',
-      phone: '+1-234-567-8901'
-    },
-    {
-      id: 'T002',
-      name: 'Prof. Michael Chen',
-      employeeId: 'EMP002',
-      department: 'Computer Science',
-      designation: 'Associate Professor',
-      subjects: [
-        {name: 'Database Systems', hasLab: true, hasTutorial: false},
-        {name: 'Software Engineering', hasLab: false, hasTutorial: true},
-        {name: 'Web Development', hasLab: true, hasTutorial: false}
-      ],
-      hoursPerWeek: 16,
-      availability: {
-        Monday: ['09:00-12:00', '14:00-17:00'],
-        Tuesday: ['09:00-12:00', '14:00-17:00'],
-        Wednesday: ['09:00-12:00'],
-        Thursday: ['09:00-12:00', '14:00-17:00'],
-        Friday: ['09:00-12:00', '14:00-16:00'],
-        Saturday: []
-      },
-      priority: 'Core',
-      email: 'michael.chen@university.edu',
-      phone: '+1-234-567-8902'
-    },
-    {
-      id: 'T003',
-      name: 'Dr. Emily Rodriguez',
-      employeeId: 'EMP003',
-      department: 'Mathematics',
-      designation: 'Assistant Professor',
-      subjects: [
-        {name: 'Linear Algebra', hasLab: false, hasTutorial: true},
-        {name: 'Calculus', hasLab: false, hasTutorial: true},
-        {name: 'Statistics', hasLab: false, hasTutorial: false}
-      ],
-      hoursPerWeek: 14,
-      availability: {
-        Monday: ['09:00-12:00'],
-        Tuesday: ['09:00-12:00', '14:00-17:00'],
-        Wednesday: ['09:00-12:00', '14:00-17:00'],
-        Thursday: ['09:00-12:00', '14:00-17:00'],
-        Friday: ['09:00-12:00', '14:00-16:00'],
-        Saturday: ['09:00-12:00']
-      },
-      priority: 'Visiting',
-      email: 'emily.rodriguez@university.edu',
-      phone: '+1-234-567-8903'
+  // Fetch teachers from API on component mount
+  useEffect(() => {
+    fetchTeachers();
+  }, []);
+
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getTeachers();
+      setTeachers(response.data || response.teachers || []);
+    } catch (err) {
+      console.error('Error fetching teachers:', err);
+      setError('Failed to load teachers. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [teacherForm, setTeacherForm] = useState({
     name: '',
@@ -152,31 +100,56 @@ const TeachersData = () => {
     navigate('/classrooms-data');
   };
 
-  const handleAddTeacher = () => {
-    const newTeacher = {
-      ...teacherForm,
-      id: `T${String(teachers.length + 1).padStart(3, '0')}`
-    };
-    setTeachers([...teachers, newTeacher]);
-    resetForm();
-    setShowAddForm(false);
+  const handleAddTeacher = async () => {
+    try {
+      setLoading(true);
+      await createTeacher(teacherForm);
+      await fetchTeachers(); // Reload teachers from API
+      resetForm();
+      setShowAddForm(false);
+    } catch (err) {
+      console.error('Error adding teacher:', err);
+      alert('Failed to add teacher. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditTeacher = (teacher) => {
     setTeacherForm(teacher);
-    setEditingTeacher(teacher.id);
+    setEditingTeacher(teacher._id || teacher.id);
     setShowAddForm(true);
   };
 
-  const handleUpdateTeacher = () => {
-    setTeachers(teachers.map(t => t.id === editingTeacher ? teacherForm : t));
-    resetForm();
-    setShowAddForm(false);
-    setEditingTeacher(null);
+  const handleUpdateTeacher = async () => {
+    try {
+      setLoading(true);
+      await updateTeacher(editingTeacher, teacherForm);
+      await fetchTeachers(); // Reload teachers from API
+      resetForm();
+      setShowAddForm(false);
+      setEditingTeacher(null);
+    } catch (err) {
+      console.error('Error updating teacher:', err);
+      alert('Failed to update teacher. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteTeacher = (teacherId) => {
-    setTeachers(teachers.filter(t => t.id !== teacherId));
+  const handleDeleteTeacher = async (teacherId) => {
+    if (!confirm('Are you sure you want to delete this teacher?')) return;
+    
+    try {
+      setLoading(true);
+      await deleteTeacher(teacherId);
+      await fetchTeachers(); // Reload teachers from API
+    } catch (err) {
+      console.error('Error deleting teacher:', err);
+      alert('Failed to delete teacher. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -707,7 +680,8 @@ const TeachersData = () => {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Teachers List</h3>
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={loading}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Teacher</span>
@@ -715,6 +689,43 @@ const TeachersData = () => {
             </div>
           </div>
           
+          {/* Loading State */}
+          {loading && teachers.length === 0 && (
+            <div className="p-12 text-center">
+              <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">Loading teachers...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="p-12 text-center">
+              <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+              <button
+                onClick={fetchTeachers}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && teachers.length === 0 && (
+            <div className="p-12 text-center">
+              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400 mb-4">No teachers found. Add your first teacher to get started.</p>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Add Teacher
+              </button>
+            </div>
+          )}
+
+          {/* Data Table */}
+          {!loading && !error && teachers.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
@@ -804,7 +815,7 @@ const TeachersData = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteTeacher(teacher.id)}
+                          onClick={() => handleDeleteTeacher(teacher._id || teacher.id)}
                           className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -816,6 +827,7 @@ const TeachersData = () => {
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* Navigation */}
