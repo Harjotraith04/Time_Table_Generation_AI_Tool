@@ -143,6 +143,8 @@ const ClassroomsData = () => {
 
   const handleSaveRoom = async () => {
     try {
+      console.log('Saving classroom data:', JSON.stringify(roomForm, null, 2));
+      
       if (editingRoom) {
         await updateClassroom(editingRoom, roomForm);
       } else {
@@ -154,7 +156,8 @@ const ClassroomsData = () => {
       setEditingRoom(null);
     } catch (err) {
       console.error('Error saving classroom:', err);
-      alert('Failed to save classroom: ' + err.message);
+      console.error('Failed data:', JSON.stringify(roomForm, null, 2));
+      alert('Failed to save classroom: ' + (err.response?.data?.message || err.message));
     }
   };
 

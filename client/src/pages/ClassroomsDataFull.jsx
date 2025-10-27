@@ -58,13 +58,14 @@ const ClassroomsData = () => {
   };
 
   const [roomForm, setRoomForm] = useState({
+    id: '',
     name: '',
     building: '',
     floor: '',
     type: '',
     capacity: '',
     features: [],
-    status: 'Active',
+    status: 'available',
     availability: {
       Monday: [],
       Tuesday: [],
@@ -77,29 +78,28 @@ const ClassroomsData = () => {
 
   const buildings = ['Main Building', 'Technology Building', 'Science Building', 'Engineering Building', 'Library Building'];
   const floors = ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor'];
-  const roomTypes = ['Lecture Hall', 'Computer Lab', 'Laboratory', 'Seminar Room', 'Conference Room', 'Auditorium'];
+  const roomTypes = ['Lecture Hall', 'Tutorial Room', 'Computer Lab', 'Science Lab', 'Seminar Hall', 'Workshop'];
   const availableFeatures = [
-    'Projector', 'Sound System', 'AC', 'WiFi', 'Computers', 'Lab Equipment', 
-    'Safety Equipment', 'Whiteboard', 'Smart Board', 'Microphone', 'Camera',
-    'High-Speed Internet', 'Video Conferencing', 'Recording Equipment'
+    'Projector', 'Sound System', 'Air Conditioning', 'WiFi', 'Whiteboard',
+    'Smart Board', 'Computers', 'Lab Equipment', 'Safety Equipment',
+    'Ventilation', 'Storage', 'Stage', 'Microphone System'
   ];
   const timeSlots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
 
   const featureIcons = {
     'Projector': Projector,
     'Sound System': Volume2,
-    'AC': Thermometer,
+    'Air Conditioning': Thermometer,
     'WiFi': Wifi,
+    'Whiteboard': Lightbulb,
+    'Smart Board': Monitor,
     'Computers': Monitor,
     'Lab Equipment': Shield,
     'Safety Equipment': Shield,
-    'Whiteboard': Lightbulb,
-    'Smart Board': Monitor,
-    'Microphone': Volume2,
-    'Camera': Camera,
-    'High-Speed Internet': Wifi,
-    'Video Conferencing': Camera,
-    'Recording Equipment': Camera
+    'Ventilation': Thermometer,
+    'Storage': Building2,
+    'Stage': Building2,
+    'Microphone System': Volume2
   };
 
   const handleBack = () => {
@@ -113,13 +113,28 @@ const ClassroomsData = () => {
   const handleAddRoom = async () => {
     try {
       setLoading(true);
+      
+      // Client-side validation
+      if (!roomForm.id || !roomForm.name || !roomForm.building || !roomForm.floor || !roomForm.type || !roomForm.capacity) {
+        alert('Please fill in all required fields: ID, Name, Building, Floor, Type, and Capacity');
+        return;
+      }
+
+      console.log('Sending classroom data:', JSON.stringify(roomForm, null, 2));
       const response = await createClassroom(roomForm);
       await fetchClassrooms(); // Reload classrooms from API
       resetForm();
       setShowAddForm(false);
     } catch (err) {
       console.error('Error adding classroom:', err);
-      alert('Failed to add classroom. Please try again.');
+      console.error('Failed data:', JSON.stringify(roomForm, null, 2));
+      
+      // Show detailed error message from server if available
+      const errorMessage = err.response?.data?.errors 
+        ? err.response.data.errors.map(e => e.msg).join(', ')
+        : err.response?.data?.message || 'Failed to add classroom. Please try again.';
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -164,13 +179,14 @@ const ClassroomsData = () => {
 
   const resetForm = () => {
     setRoomForm({
+      id: '',
       name: '',
       building: '',
       floor: '',
       type: '',
       capacity: '',
       features: [],
-      status: 'Active',
+      status: 'available',
       availability: {
         Monday: [],
         Tuesday: [],
@@ -243,7 +259,18 @@ const ClassroomsData = () => {
             <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Room Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Room Name/ID</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Room ID</label>
+                <input
+                  type="text"
+                  value={roomForm.id}
+                  onChange={(e) => setRoomForm({...roomForm, id: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="R101"
+                  disabled={editingRoom} // Disable ID editing when updating
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Room Name</label>
                 <input
                   type="text"
                   value={roomForm.name}
@@ -310,9 +337,10 @@ const ClassroomsData = () => {
                   onChange={(e) => setRoomForm({...roomForm, status: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="Active">Active</option>
-                  <option value="Maintenance">Under Maintenance</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="available">Available</option>
+                  <option value="maintenance">Under Maintenance</option>
+                  <option value="reserved">Reserved</option>
+                  <option value="out_of_order">Out of Order</option>
                 </select>
               </div>
             </div>

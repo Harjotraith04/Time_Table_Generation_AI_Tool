@@ -215,6 +215,12 @@ export const getDataStatistics = async () => {
   return response.data
 }
 
+// Student statistics (counts by department + total)
+export const getStudentStats = async () => {
+  const response = await api.get('/data/students/stats')
+  return response.data
+}
+
 // ==================== ALGORITHM API ====================
 export const getAlgorithms = async () => {
   const response = await api.get('/algorithm/algorithms')

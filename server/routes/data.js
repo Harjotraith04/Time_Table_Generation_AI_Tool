@@ -696,6 +696,25 @@ router.post('/classrooms', [
 
   } catch (error) {
     logger.error('Error creating classroom:', error);
+    
+    // Log the request body for debugging
+    logger.error('Classroom creation failed with data:', JSON.stringify(req.body, null, 2));
+    
+    // Return validation errors if they exist
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => ({
+        field: err.path,
+        message: err.message,
+        value: err.value
+      }));
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Internal server error while creating classroom'

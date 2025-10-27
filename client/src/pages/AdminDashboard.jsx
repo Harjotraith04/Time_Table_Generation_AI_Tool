@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { getTeachers, getClassrooms, getCourses, getTimetables, getDataStatistics } from '../services/api';
+import { getTeachers, getClassrooms, getCourses, getTimetables, getDataStatistics, getStudentStats } from '../services/api';
 import { 
   Calendar, 
   Users, 
@@ -58,12 +58,13 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
-      const [teachersRes, classroomsRes, coursesRes, timetablesRes, statsRes] = await Promise.allSettled([
+      const [teachersRes, classroomsRes, coursesRes, timetablesRes, statsRes, studentStatsRes] = await Promise.allSettled([
         getTeachers(),
         getClassrooms(),
         getCourses(),
         getTimetables(),
-        getDataStatistics()
+        getDataStatistics(),
+        getStudentStats()
       ]);
 
       // Extract data safely
@@ -73,8 +74,15 @@ const AdminDashboard = () => {
       const timetables = timetablesRes.status === 'fulfilled' ? (timetablesRes.value.data || timetablesRes.value.timetables || []) : [];
 
       // Calculate real statistics
+      // studentStatsRes contains the response from /api/data/students/stats
+      const totalStudents = studentStatsRes && studentStatsRes.status === 'fulfilled'
+        ? (studentStatsRes.value && studentStatsRes.value.data && typeof studentStatsRes.value.data.totalStudents !== 'undefined'
+            ? studentStatsRes.value.data.totalStudents
+            : (studentStatsRes.value && studentStatsRes.value.totalStudents) || 0)
+        : 0;
+
       setStats({
-        totalStudents: 0, // This would come from a students endpoint if available
+        totalStudents,
         totalTeachers: teachers.length,
         activeClasses: courses.length,
         roomsAvailable: classrooms.length
