@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -19,8 +19,11 @@ import {
   CheckCircle,
   School,
   BookOpen,
-  MapPin
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
+
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const InfrastructureData = () => {
   const { user, logout } = useAuth();
@@ -28,6 +31,11 @@ const InfrastructureData = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('policies');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [configId, setConfigId] = useState(null);
 
   // Infrastructure data state
   const [generalPolicies, setGeneralPolicies] = useState({
@@ -125,6 +133,140 @@ const InfrastructureData = () => {
 
   const holidayTypes = ['National Holiday', 'Festival', 'Examination', 'Vacation', 'Academic Event', 'Other'];
 
+  // Fetch system configuration and holidays on component mount
+  useEffect(() => {
+    fetchSystemConfig();
+    fetchHolidays();
+  }, []);
+
+  const fetchSystemConfig = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/data/system-config`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch system configuration');
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        setConfigId(result.data._id);
+        
+        // Update states with fetched data
+        if (result.data.generalPolicies) {
+          setGeneralPolicies(result.data.generalPolicies);
+        }
+        if (result.data.workingHours) {
+          setWorkingHours(result.data.workingHours);
+        }
+        if (result.data.academicCalendar) {
+          const calendar = result.data.academicCalendar;
+          setAcademicCalendar({
+            academicYearStart: calendar.academicYearStart ? calendar.academicYearStart.split('T')[0] : '2024-07-01',
+            academicYearEnd: calendar.academicYearEnd ? calendar.academicYearEnd.split('T')[0] : '2025-06-30',
+            semester1Start: calendar.semester1Start ? calendar.semester1Start.split('T')[0] : '2024-07-01',
+            semester1End: calendar.semester1End ? calendar.semester1End.split('T')[0] : '2024-12-15',
+            semester2Start: calendar.semester2Start ? calendar.semester2Start.split('T')[0] : '2025-01-01',
+            semester2End: calendar.semester2End ? calendar.semester2End.split('T')[0] : '2025-06-30',
+            totalWeeks: calendar.totalWeeks || 16,
+            examWeeks: calendar.examWeeks || 2,
+            vacationWeeks: calendar.vacationWeeks || 4
+          });
+        }
+        if (result.data.constraintRules) {
+          setConstraintRules(result.data.constraintRules);
+        }
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching system config:', err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const fetchHolidays = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/data/holidays?limit=100`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch holidays');
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        // Format dates for display
+        const formattedHolidays = result.data.map(h => ({
+          ...h,
+          date: h.date ? h.date.split('T')[0] : undefined,
+          startDate: h.startDate ? h.startDate.split('T')[0] : undefined,
+          endDate: h.endDate ? h.endDate.split('T')[0] : undefined
+        }));
+        setHolidays(formattedHolidays);
+      }
+    } catch (err) {
+      console.error('Error fetching holidays:', err);
+    }
+  };
+
+  const saveConfiguration = async (section, data) => {
+    try {
+      setSaving(true);
+      setError(null);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`${API_BASE_URL}/data/system-config/${section}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save ${section}`);
+      }
+
+      const result = await response.json();
+      setSuccessMessage(result.message || 'Configuration saved successfully');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      setSaving(false);
+      return true;
+    } catch (err) {
+      console.error(`Error saving ${section}:`, err);
+      setError(err.message);
+      setSaving(false);
+      return false;
+    }
+  };
+
+  const handleSaveGeneralPolicies = async () => {
+    await saveConfiguration('general-policies', generalPolicies);
+  };
+
+  const handleSaveWorkingHours = async () => {
+    await saveConfiguration('working-hours', workingHours);
+  };
+
+  const handleSaveAcademicCalendar = async () => {
+    await saveConfiguration('academic-calendar', academicCalendar);
+  };
+
+  const handleSaveConstraintRules = async () => {
+    await saveConfiguration('constraint-rules', constraintRules);
+  };
+
   const handleBack = () => {
     navigate('/programs-data');
   };
@@ -133,14 +275,76 @@ const InfrastructureData = () => {
     navigate('/generate-timetable');
   };
 
-  const handleAddHoliday = () => {
-    const newHoliday = {
-      ...holidayForm,
-      id: `HOL${String(holidays.length + 1).padStart(3, '0')}`
-    };
-    setHolidays([...holidays, newHoliday]);
-    resetHolidayForm();
-    setShowAddForm(false);
+  const handleAddHoliday = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      const token = localStorage.getItem('authToken');
+
+      const newHoliday = {
+        ...holidayForm,
+        id: `HOL${String(holidays.length + 1).padStart(3, '0')}`
+      };
+
+      const response = await fetch(`${API_BASE_URL}/data/holidays`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newHoliday)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add holiday');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setHolidays([...holidays, result.data]);
+        setSuccessMessage('Holiday added successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+        resetHolidayForm();
+        setShowAddForm(false);
+      }
+      setSaving(false);
+    } catch (err) {
+      console.error('Error adding holiday:', err);
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteHoliday = async (holidayId) => {
+    if (!window.confirm('Are you sure you want to delete this holiday?')) {
+      return;
+    }
+
+    try {
+      setError(null);
+      const token = localStorage.getItem('authToken');
+
+      const response = await fetch(`${API_BASE_URL}/data/holidays/${holidayId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete holiday');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setHolidays(holidays.filter(h => h.id !== holidayId));
+        setSuccessMessage('Holiday deleted successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+    } catch (err) {
+      console.error('Error deleting holiday:', err);
+      setError(err.message);
+    }
   };
 
   const resetHolidayForm = () => {
@@ -332,6 +536,29 @@ const InfrastructureData = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-200 rounded-lg flex items-center">
+            <CheckCircle className="w-5 h-5 mr-2" />
+            {successMessage}
+          </div>
+        )}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded-lg flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading configuration...</p>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">System Configuration</h2>
           <p className="text-gray-600 dark:text-gray-400">
@@ -621,6 +848,17 @@ const InfrastructureData = () => {
                   </div>
                 </div>
               </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleSaveGeneralPolicies}
+                  disabled={saving}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Policies'}</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -779,6 +1017,17 @@ const InfrastructureData = () => {
                   </div>
                 </div>
               </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleSaveWorkingHours}
+                  disabled={saving}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Working Hours'}</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -892,6 +1141,17 @@ const InfrastructureData = () => {
                   </div>
                 </div>
               </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleSaveAcademicCalendar}
+                  disabled={saving}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Calendar'}</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -915,10 +1175,10 @@ const InfrastructureData = () => {
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{holiday.name}</h4>
                       <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">
+                        <button 
+                          onClick={() => handleDeleteHoliday(holiday.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1083,6 +1343,17 @@ const InfrastructureData = () => {
                   <p>• Conflicts between constraints will be resolved based on priority</p>
                 </div>
               </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleSaveConstraintRules}
+                  disabled={saving}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{saving ? 'Saving...' : 'Save Constraints'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1105,6 +1376,8 @@ const InfrastructureData = () => {
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
         </div>
+        </>
+        )}
       </div>
 
       {/* Add Holiday Form */}

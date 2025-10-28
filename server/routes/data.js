@@ -10,6 +10,8 @@ const Student = require('../models/Student');
 const User = require('../models/User');
 const Program = require('../models/Program');
 const Division = require('../models/Division');
+const SystemConfig = require('../models/SystemConfig');
+const Holiday = require('../models/Holiday');
 const { authenticateToken } = require('./auth');
 const logger = require('../utils/logger');
 const emailService = require('../utils/emailService');
@@ -2823,6 +2825,505 @@ router.delete('/divisions/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while deleting division'
+    });
+  }
+});
+
+// ==================== SYSTEM CONFIGURATION ROUTES ====================
+
+/**
+ * @route   GET /api/data/system-config
+ * @desc    Get system configuration
+ * @access  Private
+ */
+router.get('/system-config', async (req, res) => {
+  try {
+    let config = await SystemConfig.findOne({ isActive: true });
+
+    if (!config) {
+      // Create default configuration if none exists
+      config = new SystemConfig({
+        createdBy: req.user.userId,
+        generalPolicies: {},
+        workingHours: {},
+        academicCalendar: {
+          academicYearStart: new Date('2024-07-01'),
+          academicYearEnd: new Date('2025-06-30'),
+          semester1Start: new Date('2024-07-01'),
+          semester1End: new Date('2024-12-15'),
+          semester2Start: new Date('2025-01-01'),
+          semester2End: new Date('2025-06-30')
+        },
+        constraintRules: {}
+      });
+      await config.save();
+      logger.info('Default system configuration created', { createdBy: req.user.userId });
+    }
+
+    res.json({
+      success: true,
+      data: config
+    });
+
+  } catch (error) {
+    logger.error('Error fetching system configuration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching system configuration'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/system-config
+ * @desc    Update system configuration
+ * @access  Private
+ */
+router.put('/system-config', async (req, res) => {
+  try {
+    let config = await SystemConfig.findOne({ isActive: true });
+
+    if (!config) {
+      // Create new configuration
+      config = new SystemConfig({
+        ...req.body,
+        createdBy: req.user.userId
+      });
+    } else {
+      // Update existing configuration
+      Object.assign(config, req.body);
+      config.updatedBy = req.user.userId;
+    }
+
+    await config.save();
+
+    logger.info('System configuration updated', { updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'System configuration updated successfully',
+      data: config
+    });
+
+  } catch (error) {
+    logger.error('Error updating system configuration:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating system configuration'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/system-config/general-policies
+ * @desc    Update general policies
+ * @access  Private
+ */
+router.put('/system-config/general-policies', async (req, res) => {
+  try {
+    let config = await SystemConfig.findOne({ isActive: true });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'System configuration not found'
+      });
+    }
+
+    config.generalPolicies = { ...config.generalPolicies, ...req.body };
+    config.updatedBy = req.user.userId;
+    await config.save();
+
+    logger.info('General policies updated', { updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'General policies updated successfully',
+      data: config.generalPolicies
+    });
+
+  } catch (error) {
+    logger.error('Error updating general policies:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating general policies'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/system-config/working-hours
+ * @desc    Update working hours
+ * @access  Private
+ */
+router.put('/system-config/working-hours', async (req, res) => {
+  try {
+    let config = await SystemConfig.findOne({ isActive: true });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'System configuration not found'
+      });
+    }
+
+    config.workingHours = { ...config.workingHours, ...req.body };
+    config.updatedBy = req.user.userId;
+    await config.save();
+
+    logger.info('Working hours updated', { updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Working hours updated successfully',
+      data: config.workingHours
+    });
+
+  } catch (error) {
+    logger.error('Error updating working hours:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating working hours'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/system-config/academic-calendar
+ * @desc    Update academic calendar
+ * @access  Private
+ */
+router.put('/system-config/academic-calendar', async (req, res) => {
+  try {
+    let config = await SystemConfig.findOne({ isActive: true });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'System configuration not found'
+      });
+    }
+
+    config.academicCalendar = { ...config.academicCalendar, ...req.body };
+    config.updatedBy = req.user.userId;
+    await config.save();
+
+    logger.info('Academic calendar updated', { updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Academic calendar updated successfully',
+      data: config.academicCalendar
+    });
+
+  } catch (error) {
+    logger.error('Error updating academic calendar:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating academic calendar'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/system-config/constraint-rules
+ * @desc    Update constraint rules
+ * @access  Private
+ */
+router.put('/system-config/constraint-rules', async (req, res) => {
+  try {
+    let config = await SystemConfig.findOne({ isActive: true });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: 'System configuration not found'
+      });
+    }
+
+    config.constraintRules = { ...config.constraintRules, ...req.body };
+    config.updatedBy = req.user.userId;
+    await config.save();
+
+    logger.info('Constraint rules updated', { updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Constraint rules updated successfully',
+      data: config.constraintRules
+    });
+
+  } catch (error) {
+    logger.error('Error updating constraint rules:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating constraint rules'
+    });
+  }
+});
+
+// ==================== HOLIDAYS ROUTES ====================
+
+/**
+ * @route   GET /api/data/holidays
+ * @desc    Get all holidays
+ * @access  Private
+ */
+router.get('/holidays', [
+  query('type').optional().trim(),
+  query('status').optional().isIn(['Active', 'Inactive', 'Archived']),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { type, status, page = 1, limit = 50 } = req.query;
+    
+    // Build query
+    const query = {};
+    if (type) query.type = type;
+    if (status) query.status = status;
+
+    // Execute query with pagination
+    const skip = (page - 1) * limit;
+    const holidays = await Holiday.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ date: 1, startDate: 1 });
+
+    const total = await Holiday.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: holidays,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error fetching holidays:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching holidays'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/holidays/:id
+ * @desc    Get a specific holiday
+ * @access  Private
+ */
+router.get('/holidays/:id', async (req, res) => {
+  try {
+    const holiday = await Holiday.findOne({ id: req.params.id });
+
+    if (!holiday) {
+      return res.status(404).json({
+        success: false,
+        message: 'Holiday not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: holiday
+    });
+
+  } catch (error) {
+    logger.error('Error fetching holiday:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching holiday'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/holidays
+ * @desc    Create a new holiday
+ * @access  Private
+ */
+router.post('/holidays', [
+  body('id').trim().notEmpty().withMessage('ID is required'),
+  body('name').trim().isLength({ min: 1, max: 200 }).withMessage('Name must be between 1 and 200 characters'),
+  body('type').isIn(['National Holiday', 'Festival', 'Examination', 'Vacation', 'Academic Event', 'Other']).withMessage('Invalid holiday type'),
+  body('recurring').optional().isBoolean(),
+  body('isDateRange').optional().isBoolean(),
+  body('description').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    // Check if holiday ID already exists
+    const existingHoliday = await Holiday.findOne({ id: req.body.id });
+    if (existingHoliday) {
+      return res.status(400).json({
+        success: false,
+        message: 'Holiday with this ID already exists'
+      });
+    }
+
+    const holiday = new Holiday({
+      ...req.body,
+      createdBy: req.user.userId
+    });
+    await holiday.save();
+
+    logger.info('Holiday created', { holidayId: holiday.id, createdBy: req.user.userId });
+
+    res.status(201).json({
+      success: true,
+      message: 'Holiday created successfully',
+      data: holiday
+    });
+
+  } catch (error) {
+    logger.error('Error creating holiday:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error while creating holiday'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/holidays/:id
+ * @desc    Update a holiday
+ * @access  Private
+ */
+router.put('/holidays/:id', [
+  body('name').optional().trim().isLength({ min: 1, max: 200 }),
+  body('type').optional().isIn(['National Holiday', 'Festival', 'Examination', 'Vacation', 'Academic Event', 'Other']),
+  body('recurring').optional().isBoolean(),
+  body('isDateRange').optional().isBoolean(),
+  body('status').optional().isIn(['Active', 'Inactive', 'Archived'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const holiday = await Holiday.findOneAndUpdate(
+      { id: req.params.id },
+      { ...req.body, updatedBy: req.user.userId },
+      { new: true, runValidators: true }
+    );
+
+    if (!holiday) {
+      return res.status(404).json({
+        success: false,
+        message: 'Holiday not found'
+      });
+    }
+
+    logger.info('Holiday updated', { holidayId: holiday.id, updatedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Holiday updated successfully',
+      data: holiday
+    });
+
+  } catch (error) {
+    logger.error('Error updating holiday:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error while updating holiday'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/holidays/:id
+ * @desc    Delete a holiday
+ * @access  Private
+ */
+router.delete('/holidays/:id', async (req, res) => {
+  try {
+    const holiday = await Holiday.findOneAndDelete({ id: req.params.id });
+
+    if (!holiday) {
+      return res.status(404).json({
+        success: false,
+        message: 'Holiday not found'
+      });
+    }
+
+    logger.info('Holiday deleted', { holidayId: holiday.id, deletedBy: req.user.userId });
+
+    res.json({
+      success: true,
+      message: 'Holiday deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting holiday:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting holiday'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/holidays/bulk
+ * @desc    Create multiple holidays
+ * @access  Private
+ */
+router.post('/holidays/bulk', async (req, res) => {
+  try {
+    const { holidays } = req.body;
+
+    if (!Array.isArray(holidays) || holidays.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Holidays array is required'
+      });
+    }
+
+    // Add createdBy to each holiday
+    const holidaysWithCreator = holidays.map(h => ({
+      ...h,
+      createdBy: req.user.userId
+    }));
+
+    const result = await Holiday.insertMany(holidaysWithCreator, { ordered: false });
+
+    logger.info('Bulk holidays created', { count: result.length, createdBy: req.user.userId });
+
+    res.status(201).json({
+      success: true,
+      message: `${result.length} holidays created successfully`,
+      data: result
+    });
+
+  } catch (error) {
+    logger.error('Error creating bulk holidays:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while creating holidays'
     });
   }
 });
