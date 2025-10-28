@@ -157,6 +157,13 @@ const InfrastructureData = () => {
       if (result.success && result.data) {
         setConfigId(result.data._id);
         
+        // Log fetched configuration
+        console.log('='.repeat(60));
+        console.log('📋 SYSTEM CONFIGURATION LOADED');
+        console.log('='.repeat(60));
+        console.log('Configuration:', JSON.stringify(result.data, null, 2));
+        console.log('='.repeat(60));
+        
         // Update states with fetched data
         if (result.data.generalPolicies) {
           setGeneralPolicies(result.data.generalPolicies);
@@ -213,6 +220,14 @@ const InfrastructureData = () => {
           endDate: h.endDate ? h.endDate.split('T')[0] : undefined
         }));
         setHolidays(formattedHolidays);
+        
+        // Log fetched holidays
+        console.log('='.repeat(60));
+        console.log('📅 HOLIDAYS LOADED');
+        console.log('='.repeat(60));
+        console.log(`Total Holidays: ${formattedHolidays.length}`);
+        console.log('Holidays:', JSON.stringify(formattedHolidays, null, 2));
+        console.log('='.repeat(60));
       }
     } catch (err) {
       console.error('Error fetching holidays:', err);
@@ -239,6 +254,15 @@ const InfrastructureData = () => {
       }
 
       const result = await response.json();
+      
+      // Log the saved data to console
+      console.log('='.repeat(60));
+      console.log(`✅ ${section.toUpperCase()} SAVED SUCCESSFULLY`);
+      console.log('='.repeat(60));
+      console.log('Saved Data:', JSON.stringify(result.data, null, 2));
+      console.log('Response:', result);
+      console.log('='.repeat(60));
+      
       setSuccessMessage(result.message || 'Configuration saved successfully');
       setTimeout(() => setSuccessMessage(null), 3000);
       setSaving(false);
@@ -252,18 +276,26 @@ const InfrastructureData = () => {
   };
 
   const handleSaveGeneralPolicies = async () => {
+    console.log('💾 Saving General Policies...');
+    console.log('Data to save:', generalPolicies);
     await saveConfiguration('general-policies', generalPolicies);
   };
 
   const handleSaveWorkingHours = async () => {
+    console.log('💾 Saving Working Hours...');
+    console.log('Data to save:', workingHours);
     await saveConfiguration('working-hours', workingHours);
   };
 
   const handleSaveAcademicCalendar = async () => {
+    console.log('💾 Saving Academic Calendar...');
+    console.log('Data to save:', academicCalendar);
     await saveConfiguration('academic-calendar', academicCalendar);
   };
 
   const handleSaveConstraintRules = async () => {
+    console.log('💾 Saving Constraint Rules...');
+    console.log('Data to save:', constraintRules);
     await saveConfiguration('constraint-rules', constraintRules);
   };
 
@@ -302,6 +334,15 @@ const InfrastructureData = () => {
       const result = await response.json();
       if (result.success) {
         setHolidays([...holidays, result.data]);
+        
+        // Log added holiday
+        console.log('='.repeat(60));
+        console.log('✅ HOLIDAY ADDED SUCCESSFULLY');
+        console.log('='.repeat(60));
+        console.log('New Holiday:', JSON.stringify(result.data, null, 2));
+        console.log('Total Holidays:', holidays.length + 1);
+        console.log('='.repeat(60));
+        
         setSuccessMessage('Holiday added successfully');
         setTimeout(() => setSuccessMessage(null), 3000);
         resetHolidayForm();
@@ -338,6 +379,15 @@ const InfrastructureData = () => {
       const result = await response.json();
       if (result.success) {
         setHolidays(holidays.filter(h => h.id !== holidayId));
+        
+        // Log deleted holiday
+        console.log('='.repeat(60));
+        console.log('🗑️  HOLIDAY DELETED');
+        console.log('='.repeat(60));
+        console.log('Deleted Holiday ID:', holidayId);
+        console.log('Remaining Holidays:', holidays.length - 1);
+        console.log('='.repeat(60));
+        
         setSuccessMessage('Holiday deleted successfully');
         setTimeout(() => setSuccessMessage(null), 3000);
       }
