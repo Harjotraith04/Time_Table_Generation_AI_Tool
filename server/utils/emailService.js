@@ -451,12 +451,120 @@ const testEmailConfiguration = async () => {
   }
 };
 
+/**
+ * Send email change notification
+ * @param {Object} studentData - Student information
+ * @param {string} oldEmail - Previous email address
+ * @param {string} newEmail - New email address
+ * @param {string} newPassword - New temporary password (optional)
+ * @returns {Promise<boolean>} Success status
+ */
+const sendEmailChangeNotification = async (studentData, oldEmail, newEmail, newPassword = null) => {
+  if (!transporter) {
+    logger.warn('Email transporter not configured. Skipping email send.');
+    return false;
+  }
+
+  try {
+    const mailOptions = {
+      from: `"Academic System" <${emailConfig.auth.user}>`,
+      to: newEmail,
+      subject: 'Your Academic System Email Has Been Updated',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #3b82f6; color: white; padding: 20px; text-align: center; }
+            .content { background-color: #f8fafc; padding: 30px; }
+            .credentials { background-color: #e0f2fe; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .warning { background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; color: #856404; }
+            .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+            .button { background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Email Address Updated</h1>
+            </div>
+            
+            <div class="content">
+              <h2>Dear ${studentData.firstName} ${studentData.lastName},</h2>
+              
+              <p>Your email address in the Academic Management System has been successfully updated.</p>
+              
+              <div class="credentials">
+                <h3>Updated Login Information:</h3>
+                <p><strong>Student ID:</strong> ${studentData.studentId}</p>
+                <p><strong>Previous Email:</strong> ${oldEmail}</p>
+                <p><strong>New Email:</strong> ${newEmail}</p>
+                <p><strong>Roll Number:</strong> ${studentData.rollNumber}</p>
+                ${newPassword ? `
+                <hr style="margin: 15px 0; border: none; border-top: 1px solid #cbd5e1;">
+                <p><strong>New Temporary Password:</strong> <code>${newPassword}</code></p>
+                ` : ''}
+              </div>
+              
+              ${newPassword ? `
+              <div class="warning">
+                <strong>⚠️ Important Security Notice:</strong>
+                <p>A new temporary password has been generated for security purposes. You must change this password upon your next login.</p>
+              </div>
+              ` : ''}
+              
+              <p>You should now use your <strong>new email address</strong> (${newEmail}) to log in to the system.</p>
+              
+              <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/auth" class="button">Go to Login</a>
+              
+              <div class="warning">
+                <strong>🔒 Security Tips:</strong>
+                <ul>
+                  <li>Never share your password with anyone</li>
+                  <li>Change your password regularly</li>
+                  <li>If you did not request this change, contact your administrator immediately</li>
+                </ul>
+              </div>
+              
+              <p><strong>Academic Details:</strong></p>
+              <ul>
+                <li>Department: ${studentData.department}</li>
+                <li>Program: ${studentData.program}</li>
+                <li>Year: ${studentData.year}, Semester: ${studentData.semester}</li>
+                <li>Division: ${studentData.division}${studentData.batch ? `, Batch: ${studentData.batch}` : ''}</li>
+              </ul>
+            </div>
+            
+            <div class="footer">
+              <p>This is an automated message from the Academic Management System.</p>
+              <p>If you have any questions, please contact your system administrator.</p>
+              <p>&copy; ${new Date().getFullYear()} Academic Management System. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    logger.info(`Email change notification sent to: ${newEmail}`);
+    return true;
+
+  } catch (error) {
+    logger.error('Failed to send email change notification:', error);
+    return false;
+  }
+};
+
 module.exports = {
   generateSecurePassword,
   sendStudentCredentials,
   sendTeacherCredentials,
   sendPasswordChangeConfirmation,
   sendBulkCreationSummary,
+  sendEmailChangeNotification,
   testEmailConfiguration,
   isConfigured: () => !!transporter
 };

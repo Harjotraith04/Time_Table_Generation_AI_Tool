@@ -115,24 +115,31 @@ const StudentManagement = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
+      setError('');
+      
       const queryParams = new URLSearchParams({
         page: pagination.current,
         limit: pagination.limit,
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       });
 
-      const response = await fetch(`/api/data/students?${queryParams}`, {
+      const response = await fetch(`http://localhost:8000/api/data/students?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch students');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch students');
+      }
 
       const data = await response.json();
+      console.log('Students fetched:', data);
       setStudents(data.data.students);
       setPagination(prev => ({ ...prev, ...data.data.pagination }));
     } catch (err) {
+      console.error('Error fetching students:', err);
       setError('Failed to fetch students: ' + err.message);
     } finally {
       setLoading(false);
@@ -160,8 +167,10 @@ const StudentManagement = () => {
     e.preventDefault();
     try {
       setLoading(true);
+      setError('');
+      
       const endpoint = modalType === 'edit' ? 
-        `/api/data/students/${selectedStudent._id}` : 
+        `/api/data/students/${selectedStudent.studentId}` : 
         '/api/data/students';
       
       const method = modalType === 'edit' ? 'PUT' : 'POST';
@@ -172,7 +181,9 @@ const StudentManagement = () => {
         delete dataToSend.personalInfo.gender;
       }
 
-      const response = await fetch(endpoint, {
+      console.log(`${method} ${endpoint}`, dataToSend);
+
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -181,24 +192,120 @@ const StudentManagement = () => {
         body: JSON.stringify(dataToSend)
       });
 
-      if (!response.ok) throw new Error('Failed to save student');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save student');
+      }
 
       const data = await response.json();
+      console.log('Student saved:', data);
       setSuccess(data.message);
       setShowModal(false);
       fetchStudents();
       resetForm();
     } catch (err) {
+      console.error('Error saving student:', err);
       setError('Failed to save student: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDeleteStudent = async (studentId) => {
+    if (!window.confirm('Are you sure you want to delete this student? This will deactivate the student account.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch(`http://localhost:8000/api/data/students/${studentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete student');
+      }
+
+      const data = await response.json();
+      console.log('Student deleted:', data);
+      setSuccess(data.message);
+      fetchStudents();
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      setError('Failed to delete student: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditStudent = (student) => {
+    // Helper function to format date to YYYY-MM-DD for input[type="date"]
+    const formatDateForInput = (dateString) => {
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        return date.toISOString().split('T')[0];
+      } catch {
+        return '';
+      }
+    };
+
+    setSelectedStudent(student);
+    setFormData({
+      studentId: student.studentId,
+      personalInfo: student.personalInfo || {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        dateOfBirth: '',
+        gender: '',
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'India'
+        }
+      },
+      academicInfo: {
+        department: student.academicInfo?.department || '',
+        program: student.academicInfo?.program || '',
+        year: student.academicInfo?.year || 1,
+        semester: student.academicInfo?.semester || 1,
+        division: student.academicInfo?.division || '',
+        batch: student.academicInfo?.batch || '',
+        rollNumber: student.academicInfo?.rollNumber || '',
+        admissionDate: formatDateForInput(student.academicInfo?.admissionDate),
+        academicYear: student.academicInfo?.academicYear || ''
+      },
+      guardianInfo: student.guardianInfo || {
+        name: '',
+        relationship: '',
+        phone: '',
+        email: ''
+      },
+      status: student.status || 'Active'
+    });
+    setModalType('edit');
+    setShowModal(true);
+  };
+
   const handleBulkCreate = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/data/students/bulk-create', {
+      setError('');
+      
+      console.log('Bulk creating students:', bulkData);
+      
+      const response = await fetch('http://localhost:8000/api/data/students/bulk-create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -207,14 +314,19 @@ const StudentManagement = () => {
         body: JSON.stringify(bulkData)
       });
 
-      if (!response.ok) throw new Error('Failed to create students');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create students');
+      }
 
       const data = await response.json();
+      console.log('Bulk creation result:', data);
       setUploadResult(data.data);
       setSuccess(data.message);
       setShowModal(false);
       fetchStudents();
     } catch (err) {
+      console.error('Error in bulk creation:', err);
       setError('Failed to create students: ' + err.message);
     } finally {
       setLoading(false);
@@ -222,15 +334,22 @@ const StudentManagement = () => {
   };
 
   const handleFileUpload = async () => {
-    if (!uploadFile) return;
+    if (!uploadFile) {
+      setError('Please select a CSV file');
+      return;
+    }
 
     try {
       setLoading(true);
+      setError('');
+      
       const formData = new FormData();
       formData.append('csvFile', uploadFile);
       formData.append('sendCredentials', bulkData.sendCredentials);
 
-      const response = await fetch('/api/data/students/upload', {
+      console.log('Uploading CSV file...');
+
+      const response = await fetch('http://localhost:8000/api/data/students/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -238,14 +357,19 @@ const StudentManagement = () => {
         body: formData
       });
 
-      if (!response.ok) throw new Error('Failed to upload file');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upload file');
+      }
 
       const data = await response.json();
+      console.log('CSV upload result:', data);
       setUploadResult(data.data);
       setSuccess(data.message);
       setShowModal(false);
       fetchStudents();
     } catch (err) {
+      console.error('Error uploading CSV:', err);
       setError('Failed to upload file: ' + err.message);
     } finally {
       setLoading(false);
@@ -254,28 +378,35 @@ const StudentManagement = () => {
 
   const handleExport = async () => {
     try {
+      setError('');
+      
       const queryParams = new URLSearchParams(
         Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       );
 
-      const response = await fetch(`/api/data/students/export?${queryParams}`, {
+      const response = await fetch(`http://localhost:8000/api/data/students/export?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to export students');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to export students');
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'students.csv';
+      a.download = `students_${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setSuccess('Students exported successfully');
     } catch (err) {
+      console.error('Error exporting students:', err);
       setError('Failed to export students: ' + err.message);
     }
   };
@@ -320,13 +451,13 @@ const StudentManagement = () => {
 
   const openModal = (type, student = null) => {
     setModalType(type);
-    setSelectedStudent(student);
     if (student && type === 'edit') {
-      setFormData(student);
+      handleEditStudent(student);
     } else {
+      setSelectedStudent(student);
       resetForm();
+      setShowModal(true);
     }
-    setShowModal(true);
   };
 
   const toggleCredentialVisibility = (index) => {
@@ -635,8 +766,16 @@ const StudentManagement = () => {
                           <button
                             onClick={() => openModal('edit', student)}
                             className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="Edit student"
                           >
                             <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(student.studentId)}
+                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            title="Delete student"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

@@ -1977,7 +1977,7 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
     }
 
     const studentsToCreate = [];
-    const { sendCredentials = false } = req.body;
+    const sendCredentials = req.body.sendCredentials === 'true' || req.body.sendCredentials === true;
 
     // Process each record
     for (let i = 0; i < records.length; i++) {
@@ -1992,17 +1992,20 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
           'division', 'rollNumber', 'academicYear'
         ];
 
+        const missingFields = [];
         for (const field of requiredFields) {
           if (!record[field]) {
-            errors.push({
-              row: rowNumber,
-              field,
-              message: `${field} is required`
-            });
+            missingFields.push(field);
           }
         }
 
-        if (errors.length > 0) continue;
+        if (missingFields.length > 0) {
+          errors.push({
+            row: rowNumber,
+            message: `Missing required fields: ${missingFields.join(', ')}`
+          });
+          continue;
+        }
 
         // Validate email format
         const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
@@ -2059,7 +2062,8 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
             relationship: record.guardianRelation || '',
             phone: record.guardianPhone || '',
             email: record.guardianEmail || ''
-          }
+          },
+          status: 'Active'
         };
 
         // Add courses if provided
@@ -2085,17 +2089,12 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'CSV validation failed',
-        errors: errors.slice(0, 10) // Limit to first 10 errors
+        errors: errors.slice(0, 10), // Limit to first 10 errors
+        totalErrors: errors.length
       });
     }
 
     // Bulk create students
-    const bulkResult = await new Promise((resolve) => {
-      req.body = { students: studentsToCreate, sendCredentials };
-      resolve();
-    });
-
-    // Call bulk create endpoint logic
     const results = {
       created: [],
       failed: [],
@@ -2104,6 +2103,7 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
 
     for (const studentData of studentsToCreate) {
       try {
+        // Check if student already exists
         const existing = await Student.findOne({
           $or: [
             { studentId: studentData.studentId },
@@ -2120,62 +2120,81 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
           continue;
         }
 
+        // Check if email exists in User collection
+        const existingUser = await User.findOne({ email: studentData.personalInfo.email });
+        if (existingUser) {
+          results.failed.push({
+            studentId: studentData.studentId,
+            email: studentData.personalInfo.email,
+            reason: 'Email already exists in user accounts'
+          });
+          continue;
+        }
+
+        // Create student
         const student = new Student(studentData);
         await student.save();
-        results.created.push(student);
+        results.created.push({
+          studentId: student.studentId,
+          name: `${student.personalInfo.firstName} ${student.personalInfo.lastName}`,
+          email: student.personalInfo.email,
+          rollNumber: student.academicInfo.rollNumber
+        });
 
+        // Create user account
+        const tempPassword = emailService.generateSecurePassword(10);
+        
+        const userAccount = new User({
+          name: `${studentData.personalInfo.firstName} ${studentData.personalInfo.lastName}`,
+          email: studentData.personalInfo.email,
+          password: tempPassword,
+          role: 'student',
+          department: studentData.academicInfo.department,
+          isFirstLogin: true,
+          mustChangePassword: true
+        });
+        
+        await userAccount.save();
+
+        const credentialData = {
+          studentId: studentData.studentId,
+          name: `${studentData.personalInfo.firstName} ${studentData.personalInfo.lastName}`,
+          email: studentData.personalInfo.email,
+          tempPassword: tempPassword,
+          rollNumber: studentData.academicInfo.rollNumber,
+          department: studentData.academicInfo.department,
+          program: studentData.academicInfo.program
+        };
+
+        results.userAccountsCreated.push(credentialData);
+
+        // Send email with credentials if enabled
         if (sendCredentials) {
           try {
-            const tempPassword = Math.random().toString(36).slice(-8);
-            
-            const userData = {
-              name: `${studentData.personalInfo.firstName} ${studentData.personalInfo.lastName}`,
-              email: studentData.personalInfo.email,
-              password: tempPassword,
-              role: 'student',
-              department: studentData.academicInfo.department
-            };
-
-            const user = new User(userData);
-            await user.save();
-
-            const credentialData = {
+            const emailSent = await emailService.sendStudentCredentials({
               studentId: studentData.studentId,
+              firstName: studentData.personalInfo.firstName,
+              lastName: studentData.personalInfo.lastName,
               email: studentData.personalInfo.email,
-              tempPassword: tempPassword
-            };
-
-            results.userAccountsCreated.push(credentialData);
-
-            // Send email with credentials if email service is configured
-            if (emailService.isConfigured()) {
-              try {
-                await emailService.sendStudentCredentials({
-                  studentId: studentData.studentId,
-                  firstName: studentData.personalInfo.firstName,
-                  lastName: studentData.personalInfo.lastName,
-                  email: studentData.personalInfo.email,
-                  rollNumber: studentData.academicInfo.rollNumber,
-                  department: studentData.academicInfo.department,
-                  program: studentData.academicInfo.program,
-                  year: studentData.academicInfo.year,
-                  semester: studentData.academicInfo.semester,
-                  division: studentData.academicInfo.division,
-                  batch: studentData.academicInfo.batch
-                }, tempPassword);
-                
-                logger.info(`Credentials email sent to student: ${studentData.studentId}`);
-              } catch (emailError) {
-                logger.error(`Failed to send email to student ${studentData.studentId}:`, emailError);
-              }
+              rollNumber: studentData.academicInfo.rollNumber,
+              department: studentData.academicInfo.department,
+              program: studentData.academicInfo.program,
+              year: studentData.academicInfo.year,
+              semester: studentData.academicInfo.semester,
+              division: studentData.academicInfo.division,
+              batch: studentData.academicInfo.batch
+            }, tempPassword);
+            
+            if (emailSent) {
+              logger.info(`Credentials email sent to student: ${studentData.studentId}`);
             }
-
-          } catch (userError) {
-            logger.error(`Failed to create user account for student ${studentData.studentId}:`, userError);
+          } catch (emailError) {
+            logger.error(`Failed to send email to student ${studentData.studentId}:`, emailError);
           }
         }
 
       } catch (error) {
+        logger.error(`Error creating student ${studentData.studentId}:`, error);
         results.failed.push({
           studentId: studentData.studentId,
           email: studentData.personalInfo.email,
@@ -2184,29 +2203,30 @@ router.post('/students/upload', upload.single('csvFile'), async (req, res) => {
       }
     }
 
-    logger.info(`CSV student upload completed: ${results.created.length} created, ${results.failed.length} failed`);
-
-    // Send summary email to admin if there were successful account creations
-    if (results.userAccountsCreated.length > 0 && emailService.isConfigured()) {
-      try {
-        await emailService.sendBulkCreationSummary(results.userAccountsCreated, req.user.email);
-        logger.info(`CSV upload summary email sent to admin: ${req.user.email}`);
-      } catch (emailError) {
-        logger.error('Failed to send CSV upload summary email:', emailError);
-      }
-    }
+    logger.info(`CSV student upload completed: ${results.created.length} created, ${results.failed.length} failed by user ${req.user.userId}`);
 
     res.status(201).json({
       success: true,
-      message: `CSV upload completed: ${results.created.length} students created, ${results.failed.length} failed`,
-      data: results
+      message: `Successfully uploaded ${results.created.length} students. ${results.failed.length} failed.`,
+      data: {
+        created: results.created,
+        failed: results.failed,
+        userAccounts: results.userAccountsCreated,
+        summary: {
+          total: studentsToCreate.length,
+          successful: results.created.length,
+          failed: results.failed.length,
+          emailsSent: sendCredentials ? results.userAccountsCreated.length : 0
+        }
+      }
     });
 
   } catch (error) {
-    logger.error('Error uploading students CSV:', error);
+    logger.error('Error in CSV student upload:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error while uploading students'
+      message: 'Internal server error while uploading students',
+      error: error.message
     });
   }
 });
@@ -2358,6 +2378,320 @@ router.get('/students/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error while fetching student statistics'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/data/students/:id
+ * @desc    Get a single student by ID
+ * @access  Private
+ */
+router.get('/students/:id', async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.id }).lean();
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: student
+    });
+
+  } catch (error) {
+    logger.error('Error fetching student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching student'
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/data/students/:id
+ * @desc    Update a student
+ * @access  Private
+ */
+router.put('/students/:id', [
+  body('personalInfo.firstName').optional().trim(),
+  body('personalInfo.lastName').optional().trim(),
+  body('personalInfo.email').optional().isEmail().normalizeEmail(),
+  body('personalInfo.phone').optional().matches(/^\d{10}$/),
+  body('academicInfo.department').optional().trim(),
+  body('academicInfo.program').optional().trim(),
+  body('academicInfo.year').optional().isInt({ min: 1, max: 5 }),
+  body('academicInfo.semester').optional().isInt({ min: 1, max: 2 }),
+  body('academicInfo.division').optional().trim(),
+  body('academicInfo.rollNumber').optional().trim(),
+  body('status').optional().isIn(['Active', 'Inactive', 'Graduated', 'Suspended', 'Transferred'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const student = await Student.findOne({ studentId: req.params.id });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Track if email is being changed for notification
+    const oldEmail = student.personalInfo.email;
+    let emailChanged = false;
+
+    // If email is being changed, check if new email already exists
+    if (req.body.personalInfo?.email && req.body.personalInfo.email !== student.personalInfo.email) {
+      emailChanged = true;
+      const newEmail = req.body.personalInfo.email;
+
+      const existingStudent = await Student.findOne({
+        'personalInfo.email': newEmail,
+        studentId: { $ne: req.params.id }
+      });
+
+      if (existingStudent) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email already exists for another student'
+        });
+      }
+
+      // Check if email exists in User collection (excluding current student's email)
+      const existingUser = await User.findOne({
+        email: newEmail
+      });
+
+      // Only fail if the user exists AND it's not the current student's user account
+      if (existingUser && existingUser.email !== oldEmail) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email already exists in user accounts'
+        });
+      }
+
+      // Update user account email if it exists
+      const updatedUser = await User.findOneAndUpdate(
+        { email: oldEmail },
+        { email: newEmail },
+        { new: true }
+      );
+
+      // Send email notification to new address
+      if (updatedUser) {
+        try {
+          const studentEmailData = {
+            studentId: student.studentId,
+            firstName: student.personalInfo.firstName,
+            lastName: student.personalInfo.lastName,
+            email: newEmail,
+            rollNumber: student.academicInfo.rollNumber,
+            department: student.academicInfo.department,
+            program: student.academicInfo.program,
+            year: student.academicInfo.year,
+            semester: student.academicInfo.semester,
+            division: student.academicInfo.division,
+            batch: student.academicInfo.batch
+          };
+
+          await emailService.sendEmailChangeNotification(studentEmailData, oldEmail, newEmail);
+          logger.info(`Email change notification sent to: ${newEmail}`);
+        } catch (emailError) {
+          logger.error(`Failed to send email change notification:`, emailError);
+        }
+      }
+    }
+
+    // Update student fields
+    if (req.body.personalInfo) {
+      Object.assign(student.personalInfo, req.body.personalInfo);
+    }
+    if (req.body.academicInfo) {
+      Object.assign(student.academicInfo, req.body.academicInfo);
+    }
+    if (req.body.guardianInfo) {
+      Object.assign(student.guardianInfo, req.body.guardianInfo);
+    }
+    if (req.body.status) {
+      student.status = req.body.status;
+    }
+    if (req.body.notes) {
+      student.notes = req.body.notes;
+    }
+
+    await student.save();
+
+    logger.info(`Student updated: ${student.studentId} by user ${req.user.userId}${emailChanged ? ' (email changed)' : ''}`);
+
+    res.json({
+      success: true,
+      message: emailChanged ? 
+        'Student updated successfully. Email change notification sent to new address.' : 
+        'Student updated successfully',
+      data: student
+    });
+
+  } catch (error) {
+    logger.error('Error updating student:', error);
+    
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'Student with this information already exists'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating student'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/students/:id
+ * @desc    Delete a student (soft delete - changes status to Inactive)
+ * @access  Private
+ */
+router.delete('/students/:id', async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.id });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Soft delete - change status to Inactive instead of removing
+    student.status = 'Inactive';
+    await student.save();
+
+    // Also deactivate the associated user account
+    await User.findOneAndUpdate(
+      { email: student.personalInfo.email },
+      { status: 'inactive' }
+    );
+
+    logger.info(`Student deleted (soft delete): ${student.studentId} by user ${req.user.userId}`);
+
+    res.json({
+      success: true,
+      message: 'Student deleted successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error deleting student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while deleting student'
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/data/students/:id/permanent
+ * @desc    Permanently delete a student and their user account
+ * @access  Private (Admin only)
+ */
+router.delete('/students/:id/permanent', async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.id });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Delete associated user account
+    await User.findOneAndDelete({ email: student.personalInfo.email });
+
+    // Permanently delete student
+    await Student.findOneAndDelete({ studentId: req.params.id });
+
+    logger.warn(`Student permanently deleted: ${student.studentId} by user ${req.user.userId}`);
+
+    res.json({
+      success: true,
+      message: 'Student permanently deleted'
+    });
+
+  } catch (error) {
+    logger.error('Error permanently deleting student:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while permanently deleting student'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/data/students/bulk-delete
+ * @desc    Bulk delete students (soft delete)
+ * @access  Private
+ */
+router.post('/students/bulk-delete', [
+  body('studentIds').isArray({ min: 1 }).withMessage('Student IDs array is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { studentIds } = req.body;
+
+    // Update all students to Inactive status
+    const result = await Student.updateMany(
+      { studentId: { $in: studentIds } },
+      { $set: { status: 'Inactive' } }
+    );
+
+    // Get the emails of deleted students
+    const students = await Student.find({ studentId: { $in: studentIds } }).select('personalInfo.email');
+    const emails = students.map(s => s.personalInfo.email);
+
+    // Deactivate associated user accounts
+    await User.updateMany(
+      { email: { $in: emails } },
+      { $set: { status: 'inactive' } }
+    );
+
+    logger.info(`Bulk student deletion: ${result.modifiedCount} students deactivated by user ${req.user.userId}`);
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} students deleted successfully`,
+      data: {
+        deleted: result.modifiedCount
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error in bulk student deletion:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during bulk student deletion'
     });
   }
 });
