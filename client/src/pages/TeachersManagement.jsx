@@ -126,7 +126,7 @@ const TeachersManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       });
 
-      const response = await fetch(`/api/data/teachers?${queryParams}`, {
+      const response = await fetch(`http://localhost:8000/api/data/teachers?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
@@ -232,8 +232,8 @@ const TeachersManagement = () => {
       }
       
       const endpoint = modalType === 'edit' ? 
-        `/api/data/teachers/${selectedTeacher._id}` : 
-        '/api/data/teachers';
+        `http://localhost:8000/api/data/teachers/${selectedTeacher.id}` : 
+        'http://localhost:8000/api/data/teachers';
       
       const method = modalType === 'edit' ? 'PUT' : 'POST';
 
@@ -321,15 +321,27 @@ const TeachersManagement = () => {
 
   // Handle file upload
   const handleFileUpload = async () => {
-    if (!uploadFile) return;
+    if (!uploadFile) {
+      setError('Please select a CSV file to upload');
+      return;
+    }
 
     try {
       setLoading(true);
+      setError('');
+      
+      console.log('Uploading CSV file...');
+      
       const formData = new FormData();
       formData.append('csvFile', uploadFile);
       formData.append('sendCredentials', bulkData.sendCredentials);
 
-      const response = await fetch('/api/data/teachers/upload', {
+      console.log('FormData:', {
+        file: uploadFile.name,
+        sendCredentials: bulkData.sendCredentials
+      });
+
+      const response = await fetch('http://localhost:8000/api/data/teachers/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -337,15 +349,33 @@ const TeachersManagement = () => {
         body: formData
       });
 
-      if (!response.ok) throw new Error('Failed to upload file');
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upload file');
+      }
 
       const data = await response.json();
+      console.log('CSV upload result:', data);
+      console.log('Created:', data.data?.created?.length || 0);
+      console.log('Failed:', data.data?.failed?.length || 0);
+      if (data.data?.failed && data.data.failed.length > 0) {
+        console.log('Failed records:', JSON.stringify(data.data.failed, null, 2));
+        // Show detailed failure info
+        const failureDetails = data.data.failed.map(f => 
+          `${f.teacherId || f.email}: ${f.reason}`
+        ).join('\n');
+        setError(`Some teachers failed to upload:\n${failureDetails}`);
+      }
+      
       setUploadResult(data.data);
       setSuccess(data.message);
       setShowModal(false);
       fetchTeachers();
     } catch (err) {
-      setError(err.message);
+      console.error('Error uploading CSV:', err);
+      setError('Failed to upload CSV: ' + err.message);
     } finally {
       setLoading(false);
       setUploadFile(null);
@@ -359,7 +389,7 @@ const TeachersManagement = () => {
         Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       );
 
-      const response = await fetch(`/api/data/teachers/export?${queryParams}`, {
+      const response = await fetch(`http://localhost:8000/api/data/teachers/export?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
@@ -413,23 +443,34 @@ const TeachersManagement = () => {
 
   // Handle delete
   const handleDelete = async (teacherId) => {
-    if (!window.confirm('Are you sure you want to delete this teacher?')) return;
+    if (!window.confirm('Are you sure you want to delete this teacher? This will also delete their user account.')) return;
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/data/teachers/${teacherId}`, {
+      setError('');
+      
+      console.log('Deleting teacher:', teacherId);
+      
+      const response = await fetch(`http://localhost:8000/api/data/teachers/${teacherId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to delete teacher');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete teacher');
+      }
 
-      setSuccess('Teacher deleted successfully');
+      const data = await response.json();
+      console.log('Delete result:', data);
+      
+      setSuccess(data.message);
       fetchTeachers();
     } catch (err) {
-      setError(err.message);
+      console.error('Error deleting teacher:', err);
+      setError('Failed to delete teacher: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -474,9 +515,18 @@ const TeachersManagement = () => {
         {/* Error/Success Messages */}
         {error && (
           <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
-              <span className="text-red-800 dark:text-red-300">{error}</span>
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-red-800 dark:text-red-300">
+                <p className="font-semibold mb-2">{error.split('\n')[0]}</p>
+                {error.includes('\n') && (
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {error.split('\n').slice(1).filter(line => line.trim()).map((line, idx) => (
+                      <li key={idx}>{line}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -722,7 +772,7 @@ const TeachersManagement = () => {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(teacher._id || teacher.id)}
+                            onClick={() => handleDelete(teacher.id)}
                             className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                           >
                             <Trash2 className="w-4 h-4" />

@@ -253,11 +253,7 @@ router.put('/teachers/:id', [
       });
     }
 
-    const teacher = await Teacher.findOneAndUpdate(
-      { id: req.params.id },
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const teacher = await Teacher.findOne({ id: req.params.id });
 
     if (!teacher) {
       return res.status(404).json({
@@ -266,11 +262,79 @@ router.put('/teachers/:id', [
       });
     }
 
-    logger.info('Teacher updated', { teacherId: teacher.id, updatedBy: req.user.userId });
+    // Track if email is being changed for notification
+    const oldEmail = teacher.email;
+    let emailChanged = false;
+
+    // If email is being changed, check if new email already exists
+    // Use lowercase comparison to avoid false positives from case differences
+    if (req.body.email && req.body.email.toLowerCase().trim() !== teacher.email.toLowerCase().trim()) {
+      emailChanged = true;
+      const newEmail = req.body.email.toLowerCase().trim();
+
+      const existingTeacher = await Teacher.findOne({
+        email: newEmail,
+        id: { $ne: req.params.id }
+      });
+
+      if (existingTeacher) {
+        return res.status(409).json({
+          success: false,
+          message: 'Email already exists for another teacher'
+        });
+      }
+
+      // Check if email exists in User collection (excluding current teacher's email)
+      const existingUser = await User.findOne({
+        email: newEmail
+      });
+
+      // Only fail if the user exists AND it's not the current teacher's user account
+      if (existingUser && existingUser.email.toLowerCase().trim() !== oldEmail.toLowerCase().trim()) {
+        return res.status(409).json({
+          success: false,
+          message: `Email already exists in user accounts (used by ${existingUser.role}: ${existingUser.name})`
+        });
+      }
+
+      // Update user account email if it exists
+      const updatedUser = await User.findOneAndUpdate(
+        { email: oldEmail },
+        { email: newEmail },
+        { new: true }
+      );
+
+      // Send email notification to new address
+      if (updatedUser) {
+        try {
+          const teacherEmailData = {
+            id: teacher.id,
+            name: teacher.name,
+            email: newEmail,
+            department: teacher.department,
+            designation: teacher.designation
+          };
+
+          // Add sendTeacherEmailChangeNotification function call here
+          await emailService.sendTeacherEmailChangeNotification(teacherEmailData, oldEmail, newEmail);
+          logger.info(`Email change notification sent to teacher: ${newEmail}`);
+        } catch (emailError) {
+          logger.error(`Failed to send email change notification:`, emailError);
+        }
+      }
+    }
+
+    // Update teacher fields
+    Object.assign(teacher, req.body);
+    await teacher.save();
+
+    logger.info(`Teacher updated: ${teacher.id} by user ${req.user.userId}${emailChanged ? ' (email changed)' : ''}`);
 
     res.json({
       success: true,
-      message: 'Teacher updated successfully',
+      message: emailChanged ? 
+        'Teacher updated successfully. Email change notification sent to new address.' : 
+        'Teacher updated successfully',
       data: teacher
     });
 
@@ -285,12 +349,12 @@ router.put('/teachers/:id', [
 
 /**
  * @route   DELETE /api/data/teachers/:id
- * @desc    Delete a teacher
+ * @desc    Delete a teacher and associated user account
  * @access  Private
  */
 router.delete('/teachers/:id', async (req, res) => {
   try {
-    const teacher = await Teacher.findOneAndDelete({ id: req.params.id });
+    const teacher = await Teacher.findOne({ id: req.params.id });
 
     if (!teacher) {
       return res.status(404).json({
@@ -299,11 +363,17 @@ router.delete('/teachers/:id', async (req, res) => {
       });
     }
 
-    logger.info('Teacher deleted', { teacherId: teacher.id, deletedBy: req.user.userId });
+    // Delete associated user account
+    await User.findOneAndDelete({ email: teacher.email });
+
+    // Delete teacher
+    await Teacher.findOneAndDelete({ id: req.params.id });
+
+    logger.info(`Teacher and user account deleted: ${teacher.id} by user ${req.user.userId}`);
 
     res.json({
       success: true,
-      message: 'Teacher deleted successfully'
+      message: 'Teacher and associated user account deleted successfully'
     });
 
   } catch (error) {
@@ -316,11 +386,11 @@ router.delete('/teachers/:id', async (req, res) => {
 });
 
 /**
- * @route   POST /api/data/teachers/bulk-import
- * @desc    Bulk import teachers from CSV
+ * @route   POST /api/data/teachers/upload
+ * @desc    Upload teachers via CSV file with user account creation
  * @access  Private
  */
-router.post('/teachers/bulk-import', upload.single('csv'), async (req, res) => {
+router.post('/teachers/upload', upload.single('csvFile'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -329,101 +399,263 @@ router.post('/teachers/bulk-import', upload.single('csv'), async (req, res) => {
       });
     }
 
-    const csvData = req.file.buffer.toString();
+    const csvData = req.file.buffer.toString('utf8');
     const records = [];
     const errors = [];
 
-    // Parse CSV
-    csv.parse(csvData, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true
-    }, async (err, data) => {
-      if (err) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid CSV format',
-          error: err.message
-        });
-      }
+    await new Promise((resolve, reject) => {
+      csv.parse(csvData, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      })
+      .on('data', (record) => records.push(record))
+      .on('error', reject)
+      .on('end', resolve);
+    });
 
-      // Validate and process each record
-      for (let i = 0; i < data.length; i++) {
-        const record = data[i];
-        try {
-          // Basic validation
-          if (!record.id || !record.name || !record.email || !record.department) {
-            errors.push(`Row ${i + 1}: Missing required fields (id, name, email, department)`);
+    if (records.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV file is empty or invalid'
+      });
+    }
+
+    const teachersToCreate = [];
+    const sendCredentials = req.body.sendCredentials === 'true' || req.body.sendCredentials === true;
+
+    // Process each record
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const rowNumber = i + 2; // CSV row number (including header)
+
+      try {
+        // Validate required fields
+        const requiredFields = ['id', 'name', 'email', 'department', 'designation'];
+
+        const missingFields = [];
+        for (const field of requiredFields) {
+          if (!record[field]) {
+            missingFields.push(field);
+          }
+        }
+
+        if (missingFields.length > 0) {
+          errors.push({
+            row: rowNumber,
+            message: `Missing required fields: ${missingFields.join(', ')}`
+          });
+          continue;
+        }
+
+        // Validate email format
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+        if (!emailRegex.test(record.email)) {
+          errors.push({
+            row: rowNumber,
+            field: 'email',
+            message: 'Invalid email format'
+          });
+          continue;
+        }
+
+        // Validate designation
+        const validDesignations = ['Professor', 'Associate Professor', 'Assistant Professor', 'Lecturer', 'Teaching Assistant'];
+        if (!validDesignations.includes(record.designation)) {
+          errors.push({
+            row: rowNumber,
+            field: 'designation',
+            message: `Invalid designation. Must be one of: ${validDesignations.join(', ')}`
+          });
+          continue;
+        }
+
+        // Parse subjects (comma-separated, quoted if necessary)
+        let subjects = [];
+        if (record.subjects) {
+          subjects = record.subjects.split(',').map(s => s.trim()).filter(s => s);
+          if (subjects.length === 0) {
+            errors.push({
+              row: rowNumber,
+              field: 'subjects',
+              message: 'At least one subject is required'
+            });
             continue;
           }
-
-          // Parse subjects (comma-separated)
-          const subjects = record.subjects ? record.subjects.split(',').map(s => s.trim()) : [];
-          
-          // Parse availability if provided
-          const availability = record.availability ? JSON.parse(record.availability) : undefined;
-
-          const teacherData = {
-            id: record.id,
-            name: record.name,
-            email: record.email,
-            phone: record.phone,
-            department: record.department,
-            designation: record.designation || 'Lecturer',
-            qualification: record.qualification,
-            experience: record.experience,
-            subjects,
-            maxHoursPerWeek: parseInt(record.maxHoursPerWeek) || 20,
-            availability,
-            priority: record.priority || 'medium',
-            status: record.status || 'active'
-          };
-
-          records.push(teacherData);
-        } catch (parseError) {
-          errors.push(`Row ${i + 1}: ${parseError.message}`);
+        } else {
+          errors.push({
+            row: rowNumber,
+            field: 'subjects',
+            message: 'Subjects field is required'
+          });
+          continue;
         }
-      }
 
-      if (errors.length > 0 && records.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No valid records found',
-          errors
+        // Create teacher object
+        const teacherData = {
+          id: record.id.trim(),
+          name: record.name.trim(),
+          email: record.email.toLowerCase().trim(),
+          phone: record.phone ? record.phone.trim() : undefined,
+          department: record.department.trim(),
+          designation: record.designation.trim(),
+          qualification: record.qualification ? record.qualification.trim() : undefined,
+          experience: record.experience ? record.experience.trim() : undefined,
+          subjects: subjects,
+          maxHoursPerWeek: record.maxHoursPerWeek ? parseInt(record.maxHoursPerWeek) : 20,
+          priority: record.priority ? record.priority.toLowerCase().trim() : 'medium',
+          status: record.status ? record.status.toLowerCase().trim() : 'active'
+        };
+
+        // Validate priority
+        if (!['low', 'medium', 'high'].includes(teacherData.priority)) {
+          teacherData.priority = 'medium';
+        }
+
+        // Validate status
+        if (!['active', 'inactive', 'on_leave'].includes(teacherData.status)) {
+          teacherData.status = 'active';
+        }
+
+        teachersToCreate.push(teacherData);
+
+      } catch (error) {
+        errors.push({
+          row: rowNumber,
+          message: `Processing error: ${error.message}`
         });
       }
+    }
 
-      // Bulk insert valid records
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'CSV validation failed',
+        errors: errors.slice(0, 10), // Limit to first 10 errors
+        totalErrors: errors.length
+      });
+    }
+
+    // Bulk create teachers
+    const results = {
+      created: [],
+      failed: [],
+      userAccountsCreated: []
+    };
+
+    for (const teacherData of teachersToCreate) {
       try {
-        const result = await Teacher.insertMany(records, { ordered: false });
-        
-        logger.info('Bulk teacher import completed', { 
-          imported: result.length,
-          errors: errors.length,
-          importedBy: req.user.userId 
+        // Check if teacher already exists
+        const existing = await Teacher.findOne({
+          $or: [
+            { id: teacherData.id },
+            { email: teacherData.email }
+          ]
         });
 
-        res.json({
-          success: true,
-          message: `Successfully imported ${result.length} teachers`,
-          imported: result.length,
-          errors: errors.length > 0 ? errors : undefined
+        if (existing) {
+          results.failed.push({
+            teacherId: teacherData.id,
+            email: teacherData.email,
+            reason: 'Teacher already exists'
+          });
+          continue;
+        }
+
+        // Check if email exists in User collection
+        const existingUser = await User.findOne({ email: teacherData.email });
+        if (existingUser) {
+          results.failed.push({
+            teacherId: teacherData.id,
+            email: teacherData.email,
+            reason: 'Email already exists in user accounts'
+          });
+          continue;
+        }
+
+        // Create teacher
+        const teacher = new Teacher(teacherData);
+        await teacher.save();
+        results.created.push({
+          teacherId: teacher.id,
+          name: teacher.name,
+          email: teacher.email,
+          department: teacher.department
         });
-      } catch (insertError) {
-        logger.error('Bulk teacher import error:', insertError);
-        res.status(500).json({
-          success: false,
-          message: 'Error importing teachers',
-          errors: [insertError.message]
+
+        // Create user account
+        const tempPassword = emailService.generateSecurePassword(10);
+        
+        const userAccount = new User({
+          name: teacherData.name,
+          email: teacherData.email,
+          password: tempPassword,
+          role: 'faculty',
+          department: teacherData.department,
+          isFirstLogin: true,
+          mustChangePassword: true
         });
+        
+        await userAccount.save();
+
+        const credentialData = {
+          teacherId: teacherData.id,
+          name: teacherData.name,
+          email: teacherData.email,
+          tempPassword: tempPassword,
+          department: teacherData.department,
+          designation: teacherData.designation
+        };
+
+        results.userAccountsCreated.push(credentialData);
+
+        // Send email with credentials if enabled
+        if (sendCredentials) {
+          try {
+            const emailSent = await emailService.sendTeacherCredentials(teacher, tempPassword);
+            
+            if (emailSent) {
+              logger.info(`Credentials email sent to teacher: ${teacherData.id}`);
+            }
+          } catch (emailError) {
+            logger.error(`Failed to send email to teacher ${teacherData.id}:`, emailError);
+          }
+        }
+
+      } catch (error) {
+        logger.error(`Error creating teacher ${teacherData.id}:`, error);
+        results.failed.push({
+          teacherId: teacherData.id,
+          email: teacherData.email,
+          reason: error.message
+        });
+      }
+    }
+
+    logger.info(`CSV teacher upload completed: ${results.created.length} created, ${results.failed.length} failed by user ${req.user.userId}`);
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully uploaded ${results.created.length} teachers. ${results.failed.length} failed.`,
+      data: {
+        created: results.created,
+        failed: results.failed,
+        userAccounts: results.userAccountsCreated,
+        summary: {
+          total: teachersToCreate.length,
+          successful: results.created.length,
+          failed: results.failed.length,
+          emailsSent: sendCredentials ? results.userAccountsCreated.length : 0
+        }
       }
     });
 
   } catch (error) {
-    logger.error('Bulk import error:', error);
+    logger.error('Error in CSV teacher upload:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during bulk import'
+      message: 'Internal server error while uploading teachers',
+      error: error.message
     });
   }
 });
@@ -2476,10 +2708,10 @@ router.put('/students/:id', [
       });
 
       // Only fail if the user exists AND it's not the current student's user account
-      if (existingUser && existingUser.email !== oldEmail) {
+      if (existingUser && existingUser.email.toLowerCase().trim() !== oldEmail.toLowerCase().trim()) {
         return res.status(409).json({
           success: false,
-          message: 'Email already exists in user accounts'
+          message: `Email already exists in user accounts (used by ${existingUser.role}: ${existingUser.name})`
         });
       }
 
@@ -2563,7 +2795,7 @@ router.put('/students/:id', [
 
 /**
  * @route   DELETE /api/data/students/:id
- * @desc    Delete a student (soft delete - changes status to Inactive)
+ * @desc    Delete a student and their user account
  * @access  Private
  */
 router.delete('/students/:id', async (req, res) => {
@@ -2577,21 +2809,21 @@ router.delete('/students/:id', async (req, res) => {
       });
     }
 
-    // Soft delete - change status to Inactive instead of removing
-    student.status = 'Inactive';
-    await student.save();
+    // Delete associated user account first
+    const deletedUser = await User.findOneAndDelete({ email: student.personalInfo.email });
+    
+    if (deletedUser) {
+      logger.info(`User account deleted for student: ${student.personalInfo.email}`);
+    }
 
-    // Also deactivate the associated user account
-    await User.findOneAndUpdate(
-      { email: student.personalInfo.email },
-      { status: 'inactive' }
-    );
+    // Delete student record
+    await Student.findOneAndDelete({ studentId: req.params.id });
 
-    logger.info(`Student deleted (soft delete): ${student.studentId} by user ${req.user.userId}`);
+    logger.info(`Student deleted: ${student.studentId} by user ${req.user.userId}`);
 
     res.json({
       success: true,
-      message: 'Student deleted successfully'
+      message: 'Student and associated user account deleted successfully'
     });
 
   } catch (error) {
@@ -2643,7 +2875,7 @@ router.delete('/students/:id/permanent', async (req, res) => {
 
 /**
  * @route   POST /api/data/students/bulk-delete
- * @desc    Bulk delete students (soft delete)
+ * @desc    Bulk delete students and their user accounts
  * @access  Private
  */
 router.post('/students/bulk-delete', [
@@ -2661,29 +2893,25 @@ router.post('/students/bulk-delete', [
 
     const { studentIds } = req.body;
 
-    // Update all students to Inactive status
-    const result = await Student.updateMany(
-      { studentId: { $in: studentIds } },
-      { $set: { status: 'Inactive' } }
-    );
-
-    // Get the emails of deleted students
+    // Get the emails of students to delete
     const students = await Student.find({ studentId: { $in: studentIds } }).select('personalInfo.email');
     const emails = students.map(s => s.personalInfo.email);
 
-    // Deactivate associated user accounts
-    await User.updateMany(
-      { email: { $in: emails } },
-      { $set: { status: 'inactive' } }
-    );
+    // Delete associated user accounts
+    const userDeleteResult = await User.deleteMany({ email: { $in: emails } });
+    logger.info(`Deleted ${userDeleteResult.deletedCount} user accounts`);
 
-    logger.info(`Bulk student deletion: ${result.modifiedCount} students deactivated by user ${req.user.userId}`);
+    // Delete students
+    const result = await Student.deleteMany({ studentId: { $in: studentIds } });
+
+    logger.info(`Bulk student deletion: ${result.deletedCount} students deleted by user ${req.user.userId}`);
 
     res.json({
       success: true,
-      message: `${result.modifiedCount} students deleted successfully`,
+      message: `${result.deletedCount} students and their user accounts deleted successfully`,
       data: {
-        deleted: result.modifiedCount
+        deleted: result.deletedCount,
+        usersDeleted: userDeleteResult.deletedCount
       }
     });
 

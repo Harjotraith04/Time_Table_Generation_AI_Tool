@@ -1,0 +1,6 @@
+id,name,email,phone,department,designation,qualification,experience,subjects,maxHoursPerWeek,priority,status
+T001,Dr. John Smith,john.smith@example.com,9876543210,Computer Science,Professor,Ph.D. in Computer Science,15 years,"Data Structures,Algorithms,Programming",20,high,active
+T002,Dr. Sarah Johnson,sarah.j@example.com,9876543220,Computer Science,Associate Professor,Ph.D. in Software Engineering,10 years,"Web Development,Database Systems",18,high,active
+T003,Michael Brown,michael.b@example.com,9876543230,Electrical Engineering,Assistant Professor,M.Tech in Electronics,5 years,"Circuit Theory,Digital Electronics",20,medium,active
+T004,Emily Davis,emily.d@example.com,9876543240,Mechanical Engineering,Lecturer,M.Tech in Mechanical,3 years,"Thermodynamics,Fluid Mechanics",18,medium,active
+T005,Robert Wilson,robert.w@example.com,9876543250,Mathematics,Associate Professor,Ph.D. in Mathematics,12 years,"Calculus,Linear Algebra,Statistics",20,high,active
