@@ -97,6 +97,79 @@ router.get('/teachers', [
 });
 
 /**
+ * @route   GET /api/data/teachers/export
+ * @desc    Export teachers data as CSV
+ * @access  Private
+ */
+router.get('/teachers/export', async (req, res) => {
+  try {
+    logger.info('Teachers export requested');
+    const { format = 'csv' } = req.query;
+    
+    if (format !== 'csv') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only CSV format is currently supported'
+      });
+    }
+
+    const teachers = await Teacher.find().lean();
+    logger.info(`Found ${teachers.length} teachers to export`);
+    
+    if (teachers.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No teachers found to export'
+      });
+    }
+
+    const csvData = teachers.map(teacher => ({
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      phone: teacher.phone || '',
+      department: teacher.department,
+      designation: teacher.designation,
+      qualification: teacher.qualification || '',
+      experience: teacher.experience || '',
+      subjects: teacher.subjects ? teacher.subjects.join(', ') : '',
+      maxHoursPerWeek: teacher.maxHoursPerWeek,
+      priority: teacher.priority,
+      status: teacher.status
+    }));
+
+    csvStringify.stringify(csvData, {
+      header: true,
+      columns: [
+        'id', 'name', 'email', 'phone', 'department', 'designation',
+        'qualification', 'experience', 'subjects', 'maxHoursPerWeek',
+        'priority', 'status'
+      ]
+    }, (err, output) => {
+      if (err) {
+        logger.error('CSV generation error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error generating CSV: ' + err.message
+        });
+      }
+
+      logger.info('CSV generated successfully, sending response');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="teachers.csv"');
+      res.status(200).send(output);
+    });
+
+  } catch (error) {
+    logger.error('Error exporting teachers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while exporting teachers: ' + error.message
+    });
+  }
+});
+
+/**
  * @route   GET /api/data/teachers/:id
  * @desc    Get a specific teacher
  * @access  Private
@@ -1629,63 +1702,6 @@ router.get('/statistics', async (req, res) => {
 });
 
 // ==================== EXPORT ROUTES ====================
-
-/**
- * @route   GET /api/data/teachers/export
- * @desc    Export teachers data as CSV
- * @access  Private
- */
-router.get('/teachers/export', async (req, res) => {
-  try {
-    const { format = 'csv' } = req.query;
-    
-    if (format !== 'csv') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only CSV format is currently supported'
-      });
-    }
-
-    const teachers = await Teacher.find({ status: 'active' });
-    
-    const csvData = teachers.map(teacher => ({
-      id: teacher.id,
-      name: teacher.name,
-      email: teacher.email,
-      phone: teacher.phone || '',
-      department: teacher.department,
-      designation: teacher.designation,
-      qualification: teacher.qualification || '',
-      experience: teacher.experience || '',
-      subjects: teacher.subjects ? teacher.subjects.join(', ') : '',
-      maxHoursPerWeek: teacher.maxHoursPerWeek,
-      availability: teacher.availability ? JSON.stringify(teacher.availability) : '',
-      priority: teacher.priority,
-      status: teacher.status
-    }));
-
-    csvStringify.stringify(csvData, { header: true }, (err, output) => {
-      if (err) {
-        logger.error('CSV generation error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Error generating CSV'
-        });
-      }
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="teachers.csv"');
-      res.send(output);
-    });
-
-  } catch (error) {
-    logger.error('Error exporting teachers:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error while exporting teachers'
-    });
-  }
-});
 
 /**
  * @route   GET /api/data/classrooms/export
