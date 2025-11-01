@@ -565,7 +565,7 @@ const sendEmailChangeNotification = async (studentData, oldEmail, newEmail, newP
  * @param {string} newEmail - New email address
  * @returns {Promise<boolean>} Success status
  */
-const sendTeacherEmailChangeNotification = async (teacherData, oldEmail, newEmail) => {
+const sendTeacherEmailChangeNotification = async (teacherData, oldEmail, newEmail, newPassword = null) => {
   if (!transporter) {
     logger.warn('Email transporter not configured. Skipping email send.');
     return false;
@@ -609,7 +609,10 @@ const sendTeacherEmailChangeNotification = async (teacherData, oldEmail, newEmai
                 <p><strong>New Email:</strong> ${newEmail}</p>
                 <p><strong>Department:</strong> ${teacherData.department}</p>
                 <p><strong>Designation:</strong> ${teacherData.designation}</p>
+                ${newPassword ? `<hr style="margin: 15px 0;"><p><strong>New Temporary Password:</strong> <code style="background: #fff; padding: 5px 10px; border-radius: 4px; font-size: 16px;">${newPassword}</code></p>` : ''}
               </div>
+              
+              ${newPassword ? `<div class="warning"><strong>⚠️ Important:</strong> A new temporary password has been generated for security. You must change this password upon your next login.</div>` : ''}
               
               <p>You should now use your <strong>new email address</strong> (${newEmail}) to log in to the system.</p>
               

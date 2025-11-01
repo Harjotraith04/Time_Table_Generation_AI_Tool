@@ -297,14 +297,19 @@ router.put('/teachers/:id', [
         });
       }
 
-      // Update user account email if it exists
+      // Generate new temporary password
+      const bcrypt = require('bcrypt');
+      const newPassword = emailService.generateSecurePassword(8);
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user account email and password if it exists
       const updatedUser = await User.findOneAndUpdate(
         { email: oldEmail },
-        { email: newEmail },
+        { email: newEmail, password: hashedPassword, requirePasswordChange: true },
         { new: true }
       );
 
-      // Send email notification to new address
+      // Send email notification to new address with new password
       if (updatedUser) {
         try {
           const teacherEmailData = {
@@ -315,9 +320,8 @@ router.put('/teachers/:id', [
             designation: teacher.designation
           };
 
-          // Add sendTeacherEmailChangeNotification function call here
-          await emailService.sendTeacherEmailChangeNotification(teacherEmailData, oldEmail, newEmail);
-          logger.info(`Email change notification sent to teacher: ${newEmail}`);
+          await emailService.sendTeacherEmailChangeNotification(teacherEmailData, oldEmail, newEmail, newPassword);
+          logger.info(`Email change notification with new password sent to teacher: ${newEmail}`);
         } catch (emailError) {
           logger.error(`Failed to send email change notification:`, emailError);
         }
@@ -2715,14 +2719,19 @@ router.put('/students/:id', [
         });
       }
 
-      // Update user account email if it exists
+      // Generate new temporary password
+      const bcrypt = require('bcrypt');
+      const newPassword = emailService.generateSecurePassword(8);
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user account email and password if it exists
       const updatedUser = await User.findOneAndUpdate(
         { email: oldEmail },
-        { email: newEmail },
+        { email: newEmail, password: hashedPassword, requirePasswordChange: true },
         { new: true }
       );
 
-      // Send email notification to new address
+      // Send email notification to new address with new password
       if (updatedUser) {
         try {
           const studentEmailData = {
@@ -2739,8 +2748,8 @@ router.put('/students/:id', [
             batch: student.academicInfo.batch
           };
 
-          await emailService.sendEmailChangeNotification(studentEmailData, oldEmail, newEmail);
-          logger.info(`Email change notification sent to: ${newEmail}`);
+          await emailService.sendEmailChangeNotification(studentEmailData, oldEmail, newEmail, newPassword);
+          logger.info(`Email change notification with new password sent to: ${newEmail}`);
         } catch (emailError) {
           logger.error(`Failed to send email change notification:`, emailError);
         }

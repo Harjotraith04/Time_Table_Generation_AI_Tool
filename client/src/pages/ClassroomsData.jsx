@@ -706,5 +706,7 @@ const ClassroomsData = () => {
     </div>
   );
 };
+}
 
 export default ClassroomsData;
+
