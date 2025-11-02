@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import AdminSidebar from '../components/AdminSidebar';
 import { 
   Calendar, 
   BookOpen, 
@@ -948,8 +949,14 @@ const ProgramsData = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content with Sidebar */}
+      <div className="w-full flex pt-0">
+        {/* Left Sidebar */}
+        <AdminSidebar />
+
+        {/* Main Content Area */}
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'auto' }}>
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -1006,6 +1013,8 @@ const ProgramsData = () => {
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
         </div>
+          </div>
+        </main>
       </div>
 
       {/* Add/Edit Form Modal */}

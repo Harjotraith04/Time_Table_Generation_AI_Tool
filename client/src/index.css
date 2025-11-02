@@ -18,6 +18,11 @@
     height: 100vh;
     overflow-x: hidden;
   }
+
+  /* Make page fixed (disable scrolling) */
+  html, body {
+    overflow: hidden; /* prevent page scrolling */
+  }
   
   *, *::before, *::after {
     box-sizing: border-box;

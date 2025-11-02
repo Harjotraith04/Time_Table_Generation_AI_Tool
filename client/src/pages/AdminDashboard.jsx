@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import AdminSidebar from '../components/AdminSidebar';
 import { getTeachers, getClassrooms, getCourses, getTimetables, getDataStatistics, getStudentStats } from '../services/api';
 import { 
   Calendar, 
@@ -196,108 +197,7 @@ const AdminDashboard = () => {
       </div>
       )}
 
-      {/* Quick Actions */}
-      {!loading && !error && (
-      <div className={`rounded-xl border ${
-        isDarkMode 
-          ? 'bg-gray-800 border-gray-700' 
-          : 'bg-white border-gray-200'
-      }`}>
-        <div className={`p-6 border-b ${
-          isDarkMode 
-            ? 'border-gray-700' 
-            : 'border-gray-200'
-        }`}>
-          <h3 className={`text-lg font-semibold ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>Quick Actions</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button 
-              onClick={() => navigate('/create-timetable')}
-              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-blue-900/30 to-blue-800/20 hover:from-blue-900/50 hover:to-blue-800/40 border-blue-700/50 hover:border-blue-600 hover:shadow-blue-500/20' 
-                  : 'bg-gradient-to-br from-blue-50 to-blue-100/50 hover:from-blue-100 hover:to-blue-200 border-blue-200 hover:border-blue-300 hover:shadow-blue-500/20'
-              }`}
-            >
-              <Plus className="w-6 h-6 text-blue-600 mr-3 transform group-hover:rotate-180 transition-transform duration-300" />
-              <span className={`font-medium transition-all duration-300 ${
-                isDarkMode ? 'text-blue-300 group-hover:text-blue-200' : 'text-blue-900 group-hover:text-blue-800'
-              }`}>Create New Timetable</span>
-            </button>
-            <button 
-              onClick={() => navigate('/student-management')}
-              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-indigo-900/30 to-indigo-800/20 hover:from-indigo-900/50 hover:to-indigo-800/40 border-indigo-700/50 hover:border-indigo-600 hover:shadow-indigo-500/20' 
-                  : 'bg-gradient-to-br from-indigo-50 to-indigo-100/50 hover:from-indigo-100 hover:to-indigo-200 border-indigo-200 hover:border-indigo-300 hover:shadow-indigo-500/20'
-              }`}
-            >
-              <GraduationCap className="w-6 h-6 text-indigo-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
-              <span className={`font-medium transition-all duration-300 ${
-                isDarkMode ? 'text-indigo-300 group-hover:text-indigo-200' : 'text-indigo-900 group-hover:text-indigo-800'
-              }`}>Manage Students</span>
-            </button>
-            <button 
-              onClick={() => navigate('/teachers-data')}
-              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 hover:from-yellow-900/50 hover:to-yellow-800/40 border-yellow-700/50 hover:border-yellow-600 hover:shadow-yellow-500/20' 
-                  : 'bg-gradient-to-br from-yellow-50 to-yellow-100/50 hover:from-yellow-100 hover:to-yellow-200 border-yellow-200 hover:border-yellow-300 hover:shadow-yellow-500/20'
-              }`}
-            >
-              <Users className="w-6 h-6 text-yellow-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
-              <span className={`font-medium transition-all duration-300 ${
-                isDarkMode ? 'text-yellow-300 group-hover:text-yellow-200' : 'text-yellow-900 group-hover:text-yellow-800'
-              }`}>Manage Teachers</span>
-            </button>
-            <button 
-              onClick={() => navigate('/classrooms-data')}
-              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-orange-900/30 to-orange-800/20 hover:from-orange-900/50 hover:to-orange-800/40 border-orange-700/50 hover:border-orange-600 hover:shadow-orange-500/20' 
-                  : 'bg-gradient-to-br from-orange-50 to-orange-100/50 hover:from-orange-100 hover:to-orange-200 border-orange-200 hover:border-orange-300 hover:shadow-orange-500/20'
-              }`}
-            >
-              <Settings className="w-6 h-6 text-orange-600 mr-3 transform group-hover:rotate-90 transition-transform duration-300" />
-              <span className={`font-medium transition-all duration-300 ${
-                isDarkMode ? 'text-orange-300 group-hover:text-orange-200' : 'text-orange-900 group-hover:text-orange-800'
-              }`}>Manage Rooms</span>
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <button 
-              onClick={() => navigate('/programs-data')}
-              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-purple-900/30 to-purple-800/20 hover:from-purple-900/50 hover:to-purple-800/40 border-purple-700/50 hover:border-purple-600 hover:shadow-purple-500/20' 
-                  : 'bg-gradient-to-br from-purple-50 to-purple-100/50 hover:from-purple-100 hover:to-purple-200 border-purple-200 hover:border-purple-300 hover:shadow-purple-500/20'
-              }`}
-            >
-              <Building2 className="w-6 h-6 text-purple-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
-              <span className={`font-medium transition-all duration-300 ${
-                isDarkMode ? 'text-purple-300 group-hover:text-purple-200' : 'text-purple-900 group-hover:text-purple-800'
-              }`}>Manage Programs</span>
-            </button>
-            <button 
-              onClick={() => navigate('/infrastructure-data')}
-              className={`group relative flex items-center justify-center p-4 border rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 hover:shadow-xl ${
-                isDarkMode 
-                  ? 'bg-gradient-to-br from-green-900/30 to-green-800/20 hover:from-green-900/50 hover:to-green-800/40 border-green-700/50 hover:border-green-600 hover:shadow-green-500/20' 
-                  : 'bg-gradient-to-br from-green-50 to-green-100/50 hover:from-green-100 hover:to-green-200 border-green-200 hover:border-green-300 hover:shadow-green-500/20'
-              }`}
-            >
-              <BookOpen className="w-6 h-6 text-green-600 mr-3 transform group-hover:scale-110 transition-transform duration-300" />
-              <span className={`font-medium transition-all duration-300 ${
-                isDarkMode ? 'text-green-300 group-hover:text-green-200' : 'text-green-900 group-hover:text-green-800'
-              }`}>Infrastructure & Policy</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      )}
+      
 
       {/* Recent Timetables */}
       {!loading && !error && (
@@ -663,7 +563,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className={`min-h-screen relative overflow-hidden transition-all duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen relative overflow-hidden transition-all duration-300 bg-black text-gray-200`}>
       {/* Floating Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
@@ -682,9 +582,9 @@ const AdminDashboard = () => {
         </div>
       </div>
       {/* Header */}
-      <header className={`relative border-b backdrop-blur-sm transition-all duration-300 z-10 ${isDarkMode ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-gray-200'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+  <header className={`fixed top-0 left-0 right-0 border-b backdrop-blur-sm transition-all duration-300 z-50 ${isDarkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'}`}>
+        <div className="w-full px-6">
+          <div className="h-16 flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <div className="group p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 hover:rotate-3">
                 <Calendar className="w-8 h-8 text-white transition-transform duration-300 group-hover:scale-110" />
@@ -739,60 +639,21 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Tabs */}
-        <div className={`flex space-x-1 rounded-xl p-1 border mb-8 backdrop-blur-sm shadow-lg ${
-          isDarkMode 
-            ? 'bg-gray-800/80 border-gray-700' 
-            : 'bg-white/80 border-gray-200'
-        }`}>
-          {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'timetables', label: 'Timetables', icon: Calendar },
-            { id: 'users', label: 'Users', icon: Users },
-            { id: 'analytics', label: 'Analytics', icon: TrendingUp }
-          ].map((tab, index) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`group relative flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl shadow-blue-500/30'
-                  : isDarkMode 
-                    ? 'text-gray-400 hover:text-gray-200 hover:bg-gradient-to-r hover:from-gray-700 hover:to-gray-600'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-100 hover:to-gray-200'
-              }`}
-              style={{
-                animationDelay: `${index * 50}ms`
-              }}
-            >
-              {/* Active indicator */}
-              {activeTab === tab.id && (
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 opacity-90"></div>
-              )}
-              
-              <tab.icon className={`w-4 h-4 relative z-10 transition-transform duration-300 ${
-                activeTab === tab.id ? 'animate-pulse' : 'group-hover:scale-110'
-              }`} />
-              <span className={`font-medium relative z-10 transition-all duration-300 ${
-                activeTab === tab.id ? 'text-white' : ''
-              }`}>{tab.label}</span>
-              
-              {/* Hover glow effect */}
-              <div className={`absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                activeTab === tab.id 
-                  ? 'bg-gradient-to-r from-blue-400/20 to-blue-600/20' 
-                  : 'bg-gradient-to-r from-blue-500/10 to-purple-500/10'
-              }`} />
-            </button>
-          ))}
-        </div>
+      <div className="w-full px-0 pt-16 pb-8">
+        <div className="w-full flex">
+          {/* Left Sidebar */}
+          <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Content */}
-        {activeTab === 'overview' && renderOverview()}
-        {activeTab === 'timetables' && renderTimetables()}
-        {activeTab === 'users' && renderUsers()}
-        {activeTab === 'analytics' && renderAnalytics()}
+          {/* Main content area */}
+          <main className="flex-1">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'auto' }}>
+              {activeTab === 'overview' && renderOverview()}
+              {activeTab === 'timetables' && renderTimetables()}
+              {activeTab === 'users' && renderUsers()}
+              {activeTab === 'analytics' && renderAnalytics()}
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

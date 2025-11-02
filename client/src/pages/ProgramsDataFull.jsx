@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import AdminSidebar from '../components/AdminSidebar';
 import { 
   getCourses, createCourse, updateCourse, deleteCourse,
   getPrograms, createProgram, updateProgram, deleteProgram,
@@ -862,8 +863,14 @@ const ProgramsData = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content with Sidebar */}
+      <div className="w-full flex pt-0">
+        {/* Left Sidebar */}
+        <AdminSidebar />
+
+        {/* Main Content Area */}
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'auto' }}>
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Academic Programs & Courses</h2>
           <p className="text-gray-600 dark:text-gray-400">
@@ -1284,6 +1291,8 @@ const ProgramsData = () => {
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
         </div>
+          </div>
+        </main>
       </div>
 
       {/* Add/Edit Form Modals */}

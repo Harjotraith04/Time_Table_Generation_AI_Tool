@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import AdminSidebar from '../components/AdminSidebar';
 import { 
   Settings,
   ArrowLeft,
@@ -584,8 +585,14 @@ const InfrastructureData = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content with Sidebar */}
+      <div className="w-full flex pt-0">
+        {/* Left Sidebar */}
+        <AdminSidebar />
+
+        {/* Main Content Area */}
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'auto' }}>
         {/* Success/Error Messages */}
         {successMessage && (
           <div className="mb-6 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-200 rounded-lg flex items-center">
@@ -1428,6 +1435,8 @@ const InfrastructureData = () => {
         </div>
         </>
         )}
+          </div>
+        </main>
       </div>
 
       {/* Add Holiday Form */}
