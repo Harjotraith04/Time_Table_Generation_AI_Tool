@@ -451,7 +451,8 @@
     margin: 0 auto;
   }
   
-  .max-h-[500px], .max-h-[550px] {
+  /* Escaped Tailwind arbitrary value classnames for CSS parsers */
+  .max-h-\[500px\], .max-h-\[550px\] {
     max-height: none;
     height: auto;
   }

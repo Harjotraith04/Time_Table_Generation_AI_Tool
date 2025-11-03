@@ -1,0 +1,20 @@
+{
+  // Use PostCSS language mode for .css files so Tailwind/PostCSS at-rules are recognized
+  "files.associations": {
+    "*.css": "postcss"
+  },
+
+  // Tell the Tailwind extension which languages to include (helps IntelliSense)
+  "tailwindCSS.includeLanguages": {
+    "postcss": "css",
+    "css": "css",
+    "javascript": "javascript",
+    "javascriptreact": "javascript",
+    "typescriptreact": "typescript"
+  },
+
+  // Reduce noisy linter warnings about unknown at-rules when PostCSS/Tailwind is used
+  "css.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore"
+}
