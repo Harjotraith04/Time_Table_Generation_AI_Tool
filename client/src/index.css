@@ -14,14 +14,18 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    width: 100vw;
-    height: 100vh;
-    overflow-x: hidden;
+    width: 100%; /* use % instead of 100vw to avoid horizontal scroll when vertical scrollbar appears */
+    /* default: prevent global page scrolling (admin UI uses internal scroll areas) */
+    min-height: 100vh;
+    height: auto;
+    overflow-x: hidden; /* keep horizontal overflow hidden */
+    overflow-y: hidden; /* disable global vertical scrolling by default */
   }
 
-  /* Make page fixed (disable scrolling) */
-  html, body {
-    overflow: hidden; /* prevent page scrolling */
+  /* Default: hide global scroll on html as well. Use classes to opt-in on specific pages. */
+  html {
+    overflow-y: hidden;
+    overflow-x: hidden;
   }
   
   *, *::before, *::after {
@@ -451,7 +455,6 @@
     max-height: none;
     height: auto;
   }
-  
   .card-face {
     min-height: auto;
   }
@@ -470,3 +473,17 @@
     max-width: 20rem;
   }
 } 
+
+/* Utility class to disable global page scrolling (alias) */
+.no-global-scroll {
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+/* Allow global page scrolling when explicitly enabled (landing page) */
+.allow-global-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}

@@ -41,6 +41,28 @@ const Landing = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Enable global page scrolling when the landing page is mounted.
+  useEffect(() => {
+    // Use inline styles to force-enable global scroll when landing mounts.
+    // Inline styles take precedence over stylesheet rules and are reliable
+    // across different CSS ordering setups.
+    try {
+      document.documentElement.style.overflowY = 'auto';
+      document.body.style.overflowY = 'auto';
+      // keep horizontal hidden
+      document.documentElement.style.overflowX = 'hidden';
+      document.body.style.overflowX = 'hidden';
+    } catch (e) {}
+    return () => {
+      try {
+        document.documentElement.style.overflowY = '';
+        document.body.style.overflowY = '';
+        document.documentElement.style.overflowX = '';
+        document.body.style.overflowX = '';
+      } catch (e) {}
+    };
+  }, []);
+
   const features = [
     {
       icon: <Calendar className="w-8 h-8" />,

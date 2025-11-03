@@ -18,6 +18,8 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
   const location = useLocation();
   const { isDarkMode } = useTheme();
 
+  // Sidebar does not toggle global scroll anymore. Landing page controls global scroll.
+
   // Determine active section based on current path if not on dashboard
   const getActiveTab = () => {
     // Use explicit prop/state for dashboard tab highlighting only.

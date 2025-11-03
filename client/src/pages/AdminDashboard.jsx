@@ -54,6 +54,8 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
 
+  // Global scroll is controlled by the landing page only; admin pages use internal scrolling.
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
