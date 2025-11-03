@@ -20,13 +20,21 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
 
   // Determine active section based on current path if not on dashboard
   const getActiveTab = () => {
+    // Use explicit prop/state for dashboard tab highlighting only.
+    // Avoid matching other routes (like /create-timetable or /student-management)
+    // which previously caused unrelated tabs to become active because of
+    // broad substring matching (e.g. path.includes('timetable')).
     if (activeTab) return activeTab; // Use prop if provided (for dashboard)
-    
+
     const path = location.pathname;
-    if (path === '/admin-dashboard') return 'overview';
-    if (path.includes('timetable')) return 'timetables';
-    if (path.includes('student') || path.includes('teacher') || path.includes('user')) return 'users';
-    if (path.includes('analytics')) return 'analytics';
+
+    // Only consider the admin dashboard route for these sidebar tabs.
+    // When navigating to /admin-dashboard we may get an activeTab in location.state
+    // so prefer that. Otherwise, don't mark any dashboard tab active for other routes.
+    if (path === '/admin-dashboard') {
+      return (location.state && location.state.activeTab) ? location.state.activeTab : 'overview';
+    }
+
     return '';
   };
 
@@ -34,8 +42,8 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
 
   const navigationTabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3, path: '/admin-dashboard' },
-    { id: 'timetables', label: 'Timetables', icon: Calendar, path: '/admin-dashboard' },
-    { id: 'users', label: 'Users', icon: Users, path: '/admin-dashboard' },
+    { id: 'timetables', label: 'All Time Tables', icon: Calendar, path: '/admin-dashboard' },
+    { id: 'users', label: 'Query Resolution', icon: Users, path: '/admin-dashboard' },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/admin-dashboard' }
   ];
 
