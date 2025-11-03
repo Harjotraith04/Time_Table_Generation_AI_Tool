@@ -22,6 +22,24 @@ const Demo = () => {
     fetchAllData();
   }, []);
 
+  // Ensure global/page scrollbar is enabled for the demo page (like landing).
+  useEffect(() => {
+    try {
+      document.documentElement.style.overflowY = 'auto';
+      document.body.style.overflowY = 'auto';
+      document.documentElement.style.overflowX = 'hidden';
+      document.body.style.overflowX = 'hidden';
+    } catch (e) {}
+    return () => {
+      try {
+        document.documentElement.style.overflowY = '';
+        document.body.style.overflowY = '';
+        document.documentElement.style.overflowX = '';
+        document.body.style.overflowX = '';
+      } catch (e) {}
+    };
+  }, []);
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
