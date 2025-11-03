@@ -145,31 +145,33 @@ const Auth = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-900 flex items-start justify-center pt-3 px-4 pb-4 overflow-hidden">
+    <div className="h-screen bg-gray-900 flex items-start justify-center pt-6 px-4 pb-8 overflow-hidden bg-landing">
       <div className="w-full max-w-3xl">
         
         {/* Toggle Buttons */}
-        <div className="flex gap-4 mb-4 bg-gray-800 rounded-2xl p-2 sticky top-3 z-20 shadow-lg ring-1 ring-white/10">
-          <button
-            onClick={() => toggleMode(false)}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
-              !isSignUp
-                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50 hover:shadow-blue-500/70'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => toggleMode(true)}
-            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
-              isSignUp
-                ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-            }`}
-          >
-            Sign Up
-          </button>
+        <div className="flex gap-4 mb-6 p-2 sticky top-4 z-30">
+          <div className="w-full bg-gray-800/40 backdrop-blur-sm rounded-full p-1 ring-1 ring-white/5 shadow-lg flex">
+            <button
+              onClick={() => toggleMode(false)}
+              className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all duration-300 text-sm text-center ${
+                !isSignUp
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-400 text-white shadow-[0_15px_40px_rgba(59,130,246,0.16)] -translate-y-1 scale-105 text-glow'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/20'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => toggleMode(true)}
+              className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all duration-300 text-sm text-center ${
+                isSignUp
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_15px_40px_rgba(147,51,234,0.14)] -translate-y-1 scale-105 text-glow'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-700/20'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
         </div>
 
         {/* Card Container */}

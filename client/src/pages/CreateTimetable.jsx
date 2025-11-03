@@ -337,7 +337,8 @@ const CreateTimetable = () => {
 
       {/* Progress Steps */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        {/* Add left padding on large screens to account for the left sidebar (w-72) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:pl-72">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">

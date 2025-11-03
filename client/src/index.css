@@ -400,6 +400,19 @@
   }
 }
 
+/* Landing background used by Auth page */
+.bg-landing {
+  background-color: #071423; /* fallback */
+  background-image: radial-gradient(circle at 15% 15%, rgba(99,102,241,0.04), transparent 12%),
+                    radial-gradient(circle at 85% 80%, rgba(147,51,234,0.03), transparent 18%),
+                    linear-gradient(180deg, #071423 0%, #05080d 100%);
+}
+
+/* Soft glow helper for active tabs */
+.text-glow {
+  filter: drop-shadow(0 8px 30px rgba(99,102,241,0.12));
+}
+
 /* Button hover effects */
 .hover-lift {
   transition: all 0.3s ease;
