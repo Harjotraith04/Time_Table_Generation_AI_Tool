@@ -7,7 +7,8 @@
 
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    /* Use Poppins for headings and Inter fallback for body. Poppins loaded in index.html */
+    font-family: 'Poppins', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   }
   
   body {
@@ -31,6 +32,39 @@
   *, *::before, *::after {
     box-sizing: border-box;
   }
+}
+
+/* Animated gradient text for hero heading */
+.animated-gradient-text {
+  background: linear-gradient(90deg, #8b5cf6 0%, #ec4899 30%, #3b82f6 60%, #06b6d4 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Strong hero glow */
+.hero-glow {
+  text-shadow: 0 8px 30px rgba(139,92,246,0.25), 0 2px 6px rgba(99,102,241,0.15);
+  filter: drop-shadow(0 0 20px rgba(99,102,241,0.12));
+}
+
+.hero-tilt {
+  transition: transform 0.12s linear;
+}
+
+/* Subscribe input/button styles */
+.subscribe-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.subscribe-btn {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 8px 32px rgba(59,130,246,0.12);
 }
 
 @layer components {

@@ -1,11 +1,15 @@
 const CSPSolver = require('./CSPSolver');
 const GeneticAlgorithm = require('./GeneticAlgorithm');
+const GreedyScheduler = require('./GreedyScheduler');
 const logger = require('../utils/logger');
 
 /**
  * Advanced Optimization Engine for Timetable Generation
  * 
  * This engine orchestrates multiple algorithms and optimization strategies:
+ * - Greedy scheduling (fast, simple)
+ * - CSP solving (constraint satisfaction)
+ * - Genetic algorithms (optimization)
  * - Hybrid approaches combining CSP and GA
  * - Multi-objective optimization
  * - Adaptive parameter tuning
@@ -16,6 +20,7 @@ const logger = require('../utils/logger');
 class OptimizationEngine {
   constructor() {
     this.algorithms = new Map([
+      ['greedy', GreedyScheduler],
       ['csp', CSPSolver],
       ['genetic', GeneticAlgorithm],
       ['hybrid', this.hybridAlgorithm.bind(this)],
@@ -45,7 +50,7 @@ class OptimizationEngine {
     const startTime = Date.now();
     
     try {
-      logger.info('Starting timetable optimization', { 
+      logger.info('[OPTIMIZATION] Starting timetable optimization', { 
         algorithm: settings.algorithm,
         courses: courses.length,
         teachers: teachers.length,
@@ -53,20 +58,58 @@ class OptimizationEngine {
       });
 
       // Validate input data
+      logger.info('[OPTIMIZATION] Starting data validation...');
+      const validationStartTime = Date.now();
+      
       const validation = this.validateInputData(teachers, classrooms, courses);
+      
+      const validationDuration = Date.now() - validationStartTime;
+      logger.info('[OPTIMIZATION] Data validation completed', {
+        duration: `${validationDuration}ms`,
+        valid: validation.valid,
+        issuesCount: validation.issues?.length || 0
+      });
+
       if (!validation.valid) {
-        return { success: false, reason: validation.reason };
+        logger.error('[OPTIMIZATION] Validation failed:', {
+          issues: validation.issues,
+          reason: validation.reason
+        });
+        return { 
+          success: false, 
+          reason: validation.reason,
+          validationErrors: validation.issues 
+        };
       }
+      
+      logger.info('[OPTIMIZATION] Data validation passed successfully');
 
       // Select and configure algorithm
+      logger.info('[OPTIMIZATION] Selecting algorithm:', settings.algorithm);
       const algorithm = this.selectAlgorithm(settings.algorithm);
+      logger.info('[OPTIMIZATION] Algorithm selected successfully');
+
+      logger.info('[OPTIMIZATION] Optimizing parameters...');
       const optimizedSettings = this.optimizeParameters(settings, teachers, classrooms, courses);
+      logger.info('[OPTIMIZATION] Parameters optimized');
 
       // Execute algorithm
+      logger.info('[OPTIMIZATION] Executing algorithm:', settings.algorithm);
+      const algorithmStartTime = Date.now();
+      
       const result = await algorithm(teachers, classrooms, courses, optimizedSettings, progressCallback);
+      
+      const algorithmDuration = Date.now() - algorithmStartTime;
+      logger.info('[OPTIMIZATION] Algorithm execution completed', {
+        duration: `${algorithmDuration}ms`,
+        success: result.success
+      });
 
       if (result.success) {
         // Post-process the solution
+        logger.info('[OPTIMIZATION] Starting post-processing...');
+        const postProcessStart = Date.now();
+        
         const optimizedSolution = await this.postProcessSolution(
           result.solution, 
           teachers, 
@@ -74,40 +117,80 @@ class OptimizationEngine {
           courses, 
           settings
         );
+        
+        const postProcessDuration = Date.now() - postProcessStart;
+        logger.info(`[OPTIMIZATION] Post-processing completed in ${postProcessDuration}ms`);
 
         // Calculate quality metrics
+        logger.info('[OPTIMIZATION] Calculating quality metrics...');
+        const metricsStart = Date.now();
+        
         const qualityMetrics = this.calculateQualityMetrics(
           optimizedSolution, 
           teachers, 
           classrooms, 
           courses
         );
+        
+        const metricsDuration = Date.now() - metricsStart;
+        logger.info(`[OPTIMIZATION] Quality metrics calculated in ${metricsDuration}ms`);
+        logger.info(`[OPTIMIZATION] Quality Score: ${qualityMetrics.overallScore}`);
+
+        // Detect conflicts
+        logger.info('[OPTIMIZATION] Detecting conflicts...');
+        const conflictStart = Date.now();
+        
+        const conflicts = this.detectAndClassifyConflicts(optimizedSolution, teachers, classrooms, courses);
+        
+        const conflictDuration = Date.now() - conflictStart;
+        logger.info(`[OPTIMIZATION] Conflict detection completed in ${conflictDuration}ms`);
+        logger.info(`[OPTIMIZATION] Conflicts found: ${conflicts.length}`);
+
+        // Generate recommendations
+        logger.info('[OPTIMIZATION] Generating recommendations...');
+        const recommendStart = Date.now();
+        
+        const recommendations = this.generateRecommendations(optimizedSolution, qualityMetrics);
+        
+        const recommendDuration = Date.now() - recommendStart;
+        logger.info(`[OPTIMIZATION] Recommendations generated in ${recommendDuration}ms`);
 
         const endTime = Date.now();
-        logger.info('Optimization completed successfully', {
-          duration: endTime - startTime,
-          algorithm: settings.algorithm,
-          quality: qualityMetrics.overallScore
-        });
+        const totalDuration = endTime - startTime;
+        
+        logger.info('[OPTIMIZATION] ========================================');
+        logger.info('[OPTIMIZATION] OPTIMIZATION COMPLETE!');
+        logger.info(`[OPTIMIZATION]   Algorithm: ${settings.algorithm}`);
+        logger.info(`[OPTIMIZATION]   Total Duration: ${totalDuration}ms`);
+        logger.info(`[OPTIMIZATION]   - Validation: ${validationDuration}ms`);
+        logger.info(`[OPTIMIZATION]   - Algorithm Execution: ${algorithmDuration}ms`);
+        logger.info(`[OPTIMIZATION]   - Post-processing: ${postProcessDuration}ms`);
+        logger.info(`[OPTIMIZATION]   - Quality Metrics: ${metricsDuration}ms`);
+        logger.info(`[OPTIMIZATION]   - Conflict Detection: ${conflictDuration}ms`);
+        logger.info(`[OPTIMIZATION]   - Recommendations: ${recommendDuration}ms`);
+        logger.info(`[OPTIMIZATION]   Quality Score: ${qualityMetrics.overallScore}`);
+        logger.info(`[OPTIMIZATION]   Conflicts: ${conflicts.length}`);
+        logger.info('[OPTIMIZATION] ========================================');
 
         return {
           success: true,
           solution: optimizedSolution,
           metrics: {
             ...result.metrics,
-            totalDuration: endTime - startTime,
+            totalDuration,
             qualityMetrics
           },
-          conflicts: this.detectAndClassifyConflicts(optimizedSolution, teachers, classrooms, courses),
-          recommendations: this.generateRecommendations(optimizedSolution, qualityMetrics)
+          conflicts,
+          recommendations
         };
       } else {
-        logger.warn('Optimization failed', { reason: result.reason });
+        logger.warn('[OPTIMIZATION] Optimization failed', { reason: result.reason });
         return result;
       }
 
     } catch (error) {
-      logger.error('Optimization engine error:', error);
+      logger.error('[OPTIMIZATION] Optimization engine error:', error);
+      logger.error('[OPTIMIZATION] Error stack:', error.stack);
       return { success: false, reason: error.message };
     }
   }
@@ -116,70 +199,177 @@ class OptimizationEngine {
    * Validate input data for consistency and completeness
    */
   validateInputData(teachers, classrooms, courses) {
+    const validationStartTime = Date.now();
+    logger.info('[VALIDATION] ========================================');
+    logger.info('[VALIDATION] Starting detailed data validation...');
+    logger.info('[VALIDATION] ========================================');
+    
     const issues = [];
+    const warnings = [];
 
     // Check teachers
+    const teacherCheckStart = Date.now();
+    logger.info('[VALIDATION] Step 1/4: Validating teachers...');
+    
     if (!teachers || teachers.length === 0) {
       issues.push('No teachers provided');
+      logger.error('[VALIDATION] ✗ No teachers found!');
     } else {
-      for (const teacher of teachers) {
+      logger.info(`[VALIDATION] Found ${teachers.length} teachers to validate`);
+      
+      let teacherIssueCount = 0;
+      for (let i = 0; i < teachers.length; i++) {
+        const teacher = teachers[i];
+        logger.info(`[VALIDATION]   Checking teacher ${i + 1}/${teachers.length}: ${teacher.name}`);
+        
         if (!teacher.subjects || teacher.subjects.length === 0) {
           issues.push(`Teacher ${teacher.name} has no subjects assigned`);
+          teacherIssueCount++;
+          logger.warn(`[VALIDATION]     ⚠️ No subjects assigned`);
+        } else {
+          logger.info(`[VALIDATION]     ✓ Subjects: ${teacher.subjects.join(', ')}`);
         }
+        
         if (!teacher.availability) {
           issues.push(`Teacher ${teacher.name} has no availability defined`);
+          teacherIssueCount++;
+          logger.warn(`[VALIDATION]     ⚠️ No availability defined`);
+        } else {
+          logger.info(`[VALIDATION]     ✓ Availability defined`);
         }
       }
+      
+      const teacherCheckDuration = Date.now() - teacherCheckStart;
+      logger.info(`[VALIDATION] ✓ Teacher validation completed in ${teacherCheckDuration}ms (${teacherIssueCount} issues)`);
     }
 
     // Check classrooms
+    const classroomCheckStart = Date.now();
+    logger.info('[VALIDATION] Step 2/4: Validating classrooms...');
+    
     if (!classrooms || classrooms.length === 0) {
       issues.push('No classrooms provided');
+      logger.error('[VALIDATION] ✗ No classrooms found!');
     } else {
-      for (const classroom of classrooms) {
+      logger.info(`[VALIDATION] Found ${classrooms.length} classrooms to validate`);
+      
+      let classroomIssueCount = 0;
+      for (let i = 0; i < classrooms.length; i++) {
+        const classroom = classrooms[i];
+        logger.info(`[VALIDATION]   Checking classroom ${i + 1}/${classrooms.length}: ${classroom.name}`);
+        
         if (!classroom.capacity || classroom.capacity < 1) {
           issues.push(`Classroom ${classroom.name} has invalid capacity`);
+          classroomIssueCount++;
+          logger.warn(`[VALIDATION]     ⚠️ Invalid capacity: ${classroom.capacity}`);
+        } else {
+          logger.info(`[VALIDATION]     ✓ Capacity: ${classroom.capacity}`);
         }
+        
+        logger.info(`[VALIDATION]     Type: ${classroom.type}, Features: ${classroom.features?.length || 0}`);
       }
+      
+      const classroomCheckDuration = Date.now() - classroomCheckStart;
+      logger.info(`[VALIDATION] ✓ Classroom validation completed in ${classroomCheckDuration}ms (${classroomIssueCount} issues)`);
     }
 
     // Check courses
+    const courseCheckStart = Date.now();
+    logger.info('[VALIDATION] Step 3/4: Validating courses...');
+    
     if (!courses || courses.length === 0) {
       issues.push('No courses provided');
+      logger.error('[VALIDATION] ✗ No courses found!');
     } else {
-      for (const course of courses) {
+      logger.info(`[VALIDATION] Found ${courses.length} courses to validate`);
+      
+      let courseIssueCount = 0;
+      for (let i = 0; i < courses.length; i++) {
+        const course = courses[i];
+        logger.info(`[VALIDATION]   Checking course ${i + 1}/${courses.length}: ${course.name} (${course.code})`);
+        
         if (!course.assignedTeachers || course.assignedTeachers.length === 0) {
           issues.push(`Course ${course.name} has no teachers assigned`);
+          courseIssueCount++;
+          logger.warn(`[VALIDATION]     ⚠️ No teachers assigned`);
+        } else {
+          logger.info(`[VALIDATION]     ✓ Assigned to ${course.assignedTeachers.length} teacher(s)`);
         }
+        
+        const theoryCount = course.sessions?.theory?.sessionsPerWeek || 0;
+        const practicalCount = course.sessions?.practical?.sessionsPerWeek || 0;
+        const tutorialCount = course.sessions?.tutorial?.sessionsPerWeek || 0;
+        const totalSessions = theoryCount + practicalCount + tutorialCount;
+        
+        logger.info(`[VALIDATION]     Sessions: Theory=${theoryCount}, Practical=${practicalCount}, Tutorial=${tutorialCount}, Total=${totalSessions}`);
         
         const hasValidSessions = ['theory', 'practical', 'tutorial'].some(type => 
           course.sessions[type] && course.sessions[type].sessionsPerWeek > 0
         );
+        
         if (!hasValidSessions) {
           issues.push(`Course ${course.name} has no valid sessions defined`);
+          courseIssueCount++;
+          logger.warn(`[VALIDATION]     ⚠️ No valid sessions defined`);
+        } else {
+          logger.info(`[VALIDATION]     ✓ Has valid sessions`);
         }
       }
+      
+      const courseCheckDuration = Date.now() - courseCheckStart;
+      logger.info(`[VALIDATION] ✓ Course validation completed in ${courseCheckDuration}ms (${courseIssueCount} issues)`);
     }
 
-    // Check teacher-course compatibility
+    // Check teacher-course compatibility (as warnings, not errors)
+    const compatibilityCheckStart = Date.now();
+    logger.info('[VALIDATION] Step 4/4: Checking teacher-course compatibility...');
+    
+    let compatibilityWarnings = 0;
     for (const course of courses) {
       for (const assignedTeacher of course.assignedTeachers) {
         const teacher = teachers.find(t => t.id === assignedTeacher.teacherId);
         if (!teacher) {
           issues.push(`Course ${course.name} assigned to non-existent teacher ${assignedTeacher.teacherId}`);
+          logger.error(`[VALIDATION]   ✗ Course ${course.name} assigned to non-existent teacher ${assignedTeacher.teacherId}`);
         } else if (!teacher.subjects.some(subject => 
           course.name.toLowerCase().includes(subject.toLowerCase()) ||
           subject.toLowerCase().includes(course.name.toLowerCase())
         )) {
-          issues.push(`Teacher ${teacher.name} may not be qualified to teach ${course.name}`);
+          // This is just a warning, not a critical error
+          warnings.push(`Teacher ${teacher.name} may not be qualified to teach ${course.name} (subject mismatch)`);
+          compatibilityWarnings++;
+          logger.warn(`[VALIDATION]   ⚠️ Teacher ${teacher.name} may not be qualified to teach ${course.name}`);
         }
       }
+    }
+    
+    const compatibilityCheckDuration = Date.now() - compatibilityCheckStart;
+    logger.info(`[VALIDATION] ✓ Compatibility check completed in ${compatibilityCheckDuration}ms (${compatibilityWarnings} warnings)`);
+    
+    // Final validation summary
+    const totalValidationDuration = Date.now() - validationStartTime;
+    logger.info('[VALIDATION] ========================================');
+    logger.info('[VALIDATION] VALIDATION SUMMARY:');
+    logger.info(`[VALIDATION]   Total Issues: ${issues.length}`);
+    logger.info(`[VALIDATION]   Total Warnings: ${warnings.length}`);
+    logger.info(`[VALIDATION]   Total Duration: ${totalValidationDuration}ms`);
+    logger.info(`[VALIDATION]   Result: ${issues.length === 0 ? '✅ PASSED' : '❌ FAILED'}`);
+    logger.info('[VALIDATION] ========================================');
+
+    // Log warnings but don't fail validation
+    if (warnings.length > 0) {
+      logger.warn('[VALIDATION] Warnings found:', warnings);
+    }
+    
+    if (issues.length > 0) {
+      logger.error('[VALIDATION] Issues found:', issues);
     }
 
     return {
       valid: issues.length === 0,
       reason: issues.length > 0 ? issues.join('; ') : null,
-      issues
+      issues,
+      warnings
     };
   }
 
@@ -187,8 +377,25 @@ class OptimizationEngine {
    * Select appropriate algorithm based on problem characteristics
    */
   selectAlgorithm(algorithmName) {
+    logger.info('[OPTIMIZATION] selectAlgorithm called with:', algorithmName);
+    
     if (this.algorithms.has(algorithmName)) {
-      return this.algorithms.get(algorithmName);
+      const algorithm = this.algorithms.get(algorithmName);
+      logger.info('[OPTIMIZATION] Algorithm found in map:', typeof algorithm);
+      
+      // Return a wrapper function that instantiates the class if needed
+      if (typeof algorithm === 'function' && algorithm.prototype && algorithm.prototype.solve) {
+        logger.info('[OPTIMIZATION] Algorithm is a class, will wrap it');
+        return async (teachers, classrooms, courses, settings, progressCallback) => {
+          logger.info('[OPTIMIZATION] Instantiating algorithm class');
+          const instance = new algorithm(teachers, classrooms, courses, settings);
+          logger.info('[OPTIMIZATION] Calling solve() on instance');
+          return await instance.solve(progressCallback);
+        };
+      }
+      
+      logger.info('[OPTIMIZATION] Algorithm is a regular function');
+      return algorithm;
     }
     
     // Default to hybrid approach

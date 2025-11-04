@@ -3915,4 +3915,168 @@ router.post('/holidays/bulk', async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/data/all-timetable-data
+ * @desc    Get all data required for timetable generation (Students, Teachers, Classrooms, Programs, Divisions, System Config, Holidays, Courses)
+ * @access  Private
+ */
+router.get('/all-timetable-data', async (req, res) => {
+  try {
+    logger.info('Fetching all timetable data', { userId: req.user.userId });
+
+    // Fetch all data in parallel for better performance
+    const [
+      students,
+      teachers,
+      classrooms,
+      programs,
+      divisions,
+      systemConfig,
+      holidays,
+      courses
+    ] = await Promise.all([
+      Student.find({ status: { $ne: 'deleted' } })
+        .select('-__v')
+        .lean(),
+      Teacher.find({ status: 'active' })
+        .select('-__v')
+        .lean(),
+      // Fetch all classrooms (status values are 'available', 'maintenance', 'reserved', 'out_of_order')
+      // Use no status filter here so the generator/front-end can decide which statuses to include
+      Classroom.find()
+        .select('-__v')
+        .lean(),
+      Program.find()
+        .select('-__v')
+        .lean(),
+      Division.find()
+        .select('-__v')
+        .lean(),
+      SystemConfig.findOne()
+        .select('-__v')
+        .lean(),
+      Holiday.find({ status: 'Active' })
+        .select('-__v')
+        .lean(),
+      Course.find()
+        .select('-__v')
+        .lean()
+    ]);
+
+    // Calculate statistics for validation
+    const statistics = {
+      totalStudents: students.length,
+      totalTeachers: teachers.length,
+      totalClassrooms: classrooms.length,
+      totalPrograms: programs.length,
+      totalDivisions: divisions.length,
+      totalCourses: courses.length,
+      totalHolidays: holidays.length,
+      activeStudents: students.filter(s => s.status === 'active').length,
+  // Count classrooms whose status is 'available'
+  availableClassrooms: classrooms.filter(c => c.status === 'available').length,
+      configExists: !!systemConfig
+    };
+
+    // Prepare response data
+    const timetableData = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      data: {
+        students: students,
+        teachers: teachers,
+        classrooms: classrooms,
+        programs: programs,
+        divisions: divisions,
+        systemConfig: systemConfig || {
+          generalPolicies: {
+            maxConsecutiveHours: 3,
+            maxDailyHours: 8,
+            minBreakBetweenSessions: 15,
+            maxTeachingHoursPerDay: 6,
+            preferredClassroomUtilization: 80,
+            allowBackToBackLabs: false,
+            prioritizeTeacherPreferences: true,
+            allowSplitSessions: false,
+            maxStudentsPerClass: 60
+          },
+          workingHours: {
+            startTime: '09:00',
+            endTime: '17:00',
+            lunchBreakStart: '13:00',
+            lunchBreakEnd: '14:00',
+            sessionDuration: 60,
+            breakDuration: 10
+          },
+          academicCalendar: {
+            semesterStartDate: new Date(),
+            semesterEndDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+            totalWeeks: 18
+          }
+        },
+        holidays: holidays,
+        courses: courses
+      },
+      statistics: statistics,
+      validationStatus: {
+        readyForGeneration: 
+          statistics.totalTeachers > 0 && 
+          statistics.totalClassrooms > 0 && 
+          statistics.totalPrograms > 0 && 
+          statistics.totalDivisions > 0 &&
+          statistics.totalCourses > 0 &&
+          statistics.configExists,
+        warnings: [],
+        errors: []
+      }
+    };
+
+    // Add validation warnings
+    if (statistics.totalStudents === 0) {
+      timetableData.validationStatus.warnings.push('No students found in the system');
+    }
+    if (statistics.totalTeachers === 0) {
+      timetableData.validationStatus.errors.push('No active teachers found - cannot generate timetable');
+    }
+    if (statistics.totalClassrooms === 0) {
+      timetableData.validationStatus.errors.push('No active classrooms found - cannot generate timetable');
+    }
+    if (statistics.totalCourses === 0) {
+      timetableData.validationStatus.errors.push('No courses found - cannot generate timetable');
+    }
+    if (statistics.totalPrograms === 0) {
+      timetableData.validationStatus.errors.push('No programs found - cannot generate timetable');
+    }
+    if (statistics.totalDivisions === 0) {
+      timetableData.validationStatus.errors.push('No divisions found - cannot generate timetable');
+    }
+    if (!systemConfig) {
+      timetableData.validationStatus.warnings.push('No system configuration found - using default settings');
+    }
+    if (statistics.totalHolidays === 0) {
+      timetableData.validationStatus.warnings.push('No holidays configured');
+    }
+
+    // Update readyForGeneration based on errors
+    timetableData.validationStatus.readyForGeneration = 
+      timetableData.validationStatus.errors.length === 0;
+
+    logger.info('All timetable data fetched successfully', { 
+      userId: req.user.userId,
+      statistics: statistics,
+      readyForGeneration: timetableData.validationStatus.readyForGeneration
+    });
+
+    res.json(timetableData);
+
+  } catch (error) {
+    logger.error('Error fetching all timetable data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching timetable data',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;

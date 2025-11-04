@@ -17,6 +17,34 @@ router.get('/algorithms', (req, res) => {
   try {
     const algorithms = [
       {
+        id: 'greedy',
+        name: 'Greedy Scheduler (Fast)',
+        description: 'Quick scheduling algorithm using simple first-fit heuristics - Recommended for testing and small schedules',
+        category: 'Heuristic',
+        complexity: 'Low',
+        recommendedFor: ['Testing', 'Small schedules', 'Quick prototyping', 'Simple constraints'],
+        pros: [
+          'Very fast (completes in < 1 second)',
+          'Simple and reliable',
+          'Good for small to medium schedules',
+          'No parameter tuning needed',
+          'Minimal memory usage'
+        ],
+        cons: [
+          'May not find optimal solution',
+          'Limited optimization capabilities',
+          'Can fail on complex constraints',
+          'No guarantee of complete schedule'
+        ],
+        parameters: {},
+        estimatedTime: {
+          small: '< 1 second',
+          medium: '< 2 seconds',
+          large: '< 5 seconds'
+        },
+        qualityScore: 6.5
+      },
+      {
         id: 'genetic',
         name: 'Genetic Algorithm',
         description: 'Evolutionary algorithm that uses selection, crossover, and mutation to find optimal solutions',

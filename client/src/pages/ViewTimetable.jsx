@@ -7,13 +7,14 @@ import {
   Calendar, 
   ArrowLeft,
   Download,
-  Print,
+  Printer,
   RefreshCw,
   Eye,
   Filter,
   Share2,
   Star,
   Clock,
+  User,
   Users,
   Building2,
   BookOpen,
@@ -134,6 +135,145 @@ const ViewTimetable = () => {
       case 'published': return 'bg-blue-100 text-blue-800';
       case 'draft': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Helper: download a file blob
+  const downloadFile = (content, filename, mime = 'text/csv') => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export current timetable schedule as CSV
+  const exportCurrentTimetableCSV = () => {
+    if (!currentTimetable?.schedule) return;
+    const rows = [];
+    rows.push(['Day','StartTime','EndTime','CourseCode','CourseName','SessionType','Teacher','Classroom','StudentCount']);
+    // Sort schedule by day and startTime for consistent ordering
+    const order = { Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6 };
+    const sorted = [...currentTimetable.schedule].sort((a,b) => {
+      if (order[a.day] !== order[b.day]) return order[a.day] - order[b.day];
+      if (a.startTime === b.startTime) return a.endTime.localeCompare(b.endTime);
+      return a.startTime.localeCompare(b.startTime);
+    });
+
+    for (const s of sorted) {
+      rows.push([
+        s.day || '',
+        s.startTime || '',
+        s.endTime || '',
+        s.courseCode || s.courseId || '',
+        s.courseName || '',
+        s.sessionType || '',
+        s.teacherName || '',
+        s.classroomName || '',
+        s.studentCount != null ? String(s.studentCount) : ''
+      ]);
+    }
+
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const filename = `${currentTimetable.name || 'timetable'}.csv`;
+    downloadFile(csv, filename, 'text/csv');
+  };
+
+  const exportCurrentTimetableJSON = () => {
+    if (!currentTimetable) return;
+    const json = JSON.stringify(currentTimetable, null, 2);
+    const filename = `${currentTimetable.name || 'timetable'}.json`;
+    downloadFile(json, filename, 'application/json');
+  };
+
+  const printTimetable = () => {
+    if (!currentTimetable) return;
+    // Open a new window and render a simple printable view
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    const doc = printWindow.document.open();
+    const title = currentTimetable.name || 'Timetable';
+    const scheduleHtml = (currentTimetable.schedule || []).map(s => `
+      <tr>
+        <td>${s.day || ''}</td>
+        <td>${s.startTime || ''}</td>
+        <td>${s.endTime || ''}</td>
+        <td>${s.courseCode || s.courseId || ''}</td>
+        <td>${s.courseName || ''}</td>
+        <td>${s.sessionType || ''}</td>
+        <td>${s.teacherName || ''}</td>
+        <td>${s.classroomName || ''}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>body{font-family: Arial, Helvetica, sans-serif;}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px}th{background:#f3f4f6;text-align:left}</style>
+        </head>
+        <body>
+          <h2>${title}</h2>
+          <table>
+            <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Code</th><th>Course</th><th>Type</th><th>Teacher</th><th>Room</th></tr></thead>
+            <tbody>
+              ${scheduleHtml}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    // Give the window a moment to render then trigger print
+    setTimeout(() => { printWindow.print(); }, 500);
+  };
+
+  // Export timetable by id (used from list view)
+  const exportTimetableFromList = async (id, name = 'timetable') => {
+    try {
+      const response = await getTimetable(id, 'schedule_only');
+      const timetable = response.data;
+      if (!timetable || !timetable.schedule) {
+        alert('No schedule available to export');
+        return;
+      }
+
+      // Build CSV similar to exportCurrentTimetableCSV
+      const rows = [];
+      rows.push(['Day','StartTime','EndTime','CourseCode','CourseName','SessionType','Teacher','Classroom','StudentCount']);
+      const order = { Monday:1, Tuesday:2, Wednesday:3, Thursday:4, Friday:5, Saturday:6 };
+      const sorted = [...timetable.schedule].sort((a,b) => {
+        if (order[a.day] !== order[b.day]) return order[a.day] - order[b.day];
+        if (a.startTime === b.startTime) return a.endTime.localeCompare(b.endTime);
+        return a.startTime.localeCompare(b.startTime);
+      });
+
+      for (const s of sorted) {
+        rows.push([
+          s.day || '',
+          s.startTime || '',
+          s.endTime || '',
+          s.courseCode || s.courseId || '',
+          s.courseName || '',
+          s.sessionType || '',
+          s.teacherName || '',
+          s.classroomName || '',
+          s.studentCount != null ? String(s.studentCount) : ''
+        ]);
+      }
+
+      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const filename = `${name || 'timetable'}.csv`;
+      downloadFile(csv, filename, 'text/csv');
+    } catch (error) {
+      console.error('Error exporting timetable:', error);
+      alert('Error exporting timetable');
     }
   };
 
@@ -331,6 +471,7 @@ const ViewTimetable = () => {
                 )}
                 
                 <button
+                  onClick={() => exportTimetableFromList(timetable._id, timetable.name)}
                   className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
                 >
                   <Download className="w-4 h-4" />
@@ -473,12 +614,21 @@ const ViewTimetable = () => {
                     <MessageCircle className="w-4 h-4" />
                     <span>Comment</span>
                   </button>
-                  <button className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
-                    <Download className="w-4 h-4" />
-                    <span>Export</span>
+                  <div className="relative">
+                    <button
+                      onClick={exportCurrentTimetableCSV}
+                      className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Export CSV</span>
+                    </button>
+                  </div>
+                  <button onClick={exportCurrentTimetableJSON} className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <BookOpen className="w-4 h-4" />
+                    <span>Export JSON</span>
                   </button>
-                  <button className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                    <Print className="w-4 h-4" />
+                  <button onClick={printTimetable} className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <Printer className="w-4 h-4" />
                     <span>Print</span>
                   </button>
                 </div>

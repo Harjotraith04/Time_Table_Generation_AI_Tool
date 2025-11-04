@@ -26,6 +26,7 @@ import {
 const Landing = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [subscribeEmail, setSubscribeEmail] = useState('');
   const [formData, setFormData] = useState({
     feedbackName: '',
     feedbackEmail: '',
@@ -141,6 +142,24 @@ const Landing = () => {
     setFormData(prev => ({ ...prev, feedbackName: '', feedbackEmail: '', feedbackComment: '' }));
   };
 
+  const handleSubscribe = () => {
+    const email = subscribeEmail.trim();
+    if (!email) {
+      alert('Please enter an email to subscribe.');
+      return;
+    }
+    // basic validation
+    const re = /^\S+@\S+\.\S+$/;
+    if (!re.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    // placeholder: show success and clear field. Integrate with API later.
+    alert('Thanks! ' + email + ' has been subscribed.');
+    setSubscribeEmail('');
+  };
+
   return (
     <div className={`min-h-screen transition-all duration-300 ${isDarkMode ? 'dark bg-gray-900' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'}`}>
       <GridDistortion isDarkMode={isDarkMode} />
@@ -202,17 +221,26 @@ const Landing = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 relative z-20">
         
         <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight" style={{ 
-            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-            fontWeight: '900',
-            background: 'linear-gradient(135deg, #ffffff 0%, #e879f9 50%, #8b5cf6 100%)',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            textShadow: '0 4px 20px rgba(139, 92, 246, 0.3)',
-            letterSpacing: '-0.02em',
-            lineHeight: '1.1'
-          }}>
+          {/* Animated gradient + glow headline with subtle parallax based on cursor */}
+          <h1
+            className="text-5xl md:text-7xl font-bold mb-6 leading-tight animated-gradient-text hero-glow hero-tilt"
+            style={{
+              fontWeight: 900,
+              letterSpacing: '-0.02em',
+              lineHeight: '1.1',
+              transform: (() => {
+                try {
+                  const cx = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+                  const cy = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
+                  const dx = (mousePosition.x - cx) * 0.02;
+                  const dy = (mousePosition.y - cy) * 0.02;
+                  return `translate3d(${dx}px, ${dy}px, 0)`;
+                } catch (e) {
+                  return 'translate3d(0,0,0)';
+                }
+              })()
+            }}
+          >
             <span style={{ display: 'block' }}>
               AI For Generating Timetable
             </span>
@@ -266,6 +294,8 @@ const Landing = () => {
               Try Live Demo
             </button>
           </div>
+
+          {/* Top subscribe removed - footer subscribe remains */}
           
           <div className="flex flex-wrap justify-center gap-6">
             {benefits.map((benefit, index) => (
@@ -479,6 +509,24 @@ const Landing = () => {
             Get Started Now
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
+
+          {/* Subscribe block at the end of the page (after feedback form) */}
+          <div className="flex items-center justify-center gap-3 max-w-lg mx-auto mt-6 px-4">
+            <input
+              type="email"
+              value={subscribeEmail}
+              onChange={(e) => setSubscribeEmail(e.target.value)}
+              placeholder="Your email for updates"
+              aria-label="Subscribe email footer"
+              className="subscribe-input w-full px-4 py-3 rounded-lg text-sm placeholder-gray-300"
+            />
+            <button
+              onClick={handleSubscribe}
+              className="subscribe-btn px-5 py-3 rounded-lg font-semibold text-sm hover:scale-105 transition-transform"
+            >
+              Subscribe Now
+            </button>
+          </div>
         </div>
       </div>
 

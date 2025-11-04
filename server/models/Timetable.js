@@ -47,7 +47,7 @@ const timeSlotSchema = new mongoose.Schema({
 const conflictSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['teacher_conflict', 'room_conflict', 'student_conflict', 'constraint_violation'],
+    enum: ['teacher_conflict', 'room_conflict', 'student_conflict', 'constraint_violation', 'generation_error', 'system_error', 'data_error'],
     required: true
   },
   severity: {
@@ -119,8 +119,9 @@ const timetableSchema = new mongoose.Schema({
   generationSettings: {
     algorithm: {
       type: String,
-      enum: ['genetic', 'backtracking', 'simulated_annealing', 'csp', 'hybrid'],
-      required: true
+      enum: ['greedy', 'genetic', 'backtracking', 'simulated_annealing', 'csp', 'hybrid'],
+      required: true,
+      default: 'greedy'
     },
     populationSize: Number,
     maxGenerations: Number,

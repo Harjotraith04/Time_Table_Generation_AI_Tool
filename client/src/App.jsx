@@ -14,8 +14,8 @@ import TeachersData from './pages/TeachersManagement';
 import ClassroomsData from './pages/ClassroomsDataFull';
 import ProgramsData from './pages/ProgramsDataFull';
 import InfrastructureData from './pages/InfrastructureDataSimple';
-// import GenerateTimetable from './pages/GenerateTimetable';
-// import ViewTimetable from './pages/ViewTimetable';
+import GenerateTimetable from './pages/GenerateTimetable';
+import ViewTimetable from './pages/ViewTimetable';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRole }) => {
@@ -145,11 +145,10 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
-        {/* TODO: Uncomment when other pages are fixed
         <Route 
           path="/generate-timetable" 
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={["admin", "faculty"]}>
               <GenerateTimetable />
             </ProtectedRoute>
           } 
@@ -157,12 +156,19 @@ const AppContent = () => {
         <Route 
           path="/view-timetable" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRole={["admin", "faculty"]}>
               <ViewTimetable />
             </ProtectedRoute>
           } 
         />
-        */}
+        <Route 
+          path="/view-timetable/:id" 
+          element={
+            <ProtectedRoute allowedRole={["admin", "faculty"]}>
+              <ViewTimetable />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

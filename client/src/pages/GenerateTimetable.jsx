@@ -31,7 +31,8 @@ import {
   getAlgorithms, 
   getConstraints,
   getOptimizationGoals,
-  validateAlgorithmParameters
+  validateAlgorithmParameters,
+  getAllTimetableData
 } from '../services/api';
 
 const GenerateTimetable = () => {
@@ -48,7 +49,7 @@ const GenerateTimetable = () => {
   const [optimizationGoalsData, setOptimizationGoalsData] = useState([]);
   
   const [generationSettings, setGenerationSettings] = useState({
-    algorithm: 'genetic',
+    algorithm: 'greedy',
     maxIterations: 1000,
     populationSize: 100,
     crossoverRate: 0.8,
@@ -85,17 +86,64 @@ const GenerateTimetable = () => {
 
   const loadInitialData = async () => {
     try {
-      const [algorithmsResponse, constraintsResponse, goalsResponse, validationResponse] = await Promise.all([
+      const [algorithmsResponse, constraintsResponse, goalsResponse, allDataResponse] = await Promise.all([
         getAlgorithms(),
         getConstraints(),
         getOptimizationGoals(),
-        validateData()
+        getAllTimetableData()
       ]);
 
       setAlgorithmsData(algorithmsResponse.data?.algorithms || []);
       setConstraintsData(constraintsResponse.data || {});
       setOptimizationGoalsData(goalsResponse.data || []);
-      setDataValidation(validationResponse.data || {});
+      
+      // Use the consolidated endpoint data to populate validation status
+      if (allDataResponse.success) {
+        const data = allDataResponse.data;
+        const stats = allDataResponse.statistics;
+        
+        setDataValidation({
+          teachers: { 
+            status: stats.totalTeachers > 0 ? 'completed' : 'warning', 
+            count: stats.totalTeachers, 
+            issues: 0 
+          },
+          classrooms: { 
+            status: stats.totalClassrooms > 0 ? 'completed' : 'warning', 
+            count: stats.totalClassrooms, 
+            issues: 0 
+          },
+          courses: { 
+            status: stats.totalCourses > 0 ? 'completed' : 'warning', 
+            count: stats.totalCourses, 
+            issues: 0 
+          },
+          programs: { 
+            status: stats.totalPrograms > 0 ? 'completed' : 'warning', 
+            count: stats.totalPrograms, 
+            issues: 0 
+          },
+          divisions: { 
+            status: stats.totalDivisions > 0 ? 'completed' : 'warning', 
+            count: stats.totalDivisions, 
+            issues: 0 
+          },
+          policies: { 
+            status: stats.configExists ? 'completed' : 'warning', 
+            count: stats.configExists ? 1 : 0, 
+            issues: 0 
+          },
+          calendar: { 
+            status: stats.totalHolidays > 0 ? 'completed' : 'warning', 
+            count: stats.totalHolidays, 
+            issues: 0 
+          },
+          overall: { 
+            status: allDataResponse.validationStatus.readyForGeneration ? 'completed' : 'warning', 
+            ready: allDataResponse.validationStatus.readyForGeneration 
+          }
+        });
+      }
     } catch (error) {
       console.error('Error loading initial data:', error);
       // Set default data structure if API fails
@@ -120,6 +168,13 @@ const GenerateTimetable = () => {
 
   // Use algorithmsData and optimizationGoalsData from API
   const algorithms = algorithmsData.length > 0 ? algorithmsData : [
+    { 
+      id: 'greedy', 
+      name: 'Greedy Scheduler (Fast)', 
+      description: 'Quick scheduling with simple heuristics - Recommended for testing',
+      pros: ['Very fast (< 1 second)', 'Simple', 'Good for small to medium schedules'],
+      cons: ['May not find optimal solution', 'Limited optimization']
+    },
     { 
       id: 'genetic', 
       name: 'Genetic Algorithm', 
@@ -155,8 +210,41 @@ const GenerateTimetable = () => {
     navigate('/infrastructure-data');
   };
 
+  const handleTestAPI = async () => {
+    try {
+      console.clear(); // Clear console for better readability
+      console.log('====================================');
+      console.log('🧪 TESTING API ENDPOINT');
+      console.log('====================================');
+      console.log('Endpoint: GET /api/data/all-timetable-data');
+      console.log('');
+      
+      const response = await getAllTimetableData();
+      
+      console.log('✅ API TEST SUCCESSFUL!');
+      console.log('');
+      console.log('📊 FULL RESPONSE:');
+      console.log(response);
+      console.log('');
+      console.log('====================================');
+      
+      alert('API test successful! Check the console (F12) for detailed response.');
+    } catch (error) {
+      console.error('====================================');
+      console.error('❌ API TEST FAILED');
+      console.error('Error:', error);
+      console.error('Error Response:', error.response?.data);
+      console.error('====================================');
+      alert('API test failed! Check the console (F12) for error details.');
+    }
+  };
+
   const handleStartGeneration = async () => {
     try {
+      console.log('====================================');
+      console.log('🚀 TIMETABLE GENERATION STARTED');
+      console.log('====================================');
+
       if (!dataValidation.overall.ready) {
         alert('Please ensure all data is valid before generating timetable');
         return;
@@ -166,13 +254,97 @@ const GenerateTimetable = () => {
       setGenerationStep(0);
       setGenerationComplete(false);
 
-      // Prepare generation data
+      console.log('📡 Fetching all timetable data from API...');
+      
+      // Fetch all timetable data from the new consolidated endpoint
+      const allDataResponse = await getAllTimetableData();
+      
+      console.log('✅ API Response Received:');
+      console.log('📊 Full Response Object:', allDataResponse);
+      console.log('');
+      
+      // Log statistics
+      console.log('📈 STATISTICS:');
+      console.table(allDataResponse.statistics);
+      console.log('');
+      
+      // Log data counts
+      console.log('📦 DATA SUMMARY:');
+      console.log(`  👨‍🎓 Students: ${allDataResponse.data.students?.length || 0}`);
+      console.log(`  👨‍🏫 Teachers: ${allDataResponse.data.teachers?.length || 0}`);
+      console.log(`  🏫 Classrooms: ${allDataResponse.data.classrooms?.length || 0}`);
+      console.log(`  📚 Programs: ${allDataResponse.data.programs?.length || 0}`);
+      console.log(`  📋 Divisions: ${allDataResponse.data.divisions?.length || 0}`);
+      console.log(`  📖 Courses: ${allDataResponse.data.courses?.length || 0}`);
+      console.log(`  🗓️ Holidays: ${allDataResponse.data.holidays?.length || 0}`);
+      console.log(`  ⚙️ System Config: ${allDataResponse.data.systemConfig ? '✓ Exists' : '✗ Missing'}`);
+      console.log('');
+      
+      // Log detailed data
+      console.log('📄 DETAILED DATA:');
+      console.log('Students Data:', allDataResponse.data.students);
+      console.log('Teachers Data:', allDataResponse.data.teachers);
+      console.log('Classrooms Data:', allDataResponse.data.classrooms);
+      // Log each classroom's status field
+      if (allDataResponse.data.classrooms && allDataResponse.data.classrooms.length > 0) {
+        console.log('🏫 CLASSROOM STATUS DETAILS:');
+        allDataResponse.data.classrooms.forEach((classroom, index) => {
+          console.log(`  Classroom ${index + 1}: ${classroom.name} (${classroom.id}) - Status: "${classroom.status}"`);
+        });
+      }
+      console.log('Programs Data:', allDataResponse.data.programs);
+      console.log('Divisions Data:', allDataResponse.data.divisions);
+      console.log('Courses Data:', allDataResponse.data.courses);
+      console.log('Holidays Data:', allDataResponse.data.holidays);
+      console.log('System Config:', allDataResponse.data.systemConfig);
+      console.log('');
+      
+      // Check if data fetch was successful
+      if (!allDataResponse.success) {
+        console.error('❌ Failed to fetch timetable data');
+        throw new Error('Failed to fetch timetable data');
+      }
+
+      // Log validation status
+      console.log('✔️ VALIDATION STATUS:');
+      console.log(`  Ready for Generation: ${allDataResponse.validationStatus.readyForGeneration ? '✅ YES' : '❌ NO'}`);
+      console.log(`  Errors: ${allDataResponse.validationStatus.errors.length}`);
+      console.log(`  Warnings: ${allDataResponse.validationStatus.warnings.length}`);
+      
+      if (allDataResponse.validationStatus.errors.length > 0) {
+        console.error('❌ ERRORS:', allDataResponse.validationStatus.errors);
+      }
+      
+      if (allDataResponse.validationStatus.warnings.length > 0) {
+        console.warn('⚠️ WARNINGS:', allDataResponse.validationStatus.warnings);
+      }
+      console.log('');
+
+      // Check validation status
+      if (!allDataResponse.validationStatus.readyForGeneration) {
+        const errors = allDataResponse.validationStatus.errors.join('\n');
+        console.error('🛑 Cannot proceed with generation. Errors:', errors);
+        alert(`Cannot generate timetable:\n${errors}`);
+        setIsGenerating(false);
+        return;
+      }
+
+      // Show warnings if any
+      if (allDataResponse.validationStatus.warnings.length > 0) {
+        const warnings = allDataResponse.validationStatus.warnings.join('\n');
+        console.warn('⚠️ Timetable generation warnings:', warnings);
+      }
+
+      // Prepare generation data with all the fetched data
       const generationData = {
         name: timetableData.name,
         academicYear: timetableData.academicYear,
         semester: timetableData.semester,
         department: timetableData.department,
         year: timetableData.year,
+        // Include all fetched data
+        allData: allDataResponse.data,
+        statistics: allDataResponse.statistics,
         settings: {
           algorithm: generationSettings.algorithm,
           populationSize: generationSettings.populationSize,
@@ -190,44 +362,77 @@ const GenerateTimetable = () => {
         }
       };
 
+      console.log('🔧 GENERATION DATA PREPARED:');
+      console.log('Generation Settings:', generationData.settings);
+      console.log('Full Generation Data:', generationData);
+      console.log('');
+
       // Start generation
+      console.log('🎯 Starting timetable generation...');
       const response = await generateTimetable(generationData);
+      console.log('✅ Generation Response:', response);
+      console.log('====================================');
       setCurrentTimetableId(response.timetableId);
 
       // Start polling for progress
       pollProgress(response.timetableId);
 
     } catch (error) {
-      console.error('Error starting generation:', error);
+      console.error('====================================');
+      console.error('❌ ERROR OCCURRED:');
+      console.error('Error Object:', error);
+      console.error('Error Message:', error.message);
+      console.error('Error Response:', error.response?.data);
+      console.error('Error Status:', error.response?.status);
+      console.error('====================================');
       alert('Failed to start timetable generation: ' + error.message);
       setIsGenerating(false);
     }
   };
 
   const pollProgress = async (timetableId) => {
+    console.log('[POLLING] Starting progress polling for timetableId:', timetableId);
+    let pollCount = 0;
+    
     const pollInterval = setInterval(async () => {
       try {
+        pollCount++;
+        console.log(`[POLLING #${pollCount}] Fetching progress for timetableId:`, timetableId);
+        
         const response = await getTimetableProgress(timetableId);
         const progress = response.data || response;
+        
+        console.log(`[POLLING #${pollCount}] Progress received:`, {
+          status: progress.status,
+          percentage: progress.progress?.percentage,
+          currentStep: progress.progress?.currentStep,
+          fullResponse: progress
+        });
+        
         setProgressData(progress);
 
         if (progress.progress) {
           const percentage = progress.progress.percentage || 0;
           setGenerationStep(Math.min((percentage / 100) * generationSteps.length, generationSteps.length));
+          console.log(`[POLLING #${pollCount}] Updated UI step to:`, Math.min((percentage / 100) * generationSteps.length, generationSteps.length));
         }
 
         if (progress.status === 'completed') {
+          console.log('[POLLING] ✅ Generation COMPLETED!');
           clearInterval(pollInterval);
           setIsGenerating(false);
           setGenerationComplete(true);
           setGenerationStep(generationSteps.length);
         } else if (progress.status === 'draft' || progress.status === 'failed') {
+          console.log('[POLLING] ❌ Generation FAILED:', progress.status);
           clearInterval(pollInterval);
           setIsGenerating(false);
           alert('Timetable generation failed. Please try again.');
+        } else {
+          console.log(`[POLLING #${pollCount}] Still generating... status: ${progress.status}, step: ${progress.progress?.currentStep}`);
         }
       } catch (error) {
-        console.error('Error polling progress:', error);
+        console.error(`[POLLING #${pollCount}] ❌ Error polling progress:`, error);
         clearInterval(pollInterval);
         setIsGenerating(false);
         alert('Error checking generation progress. Please try again.');
@@ -630,7 +835,8 @@ const GenerateTimetable = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    // Make the page container exactly the viewport height and allow vertical scrolling when content overflows
+    <div className="h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -669,6 +875,13 @@ const GenerateTimetable = () => {
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Infrastructure Data
+            </button>
+            <button 
+              onClick={handleTestAPI}
+              className="flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium shadow-sm"
+            >
+              <Activity className="w-4 h-4 mr-2" />
+              Test API Endpoint
             </button>
           </div>
         </div>

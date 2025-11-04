@@ -234,13 +234,27 @@ class CSPSolver {
     this.backtrackCount = 0;
 
     try {
+      logger.info('CSP Solver starting', {
+        variables: this.variables.length,
+        timeSlots: this.timeSlots.length,
+        teachers: this.teachers.length,
+        classrooms: this.classrooms.length
+      });
+
       // Apply arc consistency
+      logger.info('Running arc consistency...');
+      const acStart = Date.now();
       if (!this.arcConsistency()) {
+        logger.warn('Arc consistency failed - no solution exists');
         return { success: false, reason: 'Arc consistency failed - no solution exists' };
       }
+      logger.info(`Arc consistency completed in ${Date.now() - acStart}ms`);
 
       // Start backtracking search
+      logger.info('Starting backtracking search...');
+      const btStart = Date.now();
       const result = await this.backtrackSearch(progressCallback);
+      logger.info(`Backtracking completed in ${Date.now() - btStart}ms, result: ${!!result}`);
       
       if (result) {
         const solution = this.extractSolution();

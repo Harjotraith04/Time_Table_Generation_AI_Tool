@@ -273,6 +273,12 @@ export const getStudentStats = async () => {
   return response.data
 }
 
+// Get all timetable data (Students, Teachers, Classrooms, Programs, Divisions, System Config, Holidays, Courses)
+export const getAllTimetableData = async () => {
+  const response = await api.get('/data/all-timetable-data')
+  return response.data
+}
+
 // ==================== ALGORITHM API ====================
 export const getAlgorithms = async () => {
   const response = await api.get('/algorithm/algorithms')

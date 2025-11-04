@@ -28,7 +28,7 @@ router.post('/generate', [
   body('semester').isInt({ min: 1, max: 2 }).withMessage('Semester must be 1 or 2'),
   body('department').trim().notEmpty().withMessage('Department is required'),
   body('year').optional().isInt({ min: 1, max: 5 }),
-  body('settings.algorithm').isIn(['genetic', 'csp', 'hybrid', 'backtracking', 'simulated_annealing']).withMessage('Invalid algorithm'),
+  body('settings.algorithm').isIn(['greedy', 'genetic', 'csp', 'hybrid', 'backtracking', 'simulated_annealing']).withMessage('Invalid algorithm'),
   body('settings.populationSize').optional().isInt({ min: 10, max: 500 }),
   body('settings.maxGenerations').optional().isInt({ min: 100, max: 5000 }),
   body('settings.crossoverRate').optional().isFloat({ min: 0, max: 1 }),
@@ -69,7 +69,7 @@ router.post('/generate', [
 
     const timetableId = timetable._id.toString();
 
-    logger.info('Timetable generation started', {
+    logger.info('[GENERATION API] Timetable generation started', {
       timetableId,
       algorithm: settings.algorithm,
       department,
@@ -77,8 +77,17 @@ router.post('/generate', [
       startedBy: req.user.userId
     });
 
+    // Get io instance
+    const io = req.app.get('io');
+    if (!io) {
+      logger.warn('[GENERATION API] Socket.io instance not available, real-time updates disabled');
+    }
+
     // Start generation process asynchronously
-    generateTimetableAsync(timetableId, department, year, semester, settings, req.app.get('io'));
+    logger.info('[GENERATION API] Calling generateTimetableAsync');
+    generateTimetableAsync(timetableId, department, year, semester, settings, io).catch(err => {
+      logger.error('[GENERATION API] Unhandled error in generateTimetableAsync:', err);
+    });
 
     res.status(202).json({
       success: true,
@@ -88,10 +97,15 @@ router.post('/generate', [
     });
 
   } catch (error) {
-    logger.error('Error starting timetable generation:', error);
+    logger.error('[GENERATION API] Error starting timetable generation:', {
+      error: error.message,
+      stack: error.stack,
+      body: req.body
+    });
     res.status(500).json({
       success: false,
-      message: 'Internal server error while starting generation'
+      message: 'Internal server error while starting generation',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -105,9 +119,21 @@ router.get('/generate/:id/progress', async (req, res) => {
   try {
     const timetableId = req.params.id;
     
+    logger.info('[PROGRESS CHECK]', { 
+      timetableId, 
+      hasActiveGeneration: activeGenerations.has(timetableId),
+      activeGenerationsCount: activeGenerations.size
+    });
+    
     // Check if generation is active
     if (activeGenerations.has(timetableId)) {
       const generationInfo = activeGenerations.get(timetableId);
+      logger.info('[PROGRESS CHECK] Active generation found', {
+        timetableId,
+        progress: generationInfo.progress,
+        currentStep: generationInfo.currentStep
+      });
+      
       return res.json({
         success: true,
         status: 'generating',
@@ -122,20 +148,28 @@ router.get('/generate/:id/progress', async (req, res) => {
     }
 
     // Check database for completed/failed generation
+    logger.info('[PROGRESS CHECK] No active generation, checking database', { timetableId });
+    
     const timetable = await Timetable.findById(timetableId);
     if (!timetable) {
+      logger.warn('[PROGRESS CHECK] Timetable not found in database', { timetableId });
       return res.status(404).json({
         success: false,
         message: 'Timetable not found'
       });
     }
 
+    logger.info('[PROGRESS CHECK] Timetable found in database', {
+      timetableId,
+      status: timetable.status
+    });
+
     res.json({
       success: true,
       status: timetable.status,
       progress: {
         percentage: timetable.status === 'completed' ? 100 : 0,
-        currentStep: timetable.status === 'completed' ? 'Completed' : 'Failed'
+        currentStep: timetable.status === 'completed' ? 'Completed' : timetable.status === 'generating' ? 'Processing...' : 'Failed'
       },
       metrics: timetable.metrics,
       quality: timetable.quality
@@ -500,6 +534,14 @@ router.get('/statistics/overview', async (req, res) => {
  */
 async function generateTimetableAsync(timetableId, department, year, semester, settings, io) {
   try {
+    logger.info('[GENERATION START] Timetable generation initiated', { 
+      timetableId, 
+      department, 
+      year, 
+      semester,
+      algorithm: settings.algorithm 
+    });
+
     // Store generation info
     activeGenerations.set(timetableId, {
       startTime: Date.now(),
@@ -509,16 +551,29 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
       fitness: 0
     });
 
-    // Emit start event
-    io.to(`generation_${timetableId}`).emit('generation_started', {
-      timetableId,
-      status: 'generating'
-    });
+    logger.info('[GENERATION] Active generation registered', { timetableId });
 
-    logger.info('Starting timetable generation process', { timetableId, department });
+    // Emit start event
+    if (io) {
+      io.to(`generation_${timetableId}`).emit('generation_started', {
+        timetableId,
+        status: 'generating'
+      });
+      logger.info('[GENERATION] Start event emitted via socket', { timetableId });
+    }
+
+    logger.info('[GENERATION] Starting timetable generation process', { timetableId, department });
 
     // Fetch data
     const progressCallback = (progress, step, generation, fitness) => {
+      logger.info('[GENERATION PROGRESS]', {
+        timetableId,
+        progress: progress?.toFixed(1),
+        step,
+        generation,
+        fitness: fitness?.toFixed(4)
+      });
+
       const generationInfo = activeGenerations.get(timetableId);
       if (generationInfo) {
         generationInfo.progress = progress;
@@ -527,17 +582,20 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
         generationInfo.fitness = fitness || generationInfo.fitness;
         
         // Emit progress update
-        io.to(`generation_${timetableId}`).emit('generation_progress', {
-          timetableId,
-          progress,
-          step,
-          generation,
-          fitness
-        });
+        if (io) {
+          io.to(`generation_${timetableId}`).emit('generation_progress', {
+            timetableId,
+            progress,
+            step,
+            generation,
+            fitness
+          });
+        }
       }
     };
 
     // Update progress
+    logger.info('[GENERATION] Setting progress: Loading data');
     progressCallback(10, 'Loading data');
 
     // Fetch required data
@@ -545,27 +603,49 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
     if (year) query.year = year;
     if (semester) query.semester = semester;
 
+    logger.info('[GENERATION] Fetching data from database', { query });
+
     const [teachers, classrooms, courses] = await Promise.all([
       Teacher.find({ status: 'active' }),
       Classroom.find({ status: 'available' }),
       Course.find({ ...query, isActive: true })
     ]);
 
-    logger.info('Data loaded for generation', {
+    logger.info('[GENERATION] Data loaded successfully', {
       timetableId,
       teachers: teachers.length,
       classrooms: classrooms.length,
       courses: courses.length
     });
 
+    // Log detailed data info
+    logger.info('[GENERATION] Teachers detail:', {
+      count: teachers.length,
+      names: teachers.map(t => t.name).join(', ')
+    });
+
+    logger.info('[GENERATION] Classrooms detail:', {
+      count: classrooms.length,
+      rooms: classrooms.map(c => c.name).join(', ')
+    });
+
+    logger.info('[GENERATION] Courses detail:', {
+      count: courses.length,
+      courses: courses.map(c => c.name).join(', ')
+    });
+
     progressCallback(20, 'Initializing optimization engine');
 
     // Initialize optimization engine
+    logger.info('[GENERATION] Creating OptimizationEngine instance');
     const optimizationEngine = new OptimizationEngine();
+    logger.info('[GENERATION] OptimizationEngine created successfully');
 
     // Start optimization
+    logger.info('[GENERATION] Starting optimization process', { algorithm: settings.algorithm });
     progressCallback(30, 'Starting optimization');
     
+    logger.info('[GENERATION] Calling optimizationEngine.optimize()');
     const result = await optimizationEngine.optimize(
       teachers,
       classrooms,
@@ -575,6 +655,11 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
         progressCallback(30 + (progress * 0.6), step, generation, fitness);
       }
     );
+
+    logger.info('[GENERATION] Optimization completed, processing result', { 
+      success: result.success,
+      hasSolution: !!result.solution
+    });
 
     if (result.success) {
       progressCallback(95, 'Saving results');
@@ -601,12 +686,14 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
       });
 
       // Emit completion event
-      io.to(`generation_${timetableId}`).emit('generation_completed', {
-        timetableId,
-        status: 'completed',
-        quality: result.metrics.qualityMetrics,
-        conflicts: result.conflicts?.length || 0
-      });
+      if (io) {
+        io.to(`generation_${timetableId}`).emit('generation_completed', {
+          timetableId,
+          status: 'completed',
+          quality: result.metrics.qualityMetrics,
+          conflicts: result.conflicts?.length || 0
+        });
+      }
 
     } else {
       // Generation failed
@@ -622,40 +709,57 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
       await timetable.save();
 
       // Emit failure event
-      io.to(`generation_${timetableId}`).emit('generation_failed', {
-        timetableId,
-        status: 'draft',
-        reason: result.reason
-      });
+      if (io) {
+        io.to(`generation_${timetableId}`).emit('generation_failed', {
+          timetableId,
+          status: 'draft',
+          reason: result.reason
+        });
+      }
     }
 
   } catch (error) {
-    logger.error('Error during timetable generation:', error);
+    logger.error('[GENERATION ERROR] Error during timetable generation:', {
+      error: error.message,
+      stack: error.stack,
+      timetableId
+    });
 
     try {
       const timetable = await Timetable.findById(timetableId);
-      timetable.status = 'draft';
-      timetable.conflicts = [{ 
-        type: 'system_error',
-        severity: 'critical',
-        description: error.message || 'System error during generation'
-      }];
-      await timetable.save();
+      if (timetable) {
+        timetable.status = 'draft';
+        timetable.conflicts = [{ 
+          type: 'system_error',
+          severity: 'critical',
+          description: error.message || 'System error during generation'
+        }];
+        await timetable.save();
+        logger.info('[GENERATION ERROR] Timetable status updated to draft', { timetableId });
+      }
 
       // Emit error event
-      io.to(`generation_${timetableId}`).emit('generation_error', {
-        timetableId,
-        status: 'draft',
-        error: error.message
-      });
+      if (io) {
+        io.to(`generation_${timetableId}`).emit('generation_error', {
+          timetableId,
+          status: 'draft',
+          error: error.message
+        });
+        logger.info('[GENERATION ERROR] Error event emitted', { timetableId });
+      }
 
     } catch (saveError) {
-      logger.error('Error saving failure state:', saveError);
+      logger.error('[GENERATION ERROR] Error saving failure state:', {
+        error: saveError.message,
+        stack: saveError.stack,
+        timetableId
+      });
     }
 
   } finally {
     // Clean up active generation
     activeGenerations.delete(timetableId);
+    logger.info('[GENERATION] Active generation cleaned up', { timetableId });
   }
 }
 
