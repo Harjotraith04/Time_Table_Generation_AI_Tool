@@ -460,6 +460,112 @@ router.post('/:id/comments', [
 });
 
 /**
+ * @route   POST /api/timetables/:id/detect-conflicts
+ * @desc    Detect conflicts in a timetable
+ * @access  Private
+ */
+router.post('/:id/detect-conflicts', async (req, res) => {
+  try {
+    const timetable = await Timetable.findById(req.params.id);
+
+    if (!timetable) {
+      return res.status(404).json({
+        success: false,
+        message: 'Timetable not found'
+      });
+    }
+
+    // Run conflict detection
+    const conflicts = timetable.detectConflicts();
+    
+    // Update timetable with detected conflicts
+    timetable.conflicts = conflicts;
+    await timetable.save();
+
+    logger.info('Conflicts detected for timetable', {
+      timetableId: timetable._id,
+      conflictsFound: conflicts.length
+    });
+
+    res.json({
+      success: true,
+      message: 'Conflict detection completed',
+      conflicts: conflicts,
+      conflictCount: conflicts.length
+    });
+
+  } catch (error) {
+    logger.error('Error detecting conflicts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while detecting conflicts'
+    });
+  }
+});
+
+/**
+ * @route   PATCH /api/timetables/:id/conflicts/:conflictIndex/resolve
+ * @desc    Mark a conflict as resolved
+ * @access  Private
+ */
+router.patch('/:id/conflicts/:conflictIndex/resolve', [
+  body('resolutionNotes').optional().trim().isLength({ max: 500 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const timetable = await Timetable.findById(req.params.id);
+
+    if (!timetable) {
+      return res.status(404).json({
+        success: false,
+        message: 'Timetable not found'
+      });
+    }
+
+    const conflictIndex = parseInt(req.params.conflictIndex);
+    
+    if (conflictIndex < 0 || conflictIndex >= timetable.conflicts.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid conflict index'
+      });
+    }
+
+    // Mark conflict as resolved
+    timetable.conflicts[conflictIndex].resolved = true;
+    timetable.conflicts[conflictIndex].resolutionNotes = req.body.resolutionNotes || 'Manually resolved';
+    
+    await timetable.save();
+
+    logger.info('Conflict resolved', {
+      timetableId: timetable._id,
+      conflictIndex,
+      resolvedBy: req.user.userId
+    });
+
+    res.json({
+      success: true,
+      message: 'Conflict marked as resolved',
+      conflict: timetable.conflicts[conflictIndex]
+    });
+
+  } catch (error) {
+    logger.error('Error resolving conflict:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while resolving conflict'
+    });
+  }
+});
+
+/**
  * @route   GET /api/timetables/statistics/overview
  * @desc    Get timetable generation statistics
  * @access  Private
@@ -667,7 +773,34 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
       // Update timetable in database
       const timetable = await Timetable.findById(timetableId);
       timetable.status = 'completed';
-      timetable.schedule = result.solution;
+
+      // Enrich schedule slots with human-readable fields so the UI/export
+      // can display teacher names, classroom names, student counts, and
+      // division/batch info even if the solver only returned IDs.
+      const teacherMap = new Map((teachers || []).map(t => [t.id || String(t._id), t]));
+      const classroomMap = new Map((classrooms || []).map(c => [c.id || String(c._id), c]));
+      const courseMap = new Map((courses || []).map(c => [c.id || String(c._id), c]));
+
+      const enrichedSchedule = (result.solution || []).map(slot => {
+        const teacher = teacherMap.get(slot.teacherId) || teacherMap.get(String(slot.teacherId));
+        const classroom = classroomMap.get(slot.classroomId) || classroomMap.get(String(slot.classroomId));
+        const course = courseMap.get(slot.courseId) || courseMap.get(String(slot.courseId));
+
+        return {
+          // preserve whatever the solver produced
+          ...slot,
+          // prefer any name already on the slot, otherwise pull from DB
+          teacherName: slot.teacherName || teacher?.name || '',
+          classroomName: slot.classroomName || classroom?.name || '',
+          // harmonize student count field (some solvers use enrolledStudents)
+          studentCount: slot.studentCount ?? slot.enrolledStudents ?? course?.enrolledStudents ?? 0,
+          // include division/batch info when available on slot or course
+          divisionId: slot.divisionId || course?.divisionId || slot.divisionId || '',
+          batchId: slot.batchId || course?.batchId || slot.batchId || ''
+        };
+      });
+
+      timetable.schedule = enrichedSchedule;
       timetable.conflicts = result.conflicts || [];
       timetable.metrics = result.metrics;
       timetable.quality = result.metrics.qualityMetrics;

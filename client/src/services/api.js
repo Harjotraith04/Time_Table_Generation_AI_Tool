@@ -113,6 +113,16 @@ export const getTimetableStatistics = async () => {
   return response.data
 }
 
+export const resolveConflict = async (timetableId, conflictIndex, resolutionNotes) => {
+  const response = await api.patch(`/timetables/${timetableId}/conflicts/${conflictIndex}/resolve`, { resolutionNotes })
+  return response.data
+}
+
+export const detectTimetableConflicts = async (timetableId) => {
+  const response = await api.post(`/timetables/${timetableId}/detect-conflicts`)
+  return response.data
+}
+
 // ==================== DATA API ====================
 // Teachers
 export const getTeachers = async (params = {}) => {

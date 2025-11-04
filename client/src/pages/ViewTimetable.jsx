@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -33,7 +33,9 @@ import {
   getTimetables, 
   getTimetable, 
   updateTimetableStatus,
-  addTimetableComment 
+  addTimetableComment,
+  resolveConflict,
+  detectTimetableConflicts
 } from '../services/api';
 
 const ViewTimetable = () => {
@@ -41,6 +43,7 @@ const ViewTimetable = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [viewType, setViewType] = useState('grid');
+  const [timetableViewMode, setTimetableViewMode] = useState('standard'); // 'standard', 'teacher', 'batch', 'classroom'
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedDay, setSelectedDay] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,13 +53,40 @@ const ViewTimetable = () => {
   const [loading, setLoading] = useState(true);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [comment, setComment] = useState('');
+  const [showConflictsModal, setShowConflictsModal] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState('all');
+  const [selectedClassroom, setSelectedClassroom] = useState('all');
+  const [selectedBatch, setSelectedBatch] = useState('all');
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const timeSlots = [
-    '08:00-09:00', '09:00-10:00', '10:05-11:05', '11:05-11:15', 
-    '11:15-12:15', '12:20-13:20', '13:20-14:20', '14:20-15:20',
-    '15:25-16:25', '16:30-17:30'
-  ];
+
+  // Build time slots dynamically from the saved schedule so the grid
+  // uses the exact start-end pairs present in the timetable. This fixes
+  // cases where the exported/printed CSV shows many slots but the grid
+  // shows only a few because the hard-coded timeSlots didn't match.
+  const timeSlots = useMemo(() => {
+    if (currentTimetable?.schedule?.length) {
+      const slotsSet = new Set(currentTimetable.schedule.map(s => `${s.startTime}-${s.endTime}`));
+      const slots = Array.from(slotsSet);
+
+      // Sort by start time then end time (HH:MM strings compare lexicographically)
+      slots.sort((a, b) => {
+        const [aStart, aEnd] = a.split('-');
+        const [bStart, bEnd] = b.split('-');
+        if (aStart === bStart) return aEnd.localeCompare(bEnd);
+        return aStart.localeCompare(bStart);
+      });
+
+      return slots;
+    }
+
+    // Fallback defaults when no timetable loaded yet
+    return [
+      '08:00-09:00', '09:00-10:00', '10:05-11:05', '11:05-11:15',
+      '11:15-12:15', '12:20-13:20', '13:20-14:20', '14:20-15:20',
+      '15:25-16:25', '16:30-17:30'
+    ];
+  }, [currentTimetable]);
 
   useEffect(() => {
     loadData();
@@ -70,8 +100,8 @@ const ViewTimetable = () => {
         const response = await getTimetable(id);
         setCurrentTimetable(response.data);
       } else {
-        // Load all timetables
-        const response = await getTimetables({ status: 'completed' });
+        // Load all timetables (not just completed)
+        const response = await getTimetables({ });
         setTimetables(response.data);
       }
     } catch (error) {
@@ -113,6 +143,57 @@ const ViewTimetable = () => {
     }
   };
 
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case 'critical': return 'text-red-600 bg-red-50 border-red-200';
+      case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'low': return 'text-blue-600 bg-blue-50 border-blue-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getConflictTypeLabel = (type) => {
+    const labels = {
+      'teacher_conflict': 'Teacher Conflict',
+      'room_conflict': 'Room Conflict',
+      'student_conflict': 'Student Conflict',
+      'constraint_violation': 'Constraint Violation',
+      'generation_error': 'Generation Error',
+      'system_error': 'System Error',
+      'data_error': 'Data Error'
+    };
+    return labels[type] || type;
+  };
+
+  const handleResolveConflict = async (conflictIndex) => {
+    if (!currentTimetable) return;
+
+    const resolution = prompt('Enter resolution notes (optional):');
+    if (resolution === null) return; // User cancelled
+
+    try {
+      await resolveConflict(currentTimetable._id, conflictIndex, resolution || 'Manually resolved');
+      await loadData(); // Refresh to get updated conflicts
+    } catch (error) {
+      console.error('Error resolving conflict:', error);
+      alert('Error resolving conflict');
+    }
+  };
+
+  const handleDetectConflicts = async () => {
+    if (!currentTimetable) return;
+
+    try {
+      const response = await detectTimetableConflicts(currentTimetable._id);
+      alert(`Conflict detection completed. Found ${response.conflictCount} conflicts.`);
+      await loadData(); // Refresh to get updated conflicts
+    } catch (error) {
+      console.error('Error detecting conflicts:', error);
+      alert('Error detecting conflicts');
+    }
+  };
+
   const filteredSchedule = currentTimetable?.schedule?.filter(slot => {
     const matchesDay = selectedDay === 'all' || slot.day === selectedDay;
     const matchesSearch = !searchTerm || 
@@ -120,8 +201,47 @@ const ViewTimetable = () => {
       slot.teacherName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       slot.classroomName?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesDay && matchesSearch;
+    const matchesTeacher = selectedTeacher === 'all' || slot.teacherId === selectedTeacher;
+    const matchesClassroom = selectedClassroom === 'all' || slot.classroomId === selectedClassroom;
+    const matchesBatch = selectedBatch === 'all' || slot.batchId === selectedBatch || slot.divisionId === selectedBatch;
+    
+    return matchesDay && matchesSearch && matchesTeacher && matchesClassroom && matchesBatch;
   }) || [];
+
+  // Get unique teachers, classrooms, and batches from schedule
+  const uniqueTeachers = useMemo(() => {
+    if (!currentTimetable?.schedule) return [];
+    const teacherMap = new Map();
+    currentTimetable.schedule.forEach(slot => {
+      if (slot.teacherId && !teacherMap.has(slot.teacherId)) {
+        teacherMap.set(slot.teacherId, { id: slot.teacherId, name: slot.teacherName || 'Unknown' });
+      }
+    });
+    return Array.from(teacherMap.values());
+  }, [currentTimetable]);
+
+  const uniqueClassrooms = useMemo(() => {
+    if (!currentTimetable?.schedule) return [];
+    const classroomMap = new Map();
+    currentTimetable.schedule.forEach(slot => {
+      if (slot.classroomId && !classroomMap.has(slot.classroomId)) {
+        classroomMap.set(slot.classroomId, { id: slot.classroomId, name: slot.classroomName || 'Unknown' });
+      }
+    });
+    return Array.from(classroomMap.values());
+  }, [currentTimetable]);
+
+  const uniqueBatches = useMemo(() => {
+    if (!currentTimetable?.schedule) return [];
+    const batchMap = new Map();
+    currentTimetable.schedule.forEach(slot => {
+      const batchId = slot.batchId || slot.divisionId;
+      if (batchId && !batchMap.has(batchId)) {
+        batchMap.set(batchId, { id: batchId, name: batchId });
+      }
+    });
+    return Array.from(batchMap.values());
+  }, [currentTimetable]);
 
   const getQualityColor = (score) => {
     if (score >= 90) return 'text-green-600';
@@ -277,6 +397,370 @@ const ViewTimetable = () => {
     }
   };
 
+  const renderConflictsModal = () => {
+    if (!showConflictsModal || !currentTimetable) return null;
+
+    const conflicts = currentTimetable.conflicts || [];
+    const unresolvedConflicts = conflicts.filter(c => !c.resolved);
+    const resolvedConflicts = conflicts.filter(c => c.resolved);
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full p-6 my-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">Conflict Analysis</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {unresolvedConflicts.length} unresolved • {resolvedConflicts.length} resolved
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleDetectConflicts}
+                className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Re-detect</span>
+              </button>
+              <button
+                onClick={() => setShowConflictsModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          {conflicts.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Conflicts!</h4>
+              <p className="text-gray-500">This timetable has no conflicts detected.</p>
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {/* Unresolved Conflicts */}
+              {unresolvedConflicts.length > 0 && (
+                <>
+                  <h4 className="font-semibold text-red-600 dark:text-red-400 flex items-center">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    Unresolved Conflicts ({unresolvedConflicts.length})
+                  </h4>
+                  {unresolvedConflicts.map((conflict, idx) => (
+                    <div
+                      key={idx}
+                      className={`border rounded-lg p-4 ${getSeverityColor(conflict.severity)}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <span className="font-semibold">{getConflictTypeLabel(conflict.type)}</span>
+                          <span className="ml-2 text-xs uppercase px-2 py-1 rounded bg-white bg-opacity-50">
+                            {conflict.severity}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleResolveConflict(idx)}
+                          className="flex items-center space-x-1 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                        >
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Resolve</span>
+                        </button>
+                      </div>
+                      <p className="text-sm mb-2">{conflict.description}</p>
+                      {conflict.involvedEntities && (
+                        <div className="text-xs space-y-1">
+                          {conflict.involvedEntities.teachers?.length > 0 && (
+                            <p><strong>Teachers:</strong> {conflict.involvedEntities.teachers.join(', ')}</p>
+                          )}
+                          {conflict.involvedEntities.classrooms?.length > 0 && (
+                            <p><strong>Classrooms:</strong> {conflict.involvedEntities.classrooms.join(', ')}</p>
+                          )}
+                          {conflict.involvedEntities.courses?.length > 0 && (
+                            <p><strong>Courses:</strong> {conflict.involvedEntities.courses.join(', ')}</p>
+                          )}
+                          {conflict.involvedEntities.timeSlot && (
+                            <p><strong>Time:</strong> {conflict.involvedEntities.timeSlot}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Resolved Conflicts */}
+              {resolvedConflicts.length > 0 && (
+                <>
+                  <h4 className="font-semibold text-green-600 dark:text-green-400 flex items-center mt-6">
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Resolved Conflicts ({resolvedConflicts.length})
+                  </h4>
+                  {resolvedConflicts.map((conflict, idx) => (
+                    <div
+                      key={idx}
+                      className="border border-green-200 rounded-lg p-4 bg-green-50 text-green-800"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="font-semibold">{getConflictTypeLabel(conflict.type)}</span>
+                      </div>
+                      <p className="text-sm mb-2">{conflict.description}</p>
+                      {conflict.resolutionNotes && (
+                        <p className="text-xs italic">Resolution: {conflict.resolutionNotes}</p>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={() => setShowConflictsModal(false)}
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTeacherView = () => {
+    if (!currentTimetable?.schedule) return null;
+
+    // Group schedule by teacher
+    const teacherSchedules = {};
+    currentTimetable.schedule.forEach(slot => {
+      if (!teacherSchedules[slot.teacherId]) {
+        teacherSchedules[slot.teacherId] = {
+          name: slot.teacherName || 'Unknown',
+          slots: []
+        };
+      }
+      teacherSchedules[slot.teacherId].slots.push(slot);
+    });
+
+    return (
+      <div className="space-y-6">
+        {Object.entries(teacherSchedules).map(([teacherId, teacher]) => (
+          <div key={teacherId} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <User className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{teacher.name}</h3>
+                  <p className="text-sm text-gray-500">{teacher.slots.length} classes assigned</p>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Day</th>
+                    <th className="px-3 py-2 text-left">Time</th>
+                    <th className="px-3 py-2 text-left">Course</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                    <th className="px-3 py-2 text-left">Room</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {teacher.slots
+                    .sort((a, b) => {
+                      const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                      if (dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+                      return a.startTime.localeCompare(b.startTime);
+                    })
+                    .map((slot, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-3 py-2">{slot.day}</td>
+                        <td className="px-3 py-2">{slot.startTime} - {slot.endTime}</td>
+                        <td className="px-3 py-2">
+                          <div>
+                            <p className="font-medium">{slot.courseName}</p>
+                            <p className="text-xs text-gray-500">{slot.courseCode}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            slot.sessionType === 'Theory' ? 'bg-blue-100 text-blue-800' :
+                            slot.sessionType === 'Practical' ? 'bg-green-100 text-green-800' :
+                            'bg-purple-100 text-purple-800'
+                          }`}>
+                            {slot.sessionType}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">{slot.classroomName}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderClassroomView = () => {
+    if (!currentTimetable?.schedule) return null;
+
+    // Group schedule by classroom
+    const classroomSchedules = {};
+    currentTimetable.schedule.forEach(slot => {
+      if (!classroomSchedules[slot.classroomId]) {
+        classroomSchedules[slot.classroomId] = {
+          name: slot.classroomName || 'Unknown',
+          slots: []
+        };
+      }
+      classroomSchedules[slot.classroomId].slots.push(slot);
+    });
+
+    return (
+      <div className="space-y-6">
+        {Object.entries(classroomSchedules).map(([classroomId, classroom]) => (
+          <div key={classroomId} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Building2 className="w-6 h-6 text-purple-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{classroom.name}</h3>
+                  <p className="text-sm text-gray-500">{classroom.slots.length} classes scheduled</p>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Day</th>
+                    <th className="px-3 py-2 text-left">Time</th>
+                    <th className="px-3 py-2 text-left">Course</th>
+                    <th className="px-3 py-2 text-left">Teacher</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {classroom.slots
+                    .sort((a, b) => {
+                      const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                      if (dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+                      return a.startTime.localeCompare(b.startTime);
+                    })
+                    .map((slot, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-3 py-2">{slot.day}</td>
+                        <td className="px-3 py-2">{slot.startTime} - {slot.endTime}</td>
+                        <td className="px-3 py-2">
+                          <div>
+                            <p className="font-medium">{slot.courseName}</p>
+                            <p className="text-xs text-gray-500">{slot.courseCode}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">{slot.teacherName}</td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            slot.sessionType === 'Theory' ? 'bg-blue-100 text-blue-800' :
+                            slot.sessionType === 'Practical' ? 'bg-green-100 text-green-800' :
+                            'bg-purple-100 text-purple-800'
+                          }`}>
+                            {slot.sessionType}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderBatchView = () => {
+    if (!currentTimetable?.schedule) return null;
+
+    // Group schedule by batch/division
+    const batchSchedules = {};
+    currentTimetable.schedule.forEach(slot => {
+      const batchId = slot.batchId || slot.divisionId || 'General';
+      if (!batchSchedules[batchId]) {
+        batchSchedules[batchId] = {
+          name: batchId,
+          slots: []
+        };
+      }
+      batchSchedules[batchId].slots.push(slot);
+    });
+
+    return (
+      <div className="space-y-6">
+        {Object.entries(batchSchedules).map(([batchId, batch]) => (
+          <div key={batchId} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Users className="w-6 h-6 text-green-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{batch.name}</h3>
+                  <p className="text-sm text-gray-500">{batch.slots.length} classes</p>
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Day</th>
+                    <th className="px-3 py-2 text-left">Time</th>
+                    <th className="px-3 py-2 text-left">Course</th>
+                    <th className="px-3 py-2 text-left">Teacher</th>
+                    <th className="px-3 py-2 text-left">Room</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {batch.slots
+                    .sort((a, b) => {
+                      const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+                      if (dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+                      return a.startTime.localeCompare(b.startTime);
+                    })
+                    .map((slot, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-3 py-2">{slot.day}</td>
+                        <td className="px-3 py-2">{slot.startTime} - {slot.endTime}</td>
+                        <td className="px-3 py-2">
+                          <div>
+                            <p className="font-medium">{slot.courseName}</p>
+                            <p className="text-xs text-gray-500">{slot.courseCode}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">{slot.teacherName}</td>
+                        <td className="px-3 py-2">{slot.classroomName}</td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            slot.sessionType === 'Theory' ? 'bg-blue-100 text-blue-800' :
+                            slot.sessionType === 'Practical' ? 'bg-green-100 text-green-800' :
+                            'bg-purple-100 text-purple-800'
+                          }`}>
+                            {slot.sessionType}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderTimetableGrid = () => {
     if (!currentTimetable?.schedule) return null;
 
@@ -410,13 +894,15 @@ const ViewTimetable = () => {
           {timetables.map((timetable) => (
             <div key={timetable._id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-start justify-between mb-4">
-                <div>
+                <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                     {timetable.name}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {timetable.department} • Year {timetable.year} • Semester {timetable.semester}
-                  </p>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                    <p>{timetable.department} • Year {timetable.year} • Semester {timetable.semester}</p>
+                    {timetable.program && <p>Program: {timetable.program}</p>}
+                    <p className="text-xs">Created: {new Date(timetable.createdAt).toLocaleString()}</p>
+                  </div>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded ${getStatusColor(timetable.status)}`}>
                   {timetable.status}
@@ -443,11 +929,13 @@ const ViewTimetable = () => {
               <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Classes:</span>
-                  <span className="ml-1 font-medium">{timetable.statistics?.totalClasses || 0}</span>
+                  <span className="ml-1 font-medium">{timetable.statistics?.totalClasses || timetable.schedule?.length || 0}</span>
                 </div>
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Conflicts:</span>
-                  <span className="ml-1 font-medium">{timetable.conflicts?.length || 0}</span>
+                  <span className={`ml-1 font-medium ${(timetable.conflicts?.length || 0) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                    {timetable.conflicts?.length || 0}
+                  </span>
                 </div>
               </div>
 
@@ -540,18 +1028,36 @@ const ViewTimetable = () => {
             {/* Timetable Info */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     {currentTimetable.name}
                   </h2>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                    <p>Academic Year: {currentTimetable.academicYear}</p>
-                    <p>Department: {currentTimetable.department}</p>
-                    <p>Semester: {currentTimetable.semester} • Year: {currentTimetable.year}</p>
-                    <p>Generated: {new Date(currentTimetable.createdAt).toLocaleDateString()}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-400">
+                    <div>
+                      <p className="font-semibold text-gray-700 dark:text-gray-300">Academic Year</p>
+                      <p>{currentTimetable.academicYear}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-700 dark:text-gray-300">Department</p>
+                      <p>{currentTimetable.department}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-700 dark:text-gray-300">Semester • Year</p>
+                      <p>Semester {currentTimetable.semester} • Year {currentTimetable.year}</p>
+                    </div>
+                    {currentTimetable.program && (
+                      <div>
+                        <p className="font-semibold text-gray-700 dark:text-gray-300">Program</p>
+                        <p>{currentTimetable.program}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-gray-700 dark:text-gray-300">Generated</p>
+                      <p>{new Date(currentTimetable.createdAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-col items-end space-y-3">
                   <span className={`px-3 py-1 rounded ${getStatusColor(currentTimetable.status)}`}>
                     {currentTimetable.status}
                   </span>
@@ -563,80 +1069,166 @@ const ViewTimetable = () => {
                       </p>
                     </div>
                   )}
+                  {currentTimetable.conflicts && currentTimetable.conflicts.length > 0 && (
+                    <button
+                      onClick={() => setShowConflictsModal(true)}
+                      className="flex items-center space-x-2 px-3 py-1 bg-orange-100 text-orange-800 rounded hover:bg-orange-200"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{currentTimetable.conflicts.length} Conflicts</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Controls */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setViewType('grid')}
-                      className={`p-2 rounded ${viewType === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                    >
-                      <Grid3X3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewType('list')}
-                      className={`p-2 rounded ${viewType === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
+              <div className="flex flex-col space-y-4">
+                {/* View Type Selection */}
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">View Mode:</label>
+                      <select
+                        value={timetableViewMode}
+                        onChange={(e) => setTimetableViewMode(e.target.value)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                      >
+                        <option value="standard">Standard Grid</option>
+                        <option value="teacher">By Teacher</option>
+                        <option value="classroom">By Classroom</option>
+                        <option value="batch">By Batch/Division</option>
+                      </select>
+                    </div>
+
+                    {timetableViewMode === 'standard' && (
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setViewType('grid')}
+                          className={`p-2 rounded ${viewType === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          <Grid3X3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setViewType('list')}
+                          className={`p-2 rounded ${viewType === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          <List className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  <select
-                    value={selectedDay}
-                    onChange={(e) => setSelectedDay(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm"
-                  >
-                    <option value="all">All Days</option>
-                    {daysOfWeek.map(day => (
-                      <option key={day} value={day}>{day}</option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Search courses, teachers, rooms..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm w-64"
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowCommentModal(true)}
-                    className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Comment</span>
-                  </button>
-                  <div className="relative">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setShowCommentModal(true)}
+                      className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Comment</span>
+                    </button>
                     <button
                       onClick={exportCurrentTimetableCSV}
-                      className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                      className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                     >
                       <Download className="w-4 h-4" />
                       <span>Export CSV</span>
                     </button>
+                    <button 
+                      onClick={exportCurrentTimetableJSON} 
+                      className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>JSON</span>
+                    </button>
+                    <button 
+                      onClick={printTimetable} 
+                      className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>Print</span>
+                    </button>
                   </div>
-                  <button onClick={exportCurrentTimetableJSON} className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                    <BookOpen className="w-4 h-4" />
-                    <span>Export JSON</span>
-                  </button>
-                  <button onClick={printTimetable} className="flex items-center space-x-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                    <Printer className="w-4 h-4" />
-                    <span>Print</span>
-                  </button>
                 </div>
+
+                {/* Filters */}
+                {timetableViewMode === 'standard' && (
+                  <div className="flex items-center space-x-4 flex-wrap gap-2">
+                    <select
+                      value={selectedDay}
+                      onChange={(e) => setSelectedDay(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                    >
+                      <option value="all">All Days</option>
+                      {daysOfWeek.map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+
+                    {uniqueTeachers.length > 1 && (
+                      <select
+                        value={selectedTeacher}
+                        onChange={(e) => setSelectedTeacher(e.target.value)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                      >
+                        <option value="all">All Teachers</option>
+                        {uniqueTeachers.map(teacher => (
+                          <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {uniqueClassrooms.length > 1 && (
+                      <select
+                        value={selectedClassroom}
+                        onChange={(e) => setSelectedClassroom(e.target.value)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                      >
+                        <option value="all">All Classrooms</option>
+                        {uniqueClassrooms.map(classroom => (
+                          <option key={classroom.id} value={classroom.id}>{classroom.name}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {uniqueBatches.length > 0 && (
+                      <select
+                        value={selectedBatch}
+                        onChange={(e) => setSelectedBatch(e.target.value)}
+                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                      >
+                        <option value="all">All Batches</option>
+                        {uniqueBatches.map(batch => (
+                          <option key={batch.id} value={batch.id}>{batch.name}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    <input
+                      type="text"
+                      placeholder="Search courses, teachers, rooms..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="flex-1 min-w-[200px] px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Timetable Display */}
-            {viewType === 'grid' ? renderTimetableGrid() : renderTimetableList()}
+            {timetableViewMode === 'teacher' ? (
+              renderTeacherView()
+            ) : timetableViewMode === 'classroom' ? (
+              renderClassroomView()
+            ) : timetableViewMode === 'batch' ? (
+              renderBatchView()
+            ) : viewType === 'grid' ? (
+              renderTimetableGrid()
+            ) : (
+              renderTimetableList()
+            )}
 
             {/* Statistics */}
             {currentTimetable.statistics && (
@@ -655,13 +1247,24 @@ const ViewTimetable = () => {
                     <p className="text-2xl font-bold text-purple-600">{currentTimetable.statistics.totalRooms}</p>
                     <p className="text-sm text-gray-500">Rooms Used</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-orange-600">{currentTimetable.conflicts?.length || 0}</p>
-                    <p className="text-sm text-gray-500">Conflicts</p>
+                  <div 
+                    className="text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-2"
+                    onClick={() => setShowConflictsModal(true)}
+                  >
+                    <p className={`text-2xl font-bold ${(currentTimetable.conflicts?.length || 0) > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                      {currentTimetable.conflicts?.length || 0}
+                    </p>
+                    <p className="text-sm text-gray-500 flex items-center justify-center">
+                      Conflicts
+                      <AlertCircle className="w-3 h-3 ml-1" />
+                    </p>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Conflicts Modal */}
+            {renderConflictsModal()}
           </>
         ) : (
           // Timetables List View
