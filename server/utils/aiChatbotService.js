@@ -16,11 +16,17 @@ class AIChatbotService {
     this.useAI = !!this.geminiApiKey;
     
     if (this.useAI) {
-      this.genAI = new GoogleGenerativeAI(this.geminiApiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
-      console.log('✅ Gemini AI initialized successfully');
+      try {
+        this.genAI = new GoogleGenerativeAI(this.geminiApiKey);
+        // Use gemini-1.5-flash for faster responses, or gemini-1.5-pro for better quality
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        console.log('✅ Gemini AI initialized successfully with gemini-1.5-flash');
+      } catch (error) {
+        console.error('❌ Failed to initialize Gemini AI:', error.message);
+        this.useAI = false;
+      }
     } else {
-      console.warn('⚠️ Gemini API key not found. Chatbot will use fallback responses.');
+      console.warn('⚠️ Gemini API key not found. Chatbot will use rule-based responses.');
     }
   }
 
@@ -56,19 +62,27 @@ class AIChatbotService {
     try {
       // Build comprehensive context for AI
       const systemPrompt = this.buildSystemPrompt(context, userRole);
-      const fullPrompt = `${systemPrompt}\n\nUser Query: ${message}\n\nProvide a helpful, accurate response based on the data above.`;
+      const fullPrompt = `${systemPrompt}\n\nUser Query: ${message}\n\nProvide a helpful, accurate response based on the data above. Use emojis and format nicely.`;
 
       const result = await this.model.generateContent(fullPrompt);
       const response = result.response;
       const text = response.text();
 
-      return text;
+      return text || this.getFallbackResponse(message, context, userRole, userId);
     } catch (error) {
-      console.error('Gemini AI error:', error);
-      // Fallback to rule-based if AI fails
-      const intent = this.detectIntent(message.toLowerCase());
-      return await this.generateResponse(intent, message.toLowerCase(), context, userRole, userId);
+      console.error('Gemini AI error:', error.message || error);
+      // Always fallback to rule-based system if AI fails
+      return this.getFallbackResponse(message, context, userRole, userId);
     }
+  }
+
+  /**
+   * Fallback to rule-based response system
+   */
+  async getFallbackResponse(message, context, userRole, userId) {
+    const lowerMessage = message.toLowerCase();
+    const intent = this.detectIntent(lowerMessage);
+    return await this.generateResponse(intent, lowerMessage, context, userRole, userId);
   }
 
   /**
