@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('./auth');
-const chatbotService = require('../utils/chatbotService');
+const aiChatbotService = require('../utils/aiChatbotService');
 
 /**
  * @route   POST /api/chatbot/message
@@ -23,7 +23,7 @@ router.post('/message', authenticateToken, async (req, res) => {
     const role = userRole || req.user.role;
     const id = userId || req.user._id;
 
-    const response = await chatbotService.processMessage(message, role, id);
+    const response = await aiChatbotService.processMessage(message, role, id);
 
     res.json({
       success: true,

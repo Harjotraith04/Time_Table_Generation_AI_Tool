@@ -63,6 +63,15 @@ class ChatbotService {
         return await this.getTeacherInfo(lowerMessage);
       }
 
+      // Handle requests for "all" or "show all" (likely follow-up for complete list)
+      if ((lowerMessage.includes('all') || lowerMessage.includes('complete') || 
+           lowerMessage.includes('full') || lowerMessage.includes('every')) &&
+          (lowerMessage.includes('show') || lowerMessage.includes('list') || 
+           lowerMessage.includes('display') || /^\s*(all|show|list)\s*\d*\s*$/i.test(lowerMessage))) {
+        // Default to showing all teachers as it's the most common follow-up
+        return await this.getTeacherInfo('show all teachers');
+      }
+
       // Default response
       return this.getDefaultResponse(userRole);
     } catch (error) {
@@ -435,27 +444,31 @@ class ChatbotService {
    */
   async getTeacherInfo(message) {
     try {
+      // Check if user wants all teachers
+      const wantsAll = message.includes('all') || message.includes('complete') || message.includes('every') || message.includes('full list');
+      const limit = wantsAll ? 100 : 8;
+
       const teachers = await Teacher.find({ status: 'active' })
         .select('name email department designation subjects')
-        .limit(8);
+        .limit(limit);
 
       if (teachers.length === 0) {
         return "There are no active teachers in the system.";
       }
 
-      let response = `👨‍🏫 **Faculty Members:**\n\n`;
-      teachers.forEach(teacher => {
-        response += `• **${teacher.name}** (${teacher.designation})\n`;
-        response += `  📧 ${teacher.email}\n`;
-        response += `  🏢 ${teacher.department}\n`;
+      let response = `👨‍🏫 **Faculty Members** (${teachers.length} total):\n\n`;
+      teachers.forEach((teacher, index) => {
+        response += `**${index + 1}. ${teacher.name}** (${teacher.designation})\n`;
+        response += `   📧 ${teacher.email}\n`;
+        response += `   🏢 ${teacher.department}\n`;
         if (teacher.subjects && teacher.subjects.length > 0) {
-          response += `  📚 ${teacher.subjects.slice(0, 3).join(', ')}\n`;
+          response += `   📚 ${teacher.subjects.slice(0, 3).join(', ')}\n`;
         }
         response += '\n';
       });
 
-      if (teachers.length === 8) {
-        response += `\n💡 Showing first 8 teachers. For complete list, please check the Faculty section.`;
+      if (!wantsAll && teachers.length >= 8) {
+        response += `\n💡 Showing first 8 teachers. To see all teachers, ask "Show me all teachers".`;
       }
 
       return response;
