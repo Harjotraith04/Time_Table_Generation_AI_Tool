@@ -101,9 +101,10 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
       style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'visible' }}
     >
       {/* Collapse/Expand Button - decorative half-circle and circular button. Only the button toggles (decorative circle is non-interactive) */}
-      <div className={`absolute top-4 z-20 ${isCollapsed ? '-right-4' : '-right-3'} flex items-center justify-center`} style={{ pointerEvents: 'none' }}>
-  {/* Decorative semicircle behind the button (non-interactive) */}
-  <div className={`w-10 h-10 rounded-full ${isDarkMode ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/60' : 'bg-white/80'} shadow-2xl ring-4 ring-white`} style={{ filter: 'blur(0.2px)', opacity: 0.95 }} />
+      {/* Use a fixed position for the control so it doesn't shift when toggling collapse state */}
+      <div className={`absolute top-4 z-20 -right-4 flex items-center justify-center`} style={{ pointerEvents: 'none' }}>
+        {/* Decorative semicircle behind the button (non-interactive) */}
+        <div className={`w-10 h-10 rounded-full ${isDarkMode ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/60' : 'bg-white/80'} shadow-2xl ring-4 ring-white`} style={{ filter: 'blur(0.2px)', opacity: 0.95 }} />
         {/* Actual interactive circular button (on top) */}
         <button
           onClick={handleToggleCollapsed}

@@ -6,7 +6,6 @@ import ThemeToggle from '../components/ThemeToggle';
 import AdminSidebar from '../components/AdminSidebar';
 import { 
   Calendar, 
-  ArrowLeft,
   Download,
   Printer,
   RefreshCw,
@@ -1010,10 +1009,10 @@ const ViewTimetable = () => {
               </div>
               <div>
                 <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {currentTimetable ? currentTimetable.name : 'All Timetables'}
+                  Admin Dashboard
                 </h1>
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {currentTimetable ? 'View and manage timetable' : 'Browse all generated timetables'}
+                  All Time Tables
                 </p>
               </div>
             </div>
@@ -1053,15 +1052,7 @@ const ViewTimetable = () => {
 
         <main className="flex-1 p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
           {/* Back Button */}
-          <div className="mb-6">
-            <button 
-              onClick={handleBack}
-              className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {id ? 'Back to Timetables' : 'Back to Dashboard'}
-            </button>
-          </div>
+          {/* Page heading removed as requested */}
 
         {currentTimetable ? (
           // Individual Timetable View

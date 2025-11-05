@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AdminSidebar from '../components/AdminSidebar';
@@ -37,6 +37,16 @@ const AdminDashboard = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+
+  // If the dashboard is navigated to with a requested tab (via location.state.activeTab),
+  // honor that and set the active tab on mount. This allows other pages to navigate to
+  // a specific dashboard section (e.g., Analytics) by passing state when calling navigate().
+  useEffect(() => {
+    if (location && location.state && location.state.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location]);
   
   // Real data states
   const [stats, setStats] = useState({
