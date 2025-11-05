@@ -18,14 +18,14 @@ class GeneticAlgorithm {
     this.classrooms = classrooms;
     this.courses = courses;
     this.settings = {
-      populationSize: 100,
-      maxGenerations: 1000,
+      populationSize: 50, // Reduced from 100 for faster performance
+      maxGenerations: 200, // Reduced from 1000 for faster completion
       crossoverRate: 0.8,
-      mutationRate: 0.1,
-      eliteSize: 10,
-      tournamentSize: 5,
+      mutationRate: 0.15, // Slightly increased for better exploration
+      eliteSize: 5, // Reduced from 10
+      tournamentSize: 3, // Reduced from 5
       diversityThreshold: 0.1,
-      convergenceThreshold: 50,
+      convergenceThreshold: 30, // Reduced from 50 for faster convergence detection
       fitnessWeights: {
         hardConstraints: 0.6,
         softConstraints: 0.2,
@@ -109,26 +109,41 @@ class GeneticAlgorithm {
     let sessionId = 0;
 
     for (const course of this.courses) {
+      // Check if course has sessions defined
+      if (!course.sessions) {
+        logger.warn(`GA: Course ${course.code || course.name} has no sessions defined, skipping`);
+        continue;
+      }
+
       ['theory', 'practical', 'tutorial'].forEach(sessionType => {
         const session = course.sessions[sessionType];
-        if (session) {
+        if (session && session.sessionsPerWeek > 0) {
+          // Check if course has assigned teachers for this session type
+          const sessionTypeCapitalized = sessionType.charAt(0).toUpperCase() + sessionType.slice(1);
+          const teachersForSessionType = course.assignedTeachers.filter(t => 
+            t.sessionTypes && t.sessionTypes.includes(sessionTypeCapitalized)
+          );
+
+          if (!teachersForSessionType || teachersForSessionType.length === 0) {
+            logger.warn(`GA: Course ${course.code || course.name} has no assigned teachers for ${sessionType}, skipping`);
+            return;
+          }
+
           for (let i = 0; i < session.sessionsPerWeek; i++) {
             sessions.push({
               id: sessionId++,
-              courseId: course.id,
+              courseId: course.id || String(course._id),
               courseName: course.name,
               courseCode: course.code,
-              sessionType,
+              sessionType: sessionTypeCapitalized, // Use capitalized version for database
               sessionIndex: i,
-              duration: session.duration,
+              duration: session.duration || 60,
               requiredFeatures: session.requiredFeatures || [],
-              minRoomCapacity: Math.max(session.minRoomCapacity, course.enrolledStudents),
-              requiresLab: session.requiresLab,
-              assignedTeachers: course.assignedTeachers.filter(t => 
-                t.sessionTypes.includes(sessionType.charAt(0).toUpperCase() + sessionType.slice(1))
-              ),
+              minRoomCapacity: Math.max(session.minRoomCapacity || 0, course.enrolledStudents || 0),
+              requiresLab: session.requiresLab || false,
+              assignedTeachers: teachersForSessionType,
               priority: this.getPriorityValue(course.priority),
-              constraints: course.constraints,
+              constraints: course.constraints || {},
               course: course
             });
           }
@@ -136,6 +151,7 @@ class GeneticAlgorithm {
       });
     }
 
+    logger.info(`GA: Extracted ${sessions.length} sessions from ${this.courses.length} courses`);
     return sessions;
   }
 
@@ -156,6 +172,17 @@ class GeneticAlgorithm {
     this.convergenceCount = 0;
 
     try {
+      // Validate we have sessions to schedule
+      if (!this.sessions || this.sessions.length === 0) {
+        logger.error('GA: No sessions to schedule');
+        return { 
+          success: false, 
+          reason: 'No sessions to schedule. Check that courses have sessions defined and teachers assigned.' 
+        };
+      }
+
+      logger.info(`GA: Starting with ${this.sessions.length} sessions to schedule`);
+
       // Initialize population
       this.initializePopulation();
       logger.info(`GA: Initialized population of ${this.population.length} individuals`);
@@ -173,8 +200,15 @@ class GeneticAlgorithm {
           await progressCallback(progress, this.generationCount, this.bestFitness);
         }
 
-        // Check for convergence
+        // Check for convergence or good enough solution
         const currentBest = Math.max(...this.population.map(ind => ind.fitness));
+        
+        // Early stopping if we found a very good solution (fitness > 0.95)
+        if (currentBest > 0.95) {
+          logger.info(`GA: Found excellent solution (fitness: ${currentBest.toFixed(3)}) at generation ${this.generationCount}`);
+          break;
+        }
+        
         if (Math.abs(currentBest - this.bestFitness) < 0.001) {
           this.convergenceCount++;
         } else {
@@ -245,13 +279,33 @@ class GeneticAlgorithm {
           classroomId: randomAssignment.classroomId
         });
       } else {
-        // Fallback to a random assignment even if not valid
+        // Validate we have a real teacher (not 'unknown')
+        const fallbackTeacherId = session.assignedTeachers[0]?.teacherId || 
+                                  session.assignedTeachers[0]?._id || 
+                                  String(session.assignedTeachers[0]);
+        
+        if (!fallbackTeacherId || fallbackTeacherId === 'unknown' || fallbackTeacherId === 'undefined' || fallbackTeacherId === '[object Object]') {
+          logger.error(`GA: Cannot create fallback for session ${session.courseCode} ${session.sessionType} - invalid teacher ID`);
+          continue; // Skip this session - will result in incomplete chromosome
+        }
+
+        // Get a random classroom
+        const randomClassroom = this.classrooms[Math.floor(Math.random() * this.classrooms.length)];
+        const fallbackClassroomId = randomClassroom?.id || String(randomClassroom?._id);
+        
+        if (!fallbackClassroomId || fallbackClassroomId === 'undefined') {
+          logger.error(`GA: Cannot create fallback for session ${session.courseCode} ${session.sessionType} - no valid classrooms`);
+          continue; // Skip this session
+        }
+        
         chromosome.push({
           sessionId: session.id,
           timeSlotId: Math.floor(Math.random() * this.timeSlots.length),
-          teacherId: session.assignedTeachers[0]?.teacherId || 'unknown',
-          classroomId: this.classrooms[Math.floor(Math.random() * this.classrooms.length)]?.id || 'unknown'
+          teacherId: fallbackTeacherId,
+          classroomId: fallbackClassroomId
         });
+        
+        logger.warn(`GA: No valid assignments for session ${session.courseCode} ${session.sessionType}, using fallback with teacher ${fallbackTeacherId}`);
       }
     }
 
@@ -264,19 +318,40 @@ class GeneticAlgorithm {
   getValidAssignments(session) {
     const validAssignments = [];
 
+    // Validate session has assigned teachers
+    if (!session.assignedTeachers || session.assignedTeachers.length === 0) {
+      logger.warn(`GA: Session ${session.courseCode} ${session.sessionType} has no assigned teachers`);
+      return validAssignments;
+    }
+
     for (const timeSlot of this.timeSlots) {
       for (const teacher of session.assignedTeachers) {
-        const teacherObj = this.teachers.find(t => t.id === teacher.teacherId);
-        if (!teacherObj?.isAvailableAt(timeSlot.day, timeSlot.startTime)) {
+        const teacherId = teacher.teacherId || teacher._id || String(teacher);
+        const teacherObj = this.teachers.find(t => 
+          (t.id && t.id === teacherId) || 
+          (t._id && String(t._id) === teacherId)
+        );
+        
+        if (!teacherObj) {
+          logger.warn(`GA: Teacher ${teacherId} not found in teachers list`);
+          continue;
+        }
+        
+        // Check teacher availability inline (supports both plain objects and Mongoose models)
+        const dayLower = timeSlot.day.toLowerCase();
+        const teacherAvail = teacherObj.availability?.[dayLower];
+        if (!teacherAvail || !teacherAvail.available) continue;
+        if (timeSlot.startTime < teacherAvail.startTime || timeSlot.startTime >= teacherAvail.endTime) {
           continue;
         }
 
         for (const classroom of this.classrooms) {
-          if (this.isValidAssignment(session, timeSlot, teacher.teacherId, classroom.id)) {
+          const classroomId = classroom.id || String(classroom._id);
+          if (this.isValidAssignment(session, timeSlot, teacherId, classroomId)) {
             validAssignments.push({
               timeSlotId: timeSlot.id,
-              teacherId: teacher.teacherId,
-              classroomId: classroom.id
+              teacherId: teacherId,
+              classroomId: classroomId
             });
           }
         }
@@ -294,8 +369,13 @@ class GeneticAlgorithm {
     
     if (!classroom) return false;
     
-    // Check classroom availability
-    if (!classroom.isAvailableAt(timeSlot.day, timeSlot.startTime)) {
+    // Check classroom availability inline (supports both plain objects and Mongoose models)
+    const dayLower = timeSlot.day.toLowerCase();
+    const classroomAvail = classroom.availability?.[dayLower];
+    if (!classroomAvail || !classroomAvail.available) {
+      return false;
+    }
+    if (timeSlot.startTime < classroomAvail.startTime || timeSlot.startTime >= classroomAvail.endTime) {
       return false;
     }
 
@@ -304,9 +384,15 @@ class GeneticAlgorithm {
       return false;
     }
 
-    // Check required features
-    if (!classroom.hasRequiredFeatures(session.requiredFeatures)) {
-      return false;
+    // Check required features inline
+    if (session.requiredFeatures && session.requiredFeatures.length > 0) {
+      const classroomFeatures = classroom.features || [];
+      const hasAllFeatures = session.requiredFeatures.every(feature => 
+        classroomFeatures.includes(feature)
+      );
+      if (!hasAllFeatures) {
+        return false;
+      }
     }
 
     // Check lab requirement

@@ -72,6 +72,12 @@ const teacherSchema = new mongoose.Schema({
     saturday: { type: availabilitySchema, default: () => ({ available: false }) },
     sunday: { type: availabilitySchema, default: () => ({ available: false }) }
   },
+  teacherType: {
+    type: String,
+    enum: ['core', 'visiting', 'guest', 'adjunct'],
+    default: 'core',
+    required: true
+  },
   priority: {
     type: String,
     enum: ['low', 'medium', 'high'],
@@ -134,6 +140,27 @@ teacherSchema.methods.isAvailableAt = function(day, time) {
 // Method to get teaching load percentage
 teacherSchema.methods.getTeachingLoadPercentage = function(currentHours = 0) {
   return (currentHours / this.maxHoursPerWeek) * 100;
+};
+
+// Method to get effective priority (visiting faculty gets higher priority)
+teacherSchema.methods.getEffectivePriority = function() {
+  // Visiting faculty always gets highest priority
+  if (this.teacherType === 'visiting' || this.teacherType === 'guest') {
+    return 'high';
+  }
+  // Adjunct gets medium-high priority
+  if (this.teacherType === 'adjunct') {
+    return this.priority === 'high' ? 'high' : 'medium';
+  }
+  // Core faculty uses their assigned priority
+  return this.priority;
+};
+
+// Method to get priority score for sorting
+teacherSchema.methods.getPriorityScore = function() {
+  const effectivePriority = this.getEffectivePriority();
+  const priorityScores = { high: 3, medium: 2, low: 1 };
+  return priorityScores[effectivePriority] || 2;
 };
 
 // Static method to find teachers by subject

@@ -1,6 +1,8 @@
 const CSPSolver = require('./CSPSolver');
 const GeneticAlgorithm = require('./GeneticAlgorithm');
 const GreedyScheduler = require('./GreedyScheduler');
+const BacktrackingSearch = require('./BacktrackingSearch');
+const SimulatedAnnealing = require('./SimulatedAnnealing');
 const logger = require('../utils/logger');
 
 /**
@@ -410,25 +412,41 @@ class OptimizationEngine {
     const problemSize = teachers.length * classrooms.length * courses.length;
     const optimizedSettings = { ...settings };
 
-    // Adjust parameters based on problem size
-    if (settings.algorithm === 'genetic') {
+    // Adjust parameters based on problem size - CAP AT REASONABLE VALUES
+    if (settings.algorithm === 'genetic' || settings.algorithm === 'hybrid') {
+      // Cap population size - never exceed 100
+      const basePopulation = settings.populationSize || 50;
       if (problemSize > 10000) {
-        optimizedSettings.populationSize = Math.min(200, settings.populationSize * 1.5);
-        optimizedSettings.maxGenerations = Math.min(2000, settings.maxGenerations * 1.2);
+        optimizedSettings.populationSize = Math.min(100, Math.max(50, basePopulation));
       } else if (problemSize < 1000) {
-        optimizedSettings.populationSize = Math.max(50, settings.populationSize * 0.8);
-        optimizedSettings.maxGenerations = Math.max(500, settings.maxGenerations * 0.8);
+        optimizedSettings.populationSize = Math.min(50, Math.max(30, basePopulation * 0.8));
+      } else {
+        optimizedSettings.populationSize = Math.min(75, Math.max(40, basePopulation));
+      }
+
+      // Cap generations - never exceed 300
+      const baseGenerations = settings.maxGenerations || 200;
+      if (problemSize > 10000) {
+        optimizedSettings.maxGenerations = Math.min(300, Math.max(150, baseGenerations));
+      } else if (problemSize < 1000) {
+        optimizedSettings.maxGenerations = Math.min(150, Math.max(100, baseGenerations * 0.8));
+      } else {
+        optimizedSettings.maxGenerations = Math.min(200, Math.max(100, baseGenerations));
       }
 
       // Adjust mutation rate based on diversity needs
       const courseVariety = new Set(courses.map(c => c.department)).size;
       if (courseVariety > 5) {
-        optimizedSettings.mutationRate = Math.min(0.2, settings.mutationRate * 1.2);
+        optimizedSettings.mutationRate = Math.min(0.2, (settings.mutationRate || 0.15) * 1.2);
+      } else {
+        optimizedSettings.mutationRate = settings.mutationRate || 0.15;
       }
+
+      logger.info(`[OPTIMIZATION] Adjusted GA parameters: pop=${optimizedSettings.populationSize}, gen=${optimizedSettings.maxGenerations}, mut=${optimizedSettings.mutationRate.toFixed(2)}`);
     }
 
     // Adjust time slots based on total required hours
-    const totalHours = courses.reduce((sum, course) => sum + course.totalHoursPerWeek, 0);
+    const totalHours = courses.reduce((sum, course) => sum + (course.totalHoursPerWeek || 0), 0);
     const availableSlots = this.calculateAvailableTimeSlots(settings);
     
     if (totalHours / availableSlots > 0.8) {
@@ -460,10 +478,10 @@ class OptimizationEngine {
   async hybridAlgorithm(teachers, classrooms, courses, settings, progressCallback) {
     logger.info('Running hybrid CSP-GA algorithm');
 
-    // Phase 1: Use CSP to find initial feasible solution
+    // Phase 1: Use CSP to find initial feasible solution (time-limited)
     const cspSolver = new CSPSolver(teachers, classrooms, courses, {
       ...settings,
-      maxBacktrackingSteps: 5000 // Reduced for initial phase
+      maxBacktrackingSteps: 3000 // Reduced for faster initial phase
     });
 
     const initialProgress = (progress) => {
@@ -477,13 +495,13 @@ class OptimizationEngine {
       return this.pureGeneticAlgorithm(teachers, classrooms, courses, settings, progressCallback);
     }
 
-    // Phase 2: Use GA to optimize the CSP solution
+    // Phase 2: Use GA to optimize the CSP solution (with reduced settings)
     logger.info('CSP found initial solution, starting GA optimization');
     
     const ga = new GeneticAlgorithm(teachers, classrooms, courses, {
       ...settings,
-      populationSize: settings.populationSize || 100,
-      maxGenerations: Math.floor((settings.maxGenerations || 1000) * 0.7),
+      populationSize: Math.min(settings.populationSize || 50, 50), // Max 50 for hybrid
+      maxGenerations: Math.min(Math.floor((settings.maxGenerations || 200) * 0.5), 100), // Max 100 generations
       initialSolution: cspResult.solution
     });
 
@@ -525,105 +543,18 @@ class OptimizationEngine {
    * Backtracking algorithm
    */
   async backtrackingAlgorithm(teachers, classrooms, courses, settings, progressCallback) {
-    // This would implement a pure backtracking approach
-    // For now, delegate to CSP solver which includes backtracking
-    const csp = new CSPSolver(teachers, classrooms, courses, settings);
-    return csp.solve(progressCallback);
+    logger.info('[OPTIMIZATION] Running Backtracking Search algorithm');
+    const backtracking = new BacktrackingSearch(teachers, classrooms, courses, settings);
+    return backtracking.solve(progressCallback);
   }
 
   /**
    * Simulated annealing algorithm
    */
   async simulatedAnnealingAlgorithm(teachers, classrooms, courses, settings, progressCallback) {
-    logger.info('Running simulated annealing algorithm');
-    
-    // Initialize with random solution
-    const ga = new GeneticAlgorithm(teachers, classrooms, courses, settings);
-    let currentSolution = ga.createRandomChromosome();
-    let currentFitness = ga.calculateFitness(currentSolution);
-    
-    let bestSolution = [...currentSolution];
-    let bestFitness = currentFitness;
-    
-    const maxIterations = settings.maxIterations || 10000;
-    const initialTemp = settings.initialTemperature || 1000;
-    const coolingRate = settings.coolingRate || 0.995;
-    
-    let temperature = initialTemp;
-    let iteration = 0;
-    
-    while (iteration < maxIterations && temperature > 0.1) {
-      // Generate neighbor solution
-      const neighbor = [...currentSolution];
-      this.perturbSolution(neighbor);
-      
-      const neighborFitness = ga.calculateFitness(neighbor);
-      
-      // Accept or reject the neighbor
-      if (this.shouldAccept(currentFitness, neighborFitness, temperature)) {
-        currentSolution = neighbor;
-        currentFitness = neighborFitness;
-        
-        if (neighborFitness > bestFitness) {
-          bestSolution = [...neighbor];
-          bestFitness = neighborFitness;
-        }
-      }
-      
-      // Cool down
-      temperature *= coolingRate;
-      iteration++;
-      
-      // Report progress
-      if (progressCallback && iteration % 100 === 0) {
-        const progress = (iteration / maxIterations) * 100;
-        await progressCallback(progress, `SA - Iter ${iteration}, Temp: ${temperature.toFixed(2)}`);
-      }
-    }
-    
-    const schedule = ga.chromosomeToSchedule({ chromosome: bestSolution });
-    
-    return {
-      success: true,
-      solution: schedule,
-      metrics: {
-        algorithm: 'Simulated Annealing',
-        iterations: iteration,
-        finalTemperature: temperature,
-        bestFitness: bestFitness
-      }
-    };
-  }
-
-  /**
-   * Perturb solution for simulated annealing
-   */
-  perturbSolution(solution) {
-    const perturbationType = Math.random();
-    
-    if (perturbationType < 0.5) {
-      // Swap two random elements
-      const i = Math.floor(Math.random() * solution.length);
-      const j = Math.floor(Math.random() * solution.length);
-      [solution[i], solution[j]] = [solution[j], solution[i]];
-    } else {
-      // Modify a random element
-      const i = Math.floor(Math.random() * solution.length);
-      const randomTimeSlot = Math.floor(Math.random() * 50); // Assuming 50 time slots
-      solution[i] = { ...solution[i], timeSlotId: randomTimeSlot };
-    }
-  }
-
-  /**
-   * Simulated annealing acceptance criteria
-   */
-  shouldAccept(currentFitness, neighborFitness, temperature) {
-    if (neighborFitness > currentFitness) {
-      return true; // Always accept better solutions
-    }
-    
-    const probability = Math.exp((neighborFitness - currentFitness) / temperature);
-    return Math.random() < probability;
+    logger.info('[OPTIMIZATION] Running Simulated Annealing algorithm');
+    const sa = new SimulatedAnnealing(teachers, classrooms, courses, settings);
+    return sa.solve(progressCallback);
   }
 
   /**

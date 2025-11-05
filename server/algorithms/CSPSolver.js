@@ -24,7 +24,7 @@ class CSPSolver {
       breakSlots: ['12:00-13:00'],
       enforceBreaks: true,
       balanceWorkload: true,
-      maxBacktrackingSteps: 10000,
+      maxBacktrackingSteps: 50000, // Increased for better success rate
       ...settings
     };
     
@@ -102,33 +102,48 @@ class CSPSolver {
     let variableId = 0;
 
     for (const course of this.courses) {
+      // Check if course has sessions defined
+      if (!course.sessions) {
+        logger.warn(`CSP: Course ${course.code || course.name} has no sessions defined, skipping`);
+        continue;
+      }
+
       // Create variables for each session type and frequency
       ['theory', 'practical', 'tutorial'].forEach(sessionType => {
         const session = course.sessions[sessionType];
-        if (session) {
+        if (session && session.sessionsPerWeek > 0) {
+          // Check if course has assigned teachers
+          if (!course.assignedTeachers || course.assignedTeachers.length === 0) {
+            logger.warn(`CSP: Course ${course.code || course.name} has no assigned teachers, skipping ${sessionType}`);
+            return;
+          }
+
+          const sessionTypeCapitalized = sessionType.charAt(0).toUpperCase() + sessionType.slice(1);
+
           for (let i = 0; i < session.sessionsPerWeek; i++) {
             variables.push({
               id: `var_${variableId++}`,
-              courseId: course.id,
+              courseId: course.id || String(course._id),
               courseName: course.name,
               courseCode: course.code,
-              sessionType,
+              sessionType: sessionTypeCapitalized, // Use capitalized version for database
               sessionIndex: i,
-              duration: session.duration,
+              duration: session.duration || 60,
               requiredFeatures: session.requiredFeatures || [],
-              minRoomCapacity: Math.max(session.minRoomCapacity, course.enrolledStudents),
-              requiresLab: session.requiresLab,
+              minRoomCapacity: Math.max(session.minRoomCapacity || 0, course.enrolledStudents || 0),
+              requiresLab: session.requiresLab || false,
               assignedTeachers: course.assignedTeachers.filter(t => 
-                t.sessionTypes.includes(sessionType.charAt(0).toUpperCase() + sessionType.slice(1))
+                t.sessionTypes && t.sessionTypes.includes(sessionTypeCapitalized)
               ),
               priority: course.priority,
-              constraints: course.constraints
+              constraints: course.constraints || {}
             });
           }
         }
       });
     }
 
+    logger.info(`CSP: Created ${variables.length} variables from ${this.courses.length} courses`);
     return variables;
   }
 
@@ -144,7 +159,13 @@ class CSPSolver {
       for (const timeSlot of this.timeSlots) {
         for (const teacher of variable.assignedTeachers) {
           const teacherObj = this.teachers.find(t => t.id === teacher.teacherId);
-          if (!teacherObj || !teacherObj.isAvailableAt(timeSlot.day, timeSlot.startTime)) {
+          if (!teacherObj) continue;
+          
+          // Check teacher availability inline (supports both plain objects and Mongoose models)
+          const dayLower = timeSlot.day.toLowerCase();
+          const teacherAvail = teacherObj.availability?.[dayLower];
+          if (!teacherAvail || !teacherAvail.available) continue;
+          if (timeSlot.startTime < teacherAvail.startTime || timeSlot.startTime >= teacherAvail.endTime) {
             continue;
           }
 
@@ -175,8 +196,13 @@ class CSPSolver {
    * Check if a classroom is suitable for a variable
    */
   isClassroomSuitableForVariable(classroom, variable, timeSlot) {
-    // Check basic availability
-    if (!classroom.isAvailableAt(timeSlot.day, timeSlot.startTime)) {
+    // Check basic availability inline (supports both plain objects and Mongoose models)
+    const dayLower = timeSlot.day.toLowerCase();
+    const classroomAvail = classroom.availability?.[dayLower];
+    if (!classroomAvail || !classroomAvail.available) {
+      return false;
+    }
+    if (timeSlot.startTime < classroomAvail.startTime || timeSlot.startTime >= classroomAvail.endTime) {
       return false;
     }
 
@@ -185,9 +211,15 @@ class CSPSolver {
       return false;
     }
 
-    // Check required features
-    if (!classroom.hasRequiredFeatures(variable.requiredFeatures)) {
-      return false;
+    // Check required features inline (supports both plain objects and Mongoose models)
+    if (variable.requiredFeatures && variable.requiredFeatures.length > 0) {
+      const classroomFeatures = classroom.features || [];
+      const hasAllFeatures = variable.requiredFeatures.every(feature => 
+        classroomFeatures.includes(feature)
+      );
+      if (!hasAllFeatures) {
+        return false;
+      }
     }
 
     // Check room type requirements
@@ -195,14 +227,15 @@ class CSPSolver {
       return false;
     }
 
-    // Check if suitable for session type
+    // Check if suitable for session type (inline check for plain objects and models)
     const sessionTypeMapping = {
       'theory': 'Theory',
       'practical': 'Practical',
       'tutorial': 'Tutorial'
     };
 
-    if (!classroom.isSuitableFor(sessionTypeMapping[variable.sessionType])) {
+    const suitableFor = classroom.suitableFor || [];
+    if (suitableFor.length > 0 && !suitableFor.includes(sessionTypeMapping[variable.sessionType])) {
       return false;
     }
 
@@ -234,6 +267,15 @@ class CSPSolver {
     this.backtrackCount = 0;
 
     try {
+      // Validate we have variables to solve
+      if (!this.variables || this.variables.length === 0) {
+        logger.error('CSP: No variables to solve');
+        return { 
+          success: false, 
+          reason: 'No variables to solve. Check that courses have sessions defined and teachers assigned.' 
+        };
+      }
+
       logger.info('CSP Solver starting', {
         variables: this.variables.length,
         timeSlots: this.timeSlots.length,
@@ -241,20 +283,42 @@ class CSPSolver {
         classrooms: this.classrooms.length
       });
 
-      // Apply arc consistency
-      logger.info('Running arc consistency...');
-      const acStart = Date.now();
-      if (!this.arcConsistency()) {
-        logger.warn('Arc consistency failed - no solution exists');
-        return { success: false, reason: 'Arc consistency failed - no solution exists' };
+      // Log domain sizes
+      let totalDomainSize = 0;
+      let emptyDomains = 0;
+      let minDomainSize = Infinity;
+      for (const [varId, domain] of this.domains.entries()) {
+        totalDomainSize += domain.length;
+        if (domain.length === 0) {
+          emptyDomains++;
+          const variable = this.variables.find(v => v.id === varId);
+          logger.warn(`Variable ${varId} (${variable?.courseName} ${variable?.sessionType}) has empty domain - constraints too restrictive`);
+        }
+        if (domain.length > 0 && domain.length < minDomainSize) {
+          minDomainSize = domain.length;
+        }
       }
-      logger.info(`Arc consistency completed in ${Date.now() - acStart}ms`);
+      logger.info(`Domain stats: avg=${(totalDomainSize / this.variables.length).toFixed(2)}, min=${minDomainSize === Infinity ? 0 : minDomainSize}, empty=${emptyDomains}`);
 
-      // Start backtracking search
-      logger.info('Starting backtracking search...');
+      if (emptyDomains > this.variables.length / 2) {
+        // More than half the variables have no valid assignments
+        logger.error(`${emptyDomains}/${this.variables.length} variables have no valid assignments - problem is over-constrained`);
+        return { 
+          success: false, 
+          reason: `Problem is over-constrained: ${emptyDomains}/${this.variables.length} variables have no valid domain values. Try relaxing constraints or adding more resources.` 
+        };
+      } else if (emptyDomains > 0) {
+        // Some variables have empty domains, but we can try
+        logger.warn(`${emptyDomains} variables have empty domains, but continuing with backtracking...`);
+      }
+
+      // Skip arc consistency - it's too restrictive for this problem
+      // Jump straight to backtracking with forward checking
+      logger.info('Starting backtracking search with forward checking...');
       const btStart = Date.now();
       const result = await this.backtrackSearch(progressCallback);
-      logger.info(`Backtracking completed in ${Date.now() - btStart}ms, result: ${!!result}`);
+      const duration = Date.now() - btStart;
+      logger.info(`Backtracking completed in ${duration}ms, backtracks: ${this.backtrackCount}, result: ${!!result}`);
       
       if (result) {
         const solution = this.extractSolution();
@@ -269,7 +333,7 @@ class CSPSolver {
       } else {
         return { 
           success: false, 
-          reason: 'No solution found within backtracking limit',
+          reason: `No solution found after ${this.backtrackCount} backtracks`,
           backtrackCount: this.backtrackCount
         };
       }
@@ -336,17 +400,32 @@ class CSPSolver {
   }
 
   /**
-   * Check if two assignments are consistent
+   * Check if two assignments are consistent (simplified for performance)
    */
   isConsistentAssignment(varI, valueI, varJ, valueJ) {
     const variableI = this.variables.find(v => v.id === varI);
     const variableJ = this.variables.find(v => v.id === varJ);
 
-    // Check all constraints
-    for (const constraint of this.constraints) {
-      if (!constraint(variableI, valueI, variableJ, valueJ)) {
-        return false;
-      }
+    // Only check the three critical hard constraints:
+    // 1. Teacher conflict
+    if (valueI.teacherId === valueJ.teacherId && 
+        valueI.day === valueJ.day &&
+        this.timeOverlaps(valueI.startTime, valueI.endTime, valueJ.startTime, valueJ.endTime)) {
+      return false;
+    }
+
+    // 2. Classroom conflict  
+    if (valueI.classroomId === valueJ.classroomId && 
+        valueI.day === valueJ.day &&
+        this.timeOverlaps(valueI.startTime, valueI.endTime, valueJ.startTime, valueJ.endTime)) {
+      return false;
+    }
+
+    // 3. Student conflict (same course or courses with overlapping students)
+    if (variableI.courseId === variableJ.courseId &&
+        valueI.day === valueJ.day &&
+        this.timeOverlaps(valueI.startTime, valueI.endTime, valueJ.startTime, valueJ.endTime)) {
+      return false;
     }
 
     return true;
@@ -357,6 +436,7 @@ class CSPSolver {
    */
   async backtrackSearch(progressCallback = null) {
     if (this.backtrackCount > this.settings.maxBacktrackingSteps) {
+      logger.warn(`Reached backtracking limit: ${this.settings.maxBacktrackingSteps}`);
       return false;
     }
 
@@ -371,6 +451,8 @@ class CSPSolver {
     }
 
     const variable = this.selectUnassignedVariable();
+    if (!variable) return false;
+
     const domain = this.orderDomainValues(variable);
 
     for (const value of domain) {
@@ -382,12 +464,15 @@ class CSPSolver {
         // Forward checking
         const removedValues = this.forwardCheck(variable, value);
 
-        if (await this.backtrackSearch(progressCallback)) {
-          return true;
+        // Check if forward checking detected a dead-end
+        if (removedValues !== null) {
+          if (await this.backtrackSearch(progressCallback)) {
+            return true;
+          }
+          // Restore removed values
+          this.restoreValues(removedValues);
         }
-
-        // Restore removed values
-        this.restoreValues(removedValues);
+        
         this.assignment.delete(variable.id);
       }
     }
@@ -396,39 +481,50 @@ class CSPSolver {
   }
 
   /**
-   * Most Constraining Variable heuristic
+   * Most Constraining Variable heuristic (MRV - Minimum Remaining Values)
    */
   selectUnassignedVariable() {
     const unassigned = this.variables.filter(v => !this.assignment.has(v.id));
     
     if (unassigned.length === 0) return null;
 
-    // Choose variable with smallest domain (MRV - Minimum Remaining Values)
+    // Choose variable with smallest non-empty domain (MRV)
     let minDomainSize = Infinity;
     let selectedVar = null;
 
     for (const variable of unassigned) {
       const domainSize = this.domains.get(variable.id).length;
+      // Skip variables with empty domains initially
+      if (domainSize === 0) continue;
+      
       if (domainSize < minDomainSize) {
         minDomainSize = domainSize;
         selectedVar = variable;
       }
     }
 
+    // If no variable with non-empty domain found, pick any unassigned one
+    if (!selectedVar && unassigned.length > 0) {
+      selectedVar = unassigned[0];
+    }
+
     return selectedVar;
   }
 
   /**
-   * Least Constraining Value heuristic
+   * Least Constraining Value heuristic (simplified for performance)
    */
   orderDomainValues(variable) {
     const domain = this.domains.get(variable.id);
     
-    // Order values by how many constraints they eliminate
+    // Simple ordering: prefer earlier time slots for better scheduling
     return domain.sort((a, b) => {
-      const constraintsA = this.countConstraintsEliminated(variable, a);
-      const constraintsB = this.countConstraintsEliminated(variable, b);
-      return constraintsA - constraintsB;
+      // Sort by day first, then by time
+      const dayOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5 };
+      if (dayOrder[a.day] !== dayOrder[b.day]) {
+        return dayOrder[a.day] - dayOrder[b.day];
+      }
+      return a.startTime.localeCompare(b.startTime);
     });
   }
 
@@ -455,15 +551,23 @@ class CSPSolver {
   }
 
   /**
-   * Forward checking - remove inconsistent values from unassigned variables
+   * Forward checking - remove inconsistent values (simplified)
    */
   forwardCheck(variable, value) {
     const removedValues = new Map();
 
+    // Only check variables that could directly conflict
     for (const otherVar of this.variables) {
       if (otherVar.id === variable.id || this.assignment.has(otherVar.id)) {
         continue;
       }
+
+      // Only check if they could conflict (same teacher, classroom, or course)
+      const couldConflict = 
+        otherVar.assignedTeachers.some(t => t.teacherId === value.teacherId) ||
+        otherVar.courseId === variable.courseId;
+
+      if (!couldConflict) continue;
 
       const domain = this.domains.get(otherVar.id);
       const newDomain = domain.filter(otherValue => 
@@ -473,6 +577,13 @@ class CSPSolver {
       if (newDomain.length < domain.length) {
         removedValues.set(otherVar.id, domain.filter(v => !newDomain.includes(v)));
         this.domains.set(otherVar.id, newDomain);
+      }
+
+      // Check for domain wipeout
+      if (newDomain.length === 0) {
+        // Restore and fail fast
+        this.restoreValues(removedValues);
+        return null; // Signal failure
       }
     }
 

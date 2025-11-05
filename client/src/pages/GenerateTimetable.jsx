@@ -53,11 +53,11 @@ const GenerateTimetable = () => {
   const [optimizationGoalsData, setOptimizationGoalsData] = useState([]);
   
   const [generationSettings, setGenerationSettings] = useState({
-    algorithm: 'greedy',
-    maxIterations: 1000,
-    populationSize: 100,
+    algorithm: 'hybrid', // Changed from 'greedy' to 'hybrid' for better results
+    maxIterations: 200, // Reduced from 1000 for faster generation
+    populationSize: 50, // Reduced from 100 for faster generation
     crossoverRate: 0.8,
-    mutationRate: 0.1,
+    mutationRate: 0.15, // Increased from 0.1 for better exploration
     optimizationGoals: ['minimize_conflicts', 'balanced_schedule', 'teacher_preferences'],
     allowBackToBack: true,
     enforceBreaks: true,

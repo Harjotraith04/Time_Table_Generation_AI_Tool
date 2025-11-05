@@ -714,7 +714,7 @@ async function generateTimetableAsync(timetableId, department, year, semester, s
     const [teachers, classrooms, courses] = await Promise.all([
       Teacher.find({ status: 'active' }),
       Classroom.find({ status: 'available' }),
-      Course.find({ ...query, isActive: true })
+      Course.find({ ...query, isActive: true }).populate('assignedTeachers.teacherId')
     ]);
 
     logger.info('[GENERATION] Data loaded successfully', {
