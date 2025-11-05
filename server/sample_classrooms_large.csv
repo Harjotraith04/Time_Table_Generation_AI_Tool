@@ -1,0 +1,41 @@
+id,name,building,floor,capacity,type,features
+R101,Room 101,Main Building,1,60,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R102,Room 102,Main Building,1,60,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R103,Room 103,Main Building,1,60,Lecture Hall,Projector|Whiteboard|AC
+R104,Room 104,Main Building,1,80,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R105,Room 105,Main Building,1,80,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R201,Room 201,Main Building,2,60,Lecture Hall,Projector|Whiteboard|AC
+R202,Room 202,Main Building,2,60,Lecture Hall,Projector|Whiteboard|AC
+R203,Room 203,Main Building,2,60,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R204,Room 204,Main Building,2,80,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R205,Room 205,Main Building,2,80,Lecture Hall,Projector|Whiteboard|AC
+R301,Room 301,Main Building,3,50,Lecture Hall,Projector|Whiteboard|AC
+R302,Room 302,Main Building,3,50,Lecture Hall,Projector|Whiteboard|AC
+R303,Room 303,Main Building,3,60,Lecture Hall,Projector|Whiteboard|AC|Audio System
+R304,Room 304,Main Building,3,60,Lecture Hall,Projector|Whiteboard|AC
+R305,Room 305,Main Building,3,70,Lecture Hall,Projector|Whiteboard|AC|Audio System
+LAB101,Computer Lab 1,CS Building,1,35,Computer Lab,Computers|Projector|Whiteboard|AC|Internet
+LAB102,Computer Lab 2,CS Building,1,35,Computer Lab,Computers|Projector|Whiteboard|AC|Internet
+LAB103,Computer Lab 3,CS Building,1,40,Computer Lab,Computers|Projector|Whiteboard|AC|Internet|High-end GPUs
+LAB104,Computer Lab 4,CS Building,1,40,Computer Lab,Computers|Projector|Whiteboard|AC|Internet
+LAB201,Computer Lab 5,CS Building,2,35,Computer Lab,Computers|Projector|Whiteboard|AC|Internet
+LAB202,Computer Lab 6,CS Building,2,35,Computer Lab,Computers|Projector|Whiteboard|AC|Internet
+LAB203,AI/ML Lab,CS Building,2,30,Computer Lab,Computers|Projector|Whiteboard|AC|Internet|High-end GPUs|GPU Cluster
+LAB204,Data Science Lab,CS Building,2,30,Computer Lab,Computers|Projector|Whiteboard|AC|Internet|Big Data Setup
+LAB301,Network Lab,IT Building,1,30,Computer Lab,Computers|Projector|Whiteboard|AC|Internet|Network Equipment
+LAB302,Cloud Lab,IT Building,1,30,Computer Lab,Computers|Projector|Whiteboard|AC|Internet|Server Racks
+LAB303,Cyber Security Lab,IT Building,2,25,Computer Lab,Computers|Projector|Whiteboard|AC|Internet|Security Tools
+LAB304,Web Development Lab,IT Building,2,35,Computer Lab,Computers|Projector|Whiteboard|AC|Internet
+ELAB101,Electronics Lab 1,ECE Building,1,30,Electronics Lab,Workbenches|Oscilloscopes|Signal Generators|Power Supplies|Projector|AC
+ELAB102,Electronics Lab 2,ECE Building,1,30,Electronics Lab,Workbenches|Oscilloscopes|Signal Generators|Power Supplies|Projector|AC
+ELAB103,Communication Lab,ECE Building,2,25,Electronics Lab,Workbenches|Communication Equipment|Spectrum Analyzers|Projector|AC
+ELAB104,Microprocessor Lab,ECE Building,2,30,Computer Lab,Computers|Microprocessor Kits|Programmers|Projector|AC|Internet
+ELAB201,VLSI Lab,ECE Building,3,25,Computer Lab,Computers|VLSI Tools|Projector|AC|Internet
+ELAB202,Embedded Systems Lab,ECE Building,3,30,Electronics Lab,Workbenches|Embedded Boards|Programmers|Projector|AC
+MLAB101,Mechanics Lab,ME Building,1,30,Workshop,Mechanical Equipment|Testing Machines|Whiteboard
+MLAB102,Thermodynamics Lab,ME Building,1,25,Workshop,Heat Engines|Testing Equipment|Whiteboard
+MLAB103,Manufacturing Lab,ME Building,2,35,Workshop,Manufacturing Machines|CNC|3D Printers|Safety Equipment
+MLAB104,CAD Lab,ME Building,2,30,Computer Lab,Computers|CAD Software|Projector|AC|Internet
+SH01,Seminar Hall 1,Administrative,1,120,Seminar Hall,Projector|Audio System|AC|Stage|Recording Equipment
+SH02,Seminar Hall 2,Administrative,2,100,Seminar Hall,Projector|Audio System|AC|Stage
+AUDI,Main Auditorium,Administrative,Ground,300,Auditorium,Projector|Audio System|AC|Stage|Recording Equipment|Video Conferencing

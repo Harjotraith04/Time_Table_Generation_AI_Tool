@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import AdminSidebar from '../components/AdminSidebar';
 import { 
   Calendar, 
   ArrowLeft,
@@ -27,7 +28,10 @@ import {
   List,
   ChevronDown,
   MessageCircle,
-  Edit2
+  Edit2,
+  LogOut,
+  Bell,
+  Settings
 } from 'lucide-react';
 import { 
   getTimetables, 
@@ -40,6 +44,7 @@ import {
 
 const ViewTimetable = () => {
   const { user, logout } = useAuth();
+  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const { id } = useParams();
   const [viewType, setViewType] = useState('grid');
@@ -984,43 +989,79 @@ const ViewTimetable = () => {
     );
   }
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <div className="h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className={`sticky top-0 z-50 border-b shadow-sm ${
+        isDarkMode 
+          ? 'bg-gray-900 border-gray-800' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                {currentTimetable ? currentTimetable.name : 'View Timetables'}
-              </h1>
+              <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {currentTimetable ? currentTimetable.name : 'All Timetables'}
+                </h1>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {currentTimetable ? 'View and manage timetable' : 'Browse all generated timetables'}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <ThemeToggle />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, {user?.name}</span>
-              <button 
-                onClick={() => { logout(); navigate('/login'); }}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              <button className={`p-2 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'hover:bg-gray-800 text-gray-300' 
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}>
+                <Bell className="w-5 h-5" />
+              </button>
+              <button className={`p-2 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'hover:bg-gray-800 text-gray-300' 
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}>
+                <Settings className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleLogout}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode 
+                    ? 'hover:bg-gray-800 text-gray-300' 
+                    : 'hover:bg-gray-100 text-gray-600'
+                }`}
               >
-                Logout
+                <LogOut className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <button 
-            onClick={handleBack}
-            className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {id ? 'Back to Timetables' : 'Back to Dashboard'}
-          </button>
-        </div>
+      <div className="flex">
+        <AdminSidebar />
+
+        <main className="flex-1 p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
+          {/* Back Button */}
+          <div className="mb-6">
+            <button 
+              onClick={handleBack}
+              className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {id ? 'Back to Timetables' : 'Back to Dashboard'}
+            </button>
+          </div>
 
         {currentTimetable ? (
           // Individual Timetable View
@@ -1295,6 +1336,7 @@ const ViewTimetable = () => {
             )}
           </>
         )}
+        </main>
       </div>
 
       {/* Comment Modal */}
@@ -1306,7 +1348,7 @@ const ViewTimetable = () => {
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Enter your comment..."
-              className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
             <div className="flex justify-end space-x-3 mt-4">
               <button

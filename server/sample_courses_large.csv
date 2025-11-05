@@ -1,0 +1,33 @@
+id,name,code,department,program,year,semester,credits,totalHoursPerWeek,enrolledStudents,theorySessionsPerWeek,theoryDuration,theoryRequiresLab,practicalSessionsPerWeek,practicalDuration,practicalRequiresLab,tutorialSessionsPerWeek,tutorialDuration,tutorialRequiresLab,assignedTeachers,divisionA_students,divisionA_batches,divisionB_students,divisionB_batches,divisionC_students,divisionC_batches
+CS101,Programming Fundamentals,CS101,Computer Science,B.Tech CSE,1,1,4,6,180,3,60,false,2,120,true,1,60,false,"T001:Theory;T002:Practical;T003:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS102,Digital Logic Design,CS102,Computer Science,B.Tech CSE,1,1,4,6,180,3,60,false,2,120,true,1,60,false,"T004:Theory;T005:Practical;T006:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS103,Data Structures,CS103,Computer Science,B.Tech CSE,1,2,4,6,180,3,60,false,2,120,true,1,60,false,"T001:Theory;T002:Practical;T003:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS104,Computer Organization,CS104,Computer Science,B.Tech CSE,1,2,4,5,180,3,60,false,1,120,true,1,60,false,"T004:Theory;T005:Practical;T006:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS201,Database Management Systems,CS201,Computer Science,B.Tech CSE,2,1,4,6,180,3,60,false,2,120,true,1,60,false,"T007:Theory;T008:Practical;T009:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS202,Operating Systems,CS202,Computer Science,B.Tech CSE,2,1,4,6,180,3,60,false,2,120,true,1,60,false,"T010:Theory;T011:Practical;T012:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS203,Computer Networks,CS203,Computer Science,B.Tech CSE,2,2,4,6,180,3,60,false,2,120,true,1,60,false,"T007:Theory;T008:Practical;T009:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS204,Software Engineering,CS204,Computer Science,B.Tech CSE,2,2,4,5,180,3,60,false,1,120,false,1,60,false,"T010:Theory;T011:Practical;T012:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",60,"C1:30;C2:30"
+CS301,Machine Learning,CS301,Computer Science,B.Tech CSE,3,1,4,6,150,3,60,false,2,120,true,1,60,false,"T013:Theory;T014:Practical;T015:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+CS302,Artificial Intelligence,CS302,Computer Science,B.Tech CSE,3,1,4,6,150,3,60,false,2,120,true,1,60,false,"T016:Theory;T017:Practical;T018:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+CS303,Web Technologies,CS303,Computer Science,B.Tech CSE,3,2,4,6,150,3,60,false,2,120,true,1,60,false,"T013:Theory;T014:Practical;T015:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+CS304,Mobile App Development,CS304,Computer Science,B.Tech CSE,3,2,4,6,150,3,60,false,2,120,true,1,60,false,"T016:Theory;T017:Practical;T018:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+IT101,Introduction to IT,IT101,Information Technology,B.Tech IT,1,1,4,6,120,3,60,false,2,120,true,1,60,false,"T019:Theory;T020:Practical;T021:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT102,Web Programming,IT102,Information Technology,B.Tech IT,1,1,4,6,120,3,60,false,2,120,true,1,60,false,"T022:Theory;T023:Practical;T024:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT103,Database Systems,IT103,Information Technology,B.Tech IT,1,2,4,6,120,3,60,false,2,120,true,1,60,false,"T019:Theory;T020:Practical;T021:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT104,Network Fundamentals,IT104,Information Technology,B.Tech IT,1,2,4,5,120,3,60,false,1,120,true,1,60,false,"T022:Theory;T023:Practical;T024:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT201,Cloud Computing,IT201,Information Technology,B.Tech IT,2,1,4,6,120,3,60,false,2,120,true,1,60,false,"T025:Theory;T026:Practical;T027:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT202,Cyber Security,IT202,Information Technology,B.Tech IT,2,1,4,6,120,3,60,false,2,120,true,1,60,false,"T028:Theory;T029:Practical;T030:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT203,IoT Systems,IT203,Information Technology,B.Tech IT,2,2,4,6,120,3,60,false,2,120,true,1,60,false,"T025:Theory;T026:Practical;T027:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+IT204,Big Data Analytics,IT204,Information Technology,B.Tech IT,2,2,4,5,120,3,60,false,1,120,true,1,60,false,"T028:Theory;T029:Practical;T030:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+EC101,Circuit Analysis,EC101,Electronics,B.Tech ECE,1,1,4,6,150,3,60,false,2,120,true,1,60,false,"T031:Theory;T032:Practical;T033:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC102,Electronic Devices,EC102,Electronics,B.Tech ECE,1,1,4,6,150,3,60,false,2,120,true,1,60,false,"T034:Theory;T035:Practical;T036:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC103,Digital Electronics,EC103,Electronics,B.Tech ECE,1,2,4,6,150,3,60,false,2,120,true,1,60,false,"T031:Theory;T032:Practical;T033:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC104,Signals and Systems,EC104,Electronics,B.Tech ECE,1,2,4,5,150,3,60,false,1,120,true,1,60,false,"T034:Theory;T035:Practical;T036:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC201,Communication Systems,EC201,Electronics,B.Tech ECE,2,1,4,6,150,3,60,false,2,120,true,1,60,false,"T037:Theory;T038:Practical;T039:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC202,Microprocessors,EC202,Electronics,B.Tech ECE,2,1,4,6,150,3,60,false,2,120,true,1,60,false,"T040:Theory;T041:Practical;T042:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC203,VLSI Design,EC203,Electronics,B.Tech ECE,2,2,4,6,150,3,60,false,2,120,true,1,60,false,"T037:Theory;T038:Practical;T039:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+EC204,Embedded Systems,EC204,Electronics,B.Tech ECE,2,2,4,5,150,3,60,false,1,120,true,1,60,false,"T040:Theory;T041:Practical;T042:Tutorial",50,"A1:25;A2:25",50,"B1:25;B2:25",50,"C1:25;C2:25"
+ME101,Engineering Mechanics,ME101,Mechanical,B.Tech ME,1,1,4,5,120,3,60,false,1,120,false,1,60,false,"T043:Theory;T044:Practical;T045:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+ME102,Thermodynamics,ME102,Mechanical,B.Tech ME,1,1,4,5,120,3,60,false,1,120,false,1,60,false,"T046:Theory;T047:Practical;T048:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+ME103,Fluid Mechanics,ME103,Mechanical,B.Tech ME,1,2,4,5,120,3,60,false,1,120,false,1,60,false,"T043:Theory;T044:Practical;T045:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",
+ME104,Manufacturing Processes,ME104,Mechanical,B.Tech ME,1,2,4,6,120,3,60,false,2,120,true,1,60,false,"T046:Theory;T047:Practical;T048:Tutorial",60,"A1:30;A2:30",60,"B1:30;B2:30",0,"",

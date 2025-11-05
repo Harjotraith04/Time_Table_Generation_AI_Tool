@@ -16,6 +16,7 @@ import ProgramsData from './pages/ProgramsDataFull';
 import InfrastructureData from './pages/InfrastructureDataSimple';
 import GenerateTimetable from './pages/GenerateTimetable';
 import ViewTimetable from './pages/ViewTimetable';
+import QueryResolution from './pages/QueryResolution';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRole }) => {
@@ -166,6 +167,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRole={["admin", "faculty"]}>
               <ViewTimetable />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/query-resolution" 
+          element={
+            <ProtectedRoute allowedRole={["admin", "faculty"]}>
+              <QueryResolution />
             </ProtectedRoute>
           } 
         />

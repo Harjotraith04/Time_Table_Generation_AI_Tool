@@ -649,6 +649,169 @@ const sendTeacherEmailChangeNotification = async (teacherData, oldEmail, newEmai
   }
 };
 
+/**
+ * Send query notification to admin
+ * @param {string} adminEmail - Admin email address
+ * @param {Object} query - Query object
+ * @param {Object} submitter - User who submitted the query
+ * @returns {Promise<boolean>} Success status
+ */
+const sendQueryNotification = async (adminEmail, query, submitter) => {
+  if (!transporter) {
+    logger.warn('Email transporter not configured. Skipping email send.');
+    return false;
+  }
+
+  try {
+    const mailOptions = {
+      from: `"Academic System" <${emailConfig.auth.user}>`,
+      to: adminEmail,
+      subject: `New Query: ${query.subject}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #3b82f6; color: white; padding: 20px; text-align: center; }
+            .content { background-color: #f8fafc; padding: 30px; }
+            .query-details { background-color: #e0f2fe; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>New Query Submitted</h1>
+            </div>
+            
+            <div class="content">
+              <p>A new query has been submitted and requires your attention.</p>
+              
+              <div class="query-details">
+                <h3>Query Details:</h3>
+                <p><strong>Subject:</strong> ${query.subject}</p>
+                <p><strong>Type:</strong> ${query.type}</p>
+                <p><strong>Priority:</strong> ${query.priority}</p>
+                <p><strong>Description:</strong></p>
+                <p>${query.description}</p>
+                <hr>
+                <p><strong>Submitted By:</strong> ${submitter.name} (${submitter.email})</p>
+                <p><strong>Role:</strong> ${submitter.role}</p>
+                <p><strong>Date:</strong> ${new Date(query.createdAt).toLocaleString()}</p>
+              </div>
+              
+              <p>Please log in to the admin dashboard to review and respond to this query.</p>
+            </div>
+            
+            <div class="footer">
+              <p>This is an automated notification from the Academic System.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    logger.info(`Query notification sent to admin: ${adminEmail}`);
+    return true;
+
+  } catch (error) {
+    logger.error('Failed to send query notification:', error);
+    return false;
+  }
+};
+
+/**
+ * Send query response notification to user
+ * @param {string} userEmail - User email address
+ * @param {Object} query - Query object
+ * @param {string} status - Query status
+ * @param {string} response - Admin response (optional)
+ * @returns {Promise<boolean>} Success status
+ */
+const sendQueryResponseEmail = async (userEmail, query, status, response = null) => {
+  if (!transporter) {
+    logger.warn('Email transporter not configured. Skipping email send.');
+    return false;
+  }
+
+  try {
+    const statusColors = {
+      approved: '#10b981',
+      rejected: '#ef4444',
+      resolved: '#3b82f6',
+      pending: '#f59e0b'
+    };
+
+    const statusColor = statusColors[status] || '#6b7280';
+
+    const mailOptions = {
+      from: `"Academic System" <${emailConfig.auth.user}>`,
+      to: userEmail,
+      subject: `Query Update: ${query.subject}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: ${statusColor}; color: white; padding: 20px; text-align: center; }
+            .content { background-color: #f8fafc; padding: 30px; }
+            .query-details { background-color: #e0f2fe; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .response-box { background-color: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Query ${status.charAt(0).toUpperCase() + status.slice(1)}</h1>
+            </div>
+            
+            <div class="content">
+              <p>Your query has been updated.</p>
+              
+              <div class="query-details">
+                <h3>Query Details:</h3>
+                <p><strong>Subject:</strong> ${query.subject}</p>
+                <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${status.toUpperCase()}</span></p>
+                <p><strong>Description:</strong></p>
+                <p>${query.description}</p>
+              </div>
+              
+              ${response ? `
+                <div class="response-box">
+                  <h3>Admin Response:</h3>
+                  <p>${response}</p>
+                </div>
+              ` : ''}
+              
+              <p>Thank you for your patience. If you have any further questions, please don't hesitate to submit another query.</p>
+            </div>
+            
+            <div class="footer">
+              <p>This is an automated notification from the Academic System.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    logger.info(`Query response email sent to: ${userEmail}`);
+    return true;
+
+  } catch (error) {
+    logger.error('Failed to send query response email:', error);
+    return false;
+  }
+};
+
 module.exports = {
   generateSecurePassword,
   sendStudentCredentials,
@@ -657,6 +820,8 @@ module.exports = {
   sendBulkCreationSummary,
   sendEmailChangeNotification,
   sendTeacherEmailChangeNotification,
+  sendQueryNotification,
+  sendQueryResponseEmail,
   testEmailConfiguration,
   isConfigured: () => !!transporter
 };

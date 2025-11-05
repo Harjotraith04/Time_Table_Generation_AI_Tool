@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -10,29 +10,45 @@ import {
   GraduationCap,
   Settings,
   Building2,
-  BookOpen
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Table
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeTab, onTabChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode } = useTheme();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('adminSidebarCollapsed');
+      return saved === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
 
-  // Sidebar does not toggle global scroll anymore. Landing page controls global scroll.
+  const handleToggleCollapsed = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('adminSidebarCollapsed', next ? 'true' : 'false'); } catch (e) {}
+      return next;
+    });
+  };
 
   // Determine active section based on current path if not on dashboard
   const getActiveTab = () => {
-    // Use explicit prop/state for dashboard tab highlighting only.
-    // Avoid matching other routes (like /create-timetable or /student-management)
-    // which previously caused unrelated tabs to become active because of
-    // broad substring matching (e.g. path.includes('timetable')).
-    if (activeTab) return activeTab; // Use prop if provided (for dashboard)
-
     const path = location.pathname;
 
-    // Only consider the admin dashboard route for these sidebar tabs.
-    // When navigating to /admin-dashboard we may get an activeTab in location.state
-    // so prefer that. Otherwise, don't mark any dashboard tab active for other routes.
+    // Check if we're on any of the special pages
+    if (path === '/view-timetable' || path.startsWith('/view-timetable/')) return 'timetables';
+    if (path === '/query-resolution') return 'users';
+    
+    // Use explicit prop/state for dashboard tab highlighting only.
+    if (activeTab) return activeTab;
+
     if (path === '/admin-dashboard') {
       return (location.state && location.state.activeTab) ? location.state.activeTab : 'overview';
     }
@@ -44,8 +60,8 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
 
   const navigationTabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3, path: '/admin-dashboard' },
-    { id: 'timetables', label: 'All Time Tables', icon: Calendar, path: '/admin-dashboard' },
-    { id: 'users', label: 'Query Resolution', icon: Users, path: '/admin-dashboard' },
+    { id: 'timetables', label: 'All Time Tables', icon: Calendar, path: '/view-timetable' },
+    { id: 'users', label: 'Query Resolution', icon: Users, path: '/query-resolution' },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/admin-dashboard' }
   ];
 
@@ -59,7 +75,10 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
   ];
 
   const handleNavigation = (path, tabId) => {
-    if (tabId && path === '/admin-dashboard') {
+    if (path === '/view-timetable' || path === '/query-resolution') {
+      // Navigate directly to these pages
+      navigate(path);
+    } else if (tabId && path === '/admin-dashboard') {
       // For dashboard tabs, call the callback if provided
       if (onTabChange) {
         onTabChange(tabId);
@@ -73,58 +92,111 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
 
   return (
     <aside
-      className={`w-72 sticky top-16 rounded-none p-4 border-r shadow-lg ${
+      className={`${isCollapsed ? 'w-20' : 'w-72'} sticky top-16 rounded-2xl border-r shadow-2xl transition-all duration-300 ease-in-out ${
         isDarkMode 
-          ? 'bg-gradient-to-b from-gray-900 to-black border-gray-800' 
-          : 'bg-white border-gray-200'
+          ? 'bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950 border-gray-800' 
+          : 'bg-gradient-to-b from-white via-gray-50 to-gray-100 border-gray-200'
       }`}
-      style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'auto' }}
+      // allow the decorative collapse control to overflow so it isn't clipped
+      style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'visible' }}
     >
-      {/* Main Navigation */}
-      <nav className="space-y-2 mb-6">
-        {navigationTabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleNavigation(tab.path, tab.id)}
-            className={`relative w-full flex items-center space-x-3 pl-6 pr-4 py-3 rounded-lg transition-all duration-200 text-left ${
-              currentTab === tab.id 
-                ? 'bg-blue-600 text-white shadow-md' 
-                : isDarkMode 
-                  ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            }`}
-          >
-            {currentTab === tab.id && (
-              <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-md" />
-            )}
-            <tab.icon className="w-4 h-4" />
-            <span className="font-medium">{tab.label}</span>
-          </button>
-        ))}
-      </nav>
+      {/* Collapse/Expand Button - decorative half-circle and circular button. Only the button toggles (decorative circle is non-interactive) */}
+      <div className={`absolute top-4 z-20 ${isCollapsed ? '-right-4' : '-right-3'} flex items-center justify-center`} style={{ pointerEvents: 'none' }}>
+  {/* Decorative semicircle behind the button (non-interactive) */}
+  <div className={`w-10 h-10 rounded-full ${isDarkMode ? 'bg-gradient-to-br from-gray-800/60 to-gray-900/60' : 'bg-white/80'} shadow-2xl ring-4 ring-white`} style={{ filter: 'blur(0.2px)', opacity: 0.95 }} />
+        {/* Actual interactive circular button (on top) */}
+        <button
+          onClick={handleToggleCollapsed}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={`absolute p-2 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 border focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+            isDarkMode ? 'bg-gradient-to-br from-blue-700 to-purple-700 text-white border-transparent' : 'bg-white border-gray-200 text-gray-700'
+          }`}
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          style={{ pointerEvents: 'auto' }}
+        >
+          <ChevronLeft className={`w-4 h-4 transform transition-transform duration-300 ${isCollapsed ? 'rotate-180' : 'rotate-0'}`} />
+        </button>
+      </div>
 
-      {/* Quick Actions */}
-      <div className={`border-t pt-4 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-        <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          Quick Actions
-        </h4>
-        <div className="space-y-3">
-          {quickActions.map((action, index) => {
-            const isActive = location.pathname === action.path;
-            return (
-              <button
-                key={index}
-                onClick={() => navigate(action.path)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 text-white ${action.color} ${
-                  isActive ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-gray-900' : ''
-                }`}
-              >
-                <action.icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{action.label}</span>
-              </button>
-            );
-          })}
+      <div className="h-full overflow-y-auto overflow-x-hidden p-3 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
+        {/* Top spacer to add breathing room so the collapse control doesn't overlap the first nav item */}
+        <div className={isCollapsed ? 'h-10' : 'h-6'} />
+        {/* Top branding removed (icon removed as requested) */}
+
+        {/* Main Navigation */}
+  <nav className="space-y-1 mb-3">
+          {!isCollapsed && (
+            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 px-3 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              Navigation
+            </h4>
+          )}
+          {navigationTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleNavigation(tab.path, tab.id)}
+              className={`relative w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} ${
+                isCollapsed ? 'px-3' : 'pl-6 pr-4'
+              } py-2.5 rounded-lg transition-all duration-200 text-left group ${
+                currentTab === tab.id 
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg scale-[1.02]' 
+                  : isDarkMode 
+                    ? 'text-gray-300 hover:bg-gray-800 hover:text-white hover:shadow-md'
+                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 hover:shadow-md'
+              }`}
+              title={isCollapsed ? tab.label : ''}
+            >
+              {currentTab === tab.id && !isCollapsed && (
+                <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r-md" />
+              )}
+              <tab.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} ${
+                currentTab === tab.id ? 'text-white' : ''
+              } transition-transform group-hover:scale-110`} />
+              {!isCollapsed && (
+                <span className="font-medium flex-1">{tab.label}</span>
+              )}
+              {!isCollapsed && currentTab === tab.id && (
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Quick Actions */}
+          <div className={`border-t pt-2 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+          {!isCollapsed && (
+            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 px-3 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              Quick Actions
+            </h4>
+          )}
+          <div className="space-y-2">
+            {quickActions.map((action, index) => {
+              const isActive = location.pathname === action.path;
+              return (
+                <button
+                  key={index}
+                  onClick={() => navigate(action.path)}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} ${
+                    isCollapsed ? 'px-3' : 'px-4'
+                  } py-2.5 rounded-lg transition-all duration-200 text-white ${action.color} ${
+                    isActive ? 'ring-2 ring-white ring-opacity-50 shadow-xl scale-[1.02]' : 'shadow-md hover:shadow-lg hover:scale-[1.02]'
+                  } group`}
+                  title={isCollapsed ? action.label : ''}
+                >
+                  <action.icon className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'} transition-transform group-hover:scale-110`} />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium flex-1 text-left">{action.label}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Help box removed per request */}
       </div>
     </aside>
   );

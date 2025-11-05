@@ -340,3 +340,34 @@ export const exportData = async (type, format = 'csv') => {
   })
   return response.data
 }
+
+// ==================== QUERY RESOLUTION API ====================
+export const getQueries = async (params = {}) => {
+  const response = await api.get('/queries', { params })
+  return response.data
+}
+
+export const getQuery = async (id) => {
+  const response = await api.get(`/queries/${id}`)
+  return response.data
+}
+
+export const createQuery = async (queryData) => {
+  const response = await api.post('/queries', queryData)
+  return response.data
+}
+
+export const updateQueryStatus = async (id, status) => {
+  const response = await api.patch(`/queries/${id}/status`, { status })
+  return response.data
+}
+
+export const respondToQuery = async (id, response) => {
+  const responseData = await api.post(`/queries/${id}/respond`, { response })
+  return responseData.data
+}
+
+export const deleteQuery = async (id) => {
+  const response = await api.delete(`/queries/${id}`)
+  return response.data
+}
