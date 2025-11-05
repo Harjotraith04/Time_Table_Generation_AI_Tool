@@ -22,9 +22,9 @@ class CSPSolver {
       endTime: '17:00',
       slotDuration: 60, // minutes
       breakSlots: ['12:00-13:00'],
-      enforceBreaks: true,
-      balanceWorkload: true,
-      maxBacktrackingSteps: 50000, // Increased for better success rate
+      enforceBreaks: false, // RELAXED: Don't enforce breaks
+      balanceWorkload: false, // RELAXED: Don't enforce workload balance
+      maxBacktrackingSteps: 100000, // RELAXED: Increased for better success rate
       ...settings
     };
     
@@ -130,7 +130,9 @@ class CSPSolver {
               sessionIndex: i,
               duration: session.duration || 60,
               requiredFeatures: session.requiredFeatures || [],
-              minRoomCapacity: Math.max(session.minRoomCapacity || 0, course.enrolledStudents || 0),
+              // FIXED: Use session's minRoomCapacity if specified, otherwise course enrollment
+              // This allows practical sessions to specify smaller capacity (for lab batches)
+              minRoomCapacity: session.minRoomCapacity || (course.enrolledStudents || 0),
               requiresLab: session.requiresLab || false,
               assignedTeachers: course.assignedTeachers.filter(t => 
                 t.sessionTypes && t.sessionTypes.includes(sessionTypeCapitalized)
@@ -155,22 +157,67 @@ class CSPSolver {
 
     for (const variable of this.variables) {
       const possibleAssignments = [];
+      let debugInfo = {
+        timeSlotChecked: 0,
+        teachersFailed: 0,
+        classroomsFailed: 0,
+        extendedBeyondHours: 0,
+        teacherUnavailable: 0
+      };
 
       for (const timeSlot of this.timeSlots) {
+        debugInfo.timeSlotChecked++;
+        
+        // RELAXED: For sessions longer than 1 hour, calculate extended end time
+        const sessionDuration = variable.duration || 60;
+        const slotDuration = this.settings.slotDuration || 60;
+        
+        // Calculate actual end time based on session duration
+        const [startHour, startMin] = timeSlot.startTime.split(':').map(Number);
+        let endHour = startHour;
+        let endMin = startMin + sessionDuration;
+        
+        if (endMin >= 60) {
+          endHour += Math.floor(endMin / 60);
+          endMin = endMin % 60;
+        }
+        
+        const sessionEndTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+        
+        // Check if session end time is within working hours
+        const workingEndTime = this.settings.endTime;
+        if (sessionEndTime > workingEndTime) {
+          debugInfo.extendedBeyondHours++;
+          continue; // Session would extend beyond working hours
+        }
+
         for (const teacher of variable.assignedTeachers) {
           const teacherObj = this.teachers.find(t => t.id === teacher.teacherId);
-          if (!teacherObj) continue;
+          if (!teacherObj) {
+            debugInfo.teachersFailed++;
+            continue;
+          }
           
-          // Check teacher availability inline (supports both plain objects and Mongoose models)
+          // RELAXED: Check teacher availability (supports both plain objects and Mongoose models)
           const dayLower = timeSlot.day.toLowerCase();
           const teacherAvail = teacherObj.availability?.[dayLower];
-          if (!teacherAvail || !teacherAvail.available) continue;
-          if (timeSlot.startTime < teacherAvail.startTime || timeSlot.startTime >= teacherAvail.endTime) {
-            continue;
+          
+          // RELAXED: If no availability info, assume available during working hours
+          if (teacherAvail) {
+            if (!teacherAvail.available) {
+              debugInfo.teacherUnavailable++;
+              continue;
+            }
+            // RELAXED: Check if session fits within teacher's available hours
+            if (timeSlot.startTime < teacherAvail.startTime || sessionEndTime > teacherAvail.endTime) {
+              debugInfo.teacherUnavailable++;
+              continue;
+            }
           }
 
           for (const classroom of this.classrooms) {
             if (!this.isClassroomSuitableForVariable(classroom, variable, timeSlot)) {
+              debugInfo.classroomsFailed++;
               continue;
             }
 
@@ -180,10 +227,26 @@ class CSPSolver {
               classroomId: classroom.id,
               day: timeSlot.day,
               startTime: timeSlot.startTime,
-              endTime: timeSlot.endTime
+              endTime: sessionEndTime, // Use calculated end time based on session duration
+              duration: sessionDuration
             });
           }
         }
+      }
+
+      // Log debug info for empty domains
+      if (possibleAssignments.length === 0) {
+        logger.warn(`CSP: Variable ${variable.id} (${variable.courseName} ${variable.sessionType}) domain analysis:`, {
+          duration: variable.duration,
+          teachers: variable.assignedTeachers.length,
+          timeSlots: debugInfo.timeSlotChecked,
+          extendedBeyondHours: debugInfo.extendedBeyondHours,
+          teacherUnavailable: debugInfo.teacherUnavailable,
+          classroomsFailed: debugInfo.classroomsFailed,
+          requiresLab: variable.requiresLab,
+          requiredFeatures: variable.requiredFeatures,
+          minCapacity: variable.minRoomCapacity
+        });
       }
 
       domains.set(variable.id, possibleAssignments);
@@ -193,16 +256,20 @@ class CSPSolver {
   }
 
   /**
-   * Check if a classroom is suitable for a variable
+   * Check if a classroom is suitable for a variable (RELAXED VERSION)
    */
   isClassroomSuitableForVariable(classroom, variable, timeSlot) {
     // Check basic availability inline (supports both plain objects and Mongoose models)
     const dayLower = timeSlot.day.toLowerCase();
     const classroomAvail = classroom.availability?.[dayLower];
-    if (!classroomAvail || !classroomAvail.available) {
+    
+    // RELAXED: If no availability info, assume available
+    if (!classroomAvail) {
+      // Assume available during working hours if no availability specified
+      const available = true;
+    } else if (!classroomAvail.available) {
       return false;
-    }
-    if (timeSlot.startTime < classroomAvail.startTime || timeSlot.startTime >= classroomAvail.endTime) {
+    } else if (timeSlot.startTime < classroomAvail.startTime || timeSlot.startTime >= classroomAvail.endTime) {
       return false;
     }
 
@@ -211,23 +278,30 @@ class CSPSolver {
       return false;
     }
 
-    // Check required features inline (supports both plain objects and Mongoose models)
+    // RELAXED: Check required features - allow if at least 50% match
     if (variable.requiredFeatures && variable.requiredFeatures.length > 0) {
       const classroomFeatures = classroom.features || [];
-      const hasAllFeatures = variable.requiredFeatures.every(feature => 
+      const matchingFeatures = variable.requiredFeatures.filter(feature => 
         classroomFeatures.includes(feature)
-      );
-      if (!hasAllFeatures) {
+      ).length;
+      const matchRatio = matchingFeatures / variable.requiredFeatures.length;
+      
+      // RELAXED: Accept if at least 50% of features match
+      if (matchRatio < 0.5) {
         return false;
       }
     }
 
-    // Check room type requirements
+    // RELAXED: Check room type requirements - prefer labs but allow others if needed
     if (variable.requiresLab && !classroom.type.toLowerCase().includes('lab')) {
-      return false;
+      // RELAXED: Allow non-lab rooms for lab sessions if they have computers
+      const hasComputers = (classroom.features || []).includes('Computers');
+      if (!hasComputers) {
+        return false;
+      }
     }
 
-    // Check if suitable for session type (inline check for plain objects and models)
+    // RELAXED: Check if suitable for session type - make it optional
     const sessionTypeMapping = {
       'theory': 'Theory',
       'practical': 'Practical',
@@ -236,7 +310,11 @@ class CSPSolver {
 
     const suitableFor = classroom.suitableFor || [];
     if (suitableFor.length > 0 && !suitableFor.includes(sessionTypeMapping[variable.sessionType])) {
-      return false;
+      // RELAXED: Only enforce for practical sessions
+      if (variable.sessionType === 'practical') {
+        return false;
+      }
+      // Theory and tutorial can use any room
     }
 
     return true;
@@ -250,12 +328,13 @@ class CSPSolver {
       this.teacherConflictConstraint.bind(this),
       this.classroomConflictConstraint.bind(this),
       this.studentConflictConstraint.bind(this),
-      this.teacherWorkloadConstraint.bind(this),
-      this.preferredTimeConstraint.bind(this),
-      this.avoidTimeConstraint.bind(this),
-      this.consecutiveSessionConstraint.bind(this),
-      this.sameDayConstraint.bind(this),
-      this.breakRequirementConstraint.bind(this)
+      // Removed strict soft constraints to allow more solutions:
+      // - teacherWorkloadConstraint
+      // - preferredTimeConstraint
+      // - avoidTimeConstraint
+      // - consecutiveSessionConstraint
+      // - sameDayConstraint
+      // - breakRequirementConstraint
     ];
   }
 
@@ -300,16 +379,16 @@ class CSPSolver {
       }
       logger.info(`Domain stats: avg=${(totalDomainSize / this.variables.length).toFixed(2)}, min=${minDomainSize === Infinity ? 0 : minDomainSize}, empty=${emptyDomains}`);
 
-      if (emptyDomains > this.variables.length / 2) {
-        // More than half the variables have no valid assignments
-        logger.error(`${emptyDomains}/${this.variables.length} variables have no valid assignments - problem is over-constrained`);
+      // RELAXED: Only fail if ALL variables have empty domains
+      if (emptyDomains === this.variables.length) {
+        logger.error(`All ${emptyDomains} variables have no valid assignments - problem is impossible`);
         return { 
           success: false, 
-          reason: `Problem is over-constrained: ${emptyDomains}/${this.variables.length} variables have no valid domain values. Try relaxing constraints or adding more resources.` 
+          reason: `Problem is impossible: All ${emptyDomains} variables have no valid domain values. Check data constraints.` 
         };
       } else if (emptyDomains > 0) {
-        // Some variables have empty domains, but we can try
-        logger.warn(`${emptyDomains} variables have empty domains, but continuing with backtracking...`);
+        // Some variables have empty domains, but we'll try anyway
+        logger.warn(`${emptyDomains} variables have empty domains, continuing with backtracking...`);
       }
 
       // Skip arc consistency - it's too restrictive for this problem
