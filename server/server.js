@@ -15,6 +15,7 @@ const dataRoutes = require('./routes/data');
 const timetableRoutes = require('./routes/timetables');
 const algorithmRoutes = require('./routes/algorithms');
 const queryRoutes = require('./routes/queries');
+const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
 const server = createServer(app);
@@ -97,6 +98,7 @@ app.use('/api/data', dataRoutes);
 app.use('/api/timetables', timetableRoutes);
 app.use('/api/algorithm', algorithmRoutes);
 app.use('/api/queries', queryRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminSidebar from '../components/AdminSidebar';
+import Chatbot from '../components/Chatbot';
 import { 
   Calendar, 
   Download,
@@ -1359,6 +1360,9 @@ const ViewTimetable = () => {
           </div>
         </div>
       )}
+
+      {/* Chatbot Component */}
+      <Chatbot />
     </div>
   );
 };

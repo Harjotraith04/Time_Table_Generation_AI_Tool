@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AdminSidebar from '../components/AdminSidebar';
+import Chatbot from '../components/Chatbot';
 import { getTeachers, getClassrooms, getCourses, getTimetables, getDataStatistics, getStudentStats } from '../services/api';
 import { 
   Calendar, 
@@ -667,6 +668,9 @@ const AdminDashboard = () => {
           </main>
         </div>
       </div>
+
+      {/* Chatbot Component */}
+      <Chatbot />
     </div>
   );
 };

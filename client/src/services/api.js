@@ -371,3 +371,27 @@ export const deleteQuery = async (id) => {
   const response = await api.delete(`/queries/${id}`)
   return response.data
 }
+
+// ==================== CHATBOT API ====================
+export const sendChatbotMessage = async (message, userRole, userId) => {
+  const response = await api.post('/chatbot/message', {
+    message,
+    userRole,
+    userId
+  })
+  return response.data
+}
+
+export const getChatbotSuggestions = async () => {
+  const response = await api.get('/chatbot/suggestions')
+  return response.data
+}
+
+export const submitChatbotFeedback = async (messageId, rating, comment) => {
+  const response = await api.post('/chatbot/feedback', {
+    messageId,
+    rating,
+    comment
+  })
+  return response.data
+}

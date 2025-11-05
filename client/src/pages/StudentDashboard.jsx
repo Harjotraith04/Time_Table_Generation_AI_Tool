@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import Chatbot from '../components/Chatbot';
 import { getTimetables } from '../services/api';
 import { 
   Calendar, 
@@ -442,6 +443,9 @@ const StudentDashboard = () => {
         {activeTab === 'assignments' && renderAssignments()}
         {activeTab === 'notifications' && renderNotifications()}
       </div>
+
+      {/* Chatbot Component */}
+      <Chatbot />
     </div>
   );
 };
