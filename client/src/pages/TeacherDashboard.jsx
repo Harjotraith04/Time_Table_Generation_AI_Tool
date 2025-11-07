@@ -24,7 +24,12 @@ import {
   Plus,
   Sun,
   Moon,
-  Loader
+  Loader,
+  MessageSquare,
+  BarChart3,
+  PieChart,
+  Activity,
+  Award
 } from 'lucide-react';
 
 const TeacherDashboard = () => {
@@ -66,7 +71,7 @@ const TeacherDashboard = () => {
   const currentWeek = [];
   const courses = [];
   const notifications = [];
-  const upcomingTasks = [];
+  const queries = []; // Changed from upcomingTasks to queries
 
   const renderTimetable = () => (
     <div className="space-y-6">
@@ -137,19 +142,184 @@ const TeacherDashboard = () => {
 
   const renderAssignments = () => (
     <div className="space-y-6">
-      <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Upcoming Tasks</h3>
+      <div className="flex justify-between items-center">
+        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Student Queries</h3>
+        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+          <MessageSquare className="w-4 h-4" />
+          <span>View All</span>
+        </button>
+      </div>
       
-      {upcomingTasks.length === 0 ? (
+      {queries.length === 0 ? (
         <div className="text-center py-12">
-          <CheckCircle className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+          <MessageSquare className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
           <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            No Upcoming Tasks
+            No Pending Queries
           </h3>
           <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            You're all caught up! Check back later for new tasks.
+            All student queries have been resolved. Great work!
           </p>
         </div>
-      ) : null}
+      ) : (
+        <div className="space-y-4">
+          {queries.map((query, index) => (
+            <div key={index} className={`rounded-xl border p-5 hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400'}`}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-4 flex-1">
+                  <div className={`p-3 rounded-lg ${
+                    query.priority === 'high' ? 'bg-red-100 dark:bg-red-900/30' :
+                    query.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                    'bg-green-100 dark:bg-green-900/30'
+                  }`}>
+                    <MessageSquare className={`w-5 h-5 ${
+                      query.priority === 'high' ? 'text-red-600' :
+                      query.priority === 'medium' ? 'text-yellow-600' :
+                      'text-green-600'
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className={`font-semibold mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{query.student}</h4>
+                    <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{query.subject}</p>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{query.question}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end space-y-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    query.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                    query.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                  }`}>
+                    {query.priority}
+                  </span>
+                  <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Respond
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderAnalytics = () => (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className={`text-xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Teaching Analytics</h3>
+        <button className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center space-x-2 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'} shadow-lg hover:shadow-xl hover:scale-105`}>
+          <Download className="w-4 h-4" />
+          <span>Export Report</span>
+        </button>
+      </div>
+      
+      {/* Performance Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className={`rounded-xl border p-6 transition-all duration-300 hover:shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-900/40 to-blue-800/20 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-700/50' : 'bg-blue-200'}`}>
+              <Award className="w-6 h-6 text-blue-600" />
+            </div>
+            <TrendingUp className="w-5 h-5 text-green-500" />
+          </div>
+          <h4 className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Student Satisfaction</h4>
+          <p className={`text-3xl font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>4.8/5</p>
+          <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>+0.3 from last month</p>
+        </div>
+
+        <div className={`rounded-xl border p-6 transition-all duration-300 hover:shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-green-900/40 to-green-800/20 border-green-700/50' : 'bg-gradient-to-br from-green-50 to-green-100 border-green-200'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-700/50' : 'bg-green-200'}`}>
+              <Activity className="w-6 h-6 text-green-600" />
+            </div>
+            <TrendingUp className="w-5 h-5 text-green-500" />
+          </div>
+          <h4 className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Attendance Rate</h4>
+          <p className={`text-3xl font-bold ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>92%</p>
+          <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Above average by 7%</p>
+        </div>
+
+        <div className={`rounded-xl border p-6 transition-all duration-300 hover:shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-700/50' : 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-700/50' : 'bg-purple-200'}`}>
+              <BarChart3 className="w-6 h-6 text-purple-600" />
+            </div>
+            <TrendingUp className="w-5 h-5 text-green-500" />
+          </div>
+          <h4 className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Avg. Class Score</h4>
+          <p className={`text-3xl font-bold ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>85%</p>
+          <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Excellent performance</p>
+        </div>
+      </div>
+
+      {/* Course Performance */}
+      <div className={`rounded-xl border p-6 transition-all duration-300 hover:shadow-xl ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h4 className={`text-lg font-semibold flex items-center space-x-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+            <PieChart className="w-5 h-5 text-blue-600" />
+            <span>Course Performance Overview</span>
+          </h4>
+          <button className={`text-sm flex items-center space-x-1 transition-colors ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}>
+            <span>View Details</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {[
+            { name: 'Data Structures', progress: 85, students: 45, color: 'blue' },
+            { name: 'Algorithms', progress: 78, students: 42, color: 'green' },
+            { name: 'Database Systems', progress: 92, students: 38, color: 'purple' },
+            { name: 'Web Development', progress: 88, students: 50, color: 'orange' }
+          ].map((course, index) => (
+            <div key={index} className={`p-4 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-3">
+                  <BookOpen className={`w-5 h-5 text-${course.color}-600`} />
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{course.name}</span>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{course.students} students</span>
+                  <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{course.progress}%</span>
+                </div>
+              </div>
+              <div className={`w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                <div 
+                  className={`bg-${course.color}-600 h-2 rounded-full transition-all duration-300`}
+                  style={{ width: `${course.progress}%` }}
+                ></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className={`rounded-xl border p-6 transition-all duration-300 hover:shadow-xl ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <h4 className={`text-lg font-semibold mb-5 flex items-center space-x-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+          <Activity className="w-5 h-5 text-purple-600" />
+          <span>Recent Activity</span>
+        </h4>
+        <div className="space-y-3">
+          {[
+            { action: 'Graded assignments', course: 'Data Structures', time: '2 hours ago', icon: CheckCircle, color: 'green' },
+            { action: 'Updated course material', course: 'Algorithms', time: '5 hours ago', icon: BookOpen, color: 'blue' },
+            { action: 'Responded to queries', course: 'Database Systems', time: '1 day ago', icon: MessageSquare, color: 'purple' },
+            { action: 'Scheduled class', course: 'Web Development', time: '2 days ago', icon: Calendar, color: 'orange' }
+          ].map((activity, index) => (
+            <div key={index} className={`flex items-center space-x-4 p-3 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50'}`}>
+              <div className={`p-2 rounded-lg bg-${activity.color}-100 dark:bg-${activity.color}-900/30`}>
+                <activity.icon className={`w-4 h-4 text-${activity.color}-600`} />
+              </div>
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{activity.action}</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{activity.course}</p>
+              </div>
+              <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{activity.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
@@ -216,7 +386,7 @@ const TeacherDashboard = () => {
         </div>
       </header>
 
-      <div className="w-full px-0 pt-16 pb-8">
+      <div className="w-full px-0 pt-0 pb-0">
         <div className="w-full flex">
           <AdminSidebar 
             showQuickActions={false} 
@@ -225,90 +395,97 @@ const TeacherDashboard = () => {
             onTabChange={setActiveTab}
           />
 
-          <main className="flex-1">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 mb-8 text-white">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-white/20 rounded-lg">
-                    <Users className="w-8 h-8" />
+          <main className="flex-1 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent" style={{ maxHeight: 'calc(100vh - 4rem)', overflowY: 'auto', overflowX: 'hidden' }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-size-200 animate-gradient rounded-xl p-5 mb-5 text-white shadow-2xl border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-white/20 rounded-xl shadow-lg backdrop-blur-sm">
+                      <Users className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">Welcome back, {user?.name}! 👋</h2>
+                      <p className="text-blue-100 text-sm">Here's your teaching overview for this week</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">Welcome back, {user?.name}!</h2>
-                    <p className="text-blue-100">Here's your teaching overview for this week</p>
+                  <div className={`px-4 py-2 rounded-lg backdrop-blur-sm ${isDarkMode ? 'bg-white/10' : 'bg-white/20'}`}>
+                    <p className="text-xs text-blue-100">Active</p>
+                    <p className="text-lg font-bold">Faculty</p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+                <div className={`rounded-xl p-5 border transition-all duration-300 hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-600' : 'bg-white border-gray-200 hover:border-blue-400'}`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Courses</p>
-                      <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>4</p>
+                      <p className={`text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Courses</p>
+                      <p className={`text-3xl font-bold mt-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>4</p>
                     </div>
-                    <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                    <div className={`p-3 rounded-lg transition-transform duration-300 hover:rotate-12 ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
                       <BookOpen className="w-6 h-6 text-blue-600" />
                     </div>
                   </div>
                 </div>
                 
-                <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <div className={`rounded-xl p-5 border transition-all duration-300 hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-green-600' : 'bg-white border-gray-200 hover:border-green-400'}`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Classes Today</p>
-                      <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>5</p>
+                      <p className={`text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Classes Today</p>
+                      <p className={`text-3xl font-bold mt-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>5</p>
                     </div>
-                    <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                    <div className={`p-3 rounded-lg transition-transform duration-300 hover:rotate-12 ${isDarkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
                       <Clock className="w-6 h-6 text-green-600" />
                     </div>
                   </div>
                 </div>
                 
-                <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <div className={`rounded-xl p-5 border transition-all duration-300 hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-yellow-600' : 'bg-white border-gray-200 hover:border-yellow-400'}`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Students</p>
-                      <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>120</p>
+                      <p className={`text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Students</p>
+                      <p className={`text-3xl font-bold mt-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>120</p>
                     </div>
-                    <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-100'}`}>
+                    <div className={`p-3 rounded-lg transition-transform duration-300 hover:rotate-12 ${isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-100'}`}>
                       <Users className="w-6 h-6 text-yellow-600" />
                     </div>
                   </div>
                 </div>
                 
-                <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <div className={`rounded-xl p-5 border transition-all duration-300 hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-purple-600' : 'bg-white border-gray-200 hover:border-purple-400'}`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hours This Week</p>
-                      <p className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>18</p>
+                      <p className={`text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hours This Week</p>
+                      <p className={`text-3xl font-bold mt-2 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>18</p>
                     </div>
-                    <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
+                    <div className={`p-3 rounded-lg transition-transform duration-300 hover:rotate-12 ${isDarkMode ? 'bg-purple-900/30' : 'bg-purple-100'}`}>
                       <TrendingUp className="w-6 h-6 text-purple-600" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className={`flex space-x-1 rounded-lg p-1 border mb-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className={`flex flex-wrap gap-2 rounded-lg p-1.5 border mb-5 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800/50 border-gray-700 backdrop-blur-sm' : 'bg-white/80 border-gray-200 backdrop-blur-sm shadow-sm'}`}>
                 {[
                   { id: 'timetable', label: 'Schedule', icon: Calendar },
                   { id: 'courses', label: 'Courses', icon: BookOpen },
-                  { id: 'assignments', label: 'Tasks', icon: CheckCircle },
+                  { id: 'assignments', label: 'Query Raised', icon: MessageSquare },
+                  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
                   { id: 'notifications', label: 'Notifications', icon: Bell }
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-all duration-200 ${
+                    className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg transition-all duration-300 font-medium ${
                       activeTab === tab.id
-                        ? 'bg-blue-600 text-white shadow-sm'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 scale-105'
                         : isDarkMode 
-                          ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                          ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/70 hover:shadow-md' 
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-md'
                     }`}
                   >
-                    <tab.icon className="w-4 h-4" />
-                    <span className="font-medium">{tab.label}</span>
+                    <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'animate-pulse' : ''}`} />
+                    <span className="text-sm">{tab.label}</span>
                   </button>
                 ))}
               </div>
@@ -316,6 +493,7 @@ const TeacherDashboard = () => {
               {activeTab === 'timetable' && renderTimetable()}
               {activeTab === 'courses' && renderCourses()}
               {activeTab === 'assignments' && renderAssignments()}
+              {activeTab === 'analytics' && renderAnalytics()}
               {activeTab === 'notifications' && renderNotifications()}
             </div>
           </main>

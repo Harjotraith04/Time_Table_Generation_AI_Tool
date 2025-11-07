@@ -48,6 +48,7 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
     if (path === '/view-timetable' || path.startsWith('/view-timetable/')) return 'timetables';
     if (path === '/query-resolution') return 'users';
     if (path === '/student-dashboard') return activeTab || 'timetable';
+    if (path === '/teacher-dashboard') return activeTab || 'timetable';
     
     // Use explicit prop/state for dashboard tab highlighting only.
     if (activeTab) return activeTab;
@@ -63,12 +64,22 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
 
   // Define navigation tabs based on user role
   const getNavigationTabs = () => {
-    if (userRole === 'student' || userRole === 'teacher' || userRole === 'faculty') {
+    if (userRole === 'student') {
       return [
-        { id: 'timetable', label: 'My Timetable', icon: Calendar, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' },
-        { id: 'courses', label: 'My Courses', icon: BookOpen, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' },
-        { id: 'assignments', label: 'Assignments', icon: CheckCircle, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' },
-        { id: 'notifications', label: 'Notifications', icon: Bell, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' }
+        { id: 'timetable', label: 'My Timetable', icon: Calendar, path: '/student-dashboard' },
+        { id: 'courses', label: 'My Courses', icon: BookOpen, path: '/student-dashboard' },
+        { id: 'assignments', label: 'Assignments', icon: CheckCircle, path: '/student-dashboard' },
+        { id: 'notifications', label: 'Notifications', icon: Bell, path: '/student-dashboard' }
+      ];
+    }
+    
+    if (userRole === 'teacher' || userRole === 'faculty') {
+      return [
+        { id: 'timetable', label: 'My Schedule', icon: Calendar, path: '/teacher-dashboard' },
+        { id: 'courses', label: 'My Courses', icon: BookOpen, path: '/teacher-dashboard' },
+        { id: 'assignments', label: 'Query Raised', icon: Users, path: '/teacher-dashboard' },
+        { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/teacher-dashboard' },
+        { id: 'notifications', label: 'Notifications', icon: Bell, path: '/teacher-dashboard' }
       ];
     }
     
@@ -96,7 +107,7 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
     if (path === '/view-timetable' || path === '/query-resolution') {
       // Navigate directly to these pages
       navigate(path);
-    } else if (tabId && (path === '/admin-dashboard' || path === '/student-dashboard')) {
+    } else if (tabId && (path === '/admin-dashboard' || path === '/student-dashboard' || path === '/teacher-dashboard')) {
       // For dashboard tabs, call the callback if provided
       if (onTabChange) {
         onTabChange(tabId);

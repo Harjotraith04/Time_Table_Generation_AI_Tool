@@ -140,6 +140,22 @@
   50% { background-position: 100% 50%; }
 }
 
+/* Gradient animation for teacher dashboard */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 8s ease infinite;
+}
+
+.bg-size-200 {
+  background-size: 200% 200%;
+}
+
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -507,6 +523,39 @@
   .max-w-lg {
     max-width: 20rem;
   }
+}
+
+/* Enhanced scrollbar styling */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.6), rgba(139, 92, 246, 0.6));
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.8), rgba(139, 92, 246, 0.8));
+  background-clip: padding-box;
+}
+
+/* Dark mode scrollbar */
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(75, 85, 99, 0.6), rgba(55, 65, 81, 0.6));
+  background-clip: padding-box;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(75, 85, 99, 0.8), rgba(55, 65, 81, 0.8));
+  background-clip: padding-box;
 } 
 
 /* Utility class to disable global page scrolling (alias) */
