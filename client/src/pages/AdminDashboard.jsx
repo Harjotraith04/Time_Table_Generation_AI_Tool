@@ -1102,65 +1102,103 @@ const AdminDashboard = () => {
           <div className="w-4 h-4 bg-gradient-to-r from-pink-400/20 to-yellow-400/20 rounded-full animate-bounce-slow"></div>
         </div>
       </div>
-      {/* Header */}
-  <header className={`fixed top-0 left-0 right-0 border-b backdrop-blur-sm transition-all duration-300 z-50 ${isDarkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/90 border-gray-200'}`}>
-        <div className="w-full px-6">
-          <div className="h-16 flex justify-between items-center">
+      {/* Enhanced Header */}
+      <header className={`sticky top-0 z-50 border-b backdrop-blur-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800/95 border-gray-700 shadow-lg shadow-gray-900/50' : 'bg-white/95 border-gray-200 shadow-sm'}`}>
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-3">
+            {/* Left Section - Logo & Title */}
             <div className="flex items-center space-x-4">
-              <div className="group p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 hover:rotate-3">
-                <Calendar className="w-8 h-8 text-white transition-transform duration-300 group-hover:scale-110" />
+              <div className="p-2.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <Calendar className="w-7 h-7 text-white" />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:text-glow transition-all duration-300">
-                Admin Dashboard
-              </h1>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Admin Dashboard
+                </h1>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Academic Year 2024-25
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <button className={`relative p-2 rounded-lg transition-all duration-300 hover:scale-110 hover:shadow-lg ${
-                isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-              }`}>
-                <Bell className="w-5 h-5 transition-transform duration-300 hover:animate-pulse" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+            {/* Right Section - Actions & Profile */}
+            <div className="flex items-center space-x-2 ml-auto">
+              {/* Quick Actions */}
+              <button 
+                className={`hidden md:flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm">Quick Add</span>
               </button>
+
+              {/* Analytics Quick View */}
+              <button 
+                onClick={() => setActiveTab('analytics')}
+                className={`hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span className="text-sm">Analytics</span>
+              </button>
+
+              {/* Notifications */}
+              <div className="relative">
+                <button 
+                  className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+                  title="Notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    4
+                  </span>
+                </button>
+              </div>
               
-              {/* Dark Mode Toggle */}
+              {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 transform hover:shadow-lg ${
-                  isDarkMode 
-                    ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600 hover:shadow-yellow-400/20' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-gray-400/20'
-                }`}
+                className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
-                {isDarkMode ? (
-                  <Sun className="w-5 h-5 transition-transform duration-300 hover:rotate-180" />
-                ) : (
-                  <Moon className="w-5 h-5 transition-transform duration-300 hover:rotate-12" />
-                )}
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
+
+              {/* Divider */}
+              <div className={`h-8 w-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`} />
               
-              <div className="flex items-center space-x-3 p-2 rounded-lg bg-opacity-50 hover:bg-opacity-70 transition-all duration-300">
-                <img 
-                  src={user?.avatar || 'https://via.placeholder.com/32'} 
-                  alt={user?.name}
-                  className="w-8 h-8 rounded-full border-2 border-blue-500/30 hover:border-blue-500 transition-colors duration-300 transform hover:scale-110"
-                />
-                <span className={`text-sm font-medium transition-colors duration-300 ${isDarkMode ? 'text-gray-200 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}>{user?.name}</span>
+              {/* User Profile */}
+              <div className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} cursor-pointer`}>
+                <div className="relative">
+                  <img 
+                    src={user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.name || 'Admin') + '&background=3b82f6&color=fff'} 
+                    alt={user?.name}
+                    className="w-9 h-9 rounded-full border-2 border-blue-500 shadow-md"
+                  />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                </div>
+                <div className="hidden lg:block">
+                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    {user?.name || 'Admin'}
+                  </p>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Administrator
+                  </p>
+                </div>
               </div>
+
+              {/* Logout */}
               <button 
                 onClick={handleLogout}
-                className={`p-2 rounded-lg transition-all duration-300 hover:scale-110 transform hover:shadow-lg ${
-                  isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:shadow-red-400/20' : 'text-gray-400 hover:text-red-600 hover:bg-red-50 hover:shadow-red-400/20'
-                }`}
+                className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-red-900/30 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-600 hover:text-red-600'}`}
+                title="Logout"
               >
-                <LogOut className="w-5 h-5 transition-transform duration-300 hover:scale-110" />
+                <LogOut className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="w-full px-0 pt-16 pb-8">
+      <div className="w-full px-0 pt-6 pb-8">
         <div className="w-full flex">
           {/* Left Sidebar */}
           <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />

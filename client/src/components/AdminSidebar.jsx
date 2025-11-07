@@ -16,7 +16,8 @@ import {
   Home,
   Table,
   CheckCircle,
-  Bell
+  Bell,
+  MessageSquare
 } from 'lucide-react';
 
 const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRole = 'admin' }) => {
@@ -68,7 +69,8 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
       return [
         { id: 'timetable', label: 'My Timetable', icon: Calendar, path: '/student-dashboard' },
         { id: 'courses', label: 'My Courses', icon: BookOpen, path: '/student-dashboard' },
-        { id: 'assignments', label: 'Assignments', icon: CheckCircle, path: '/student-dashboard' },
+        { id: 'queries', label: 'My Queries', icon: MessageSquare, path: '/student-dashboard' },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/student-dashboard' },
         { id: 'notifications', label: 'Notifications', icon: Bell, path: '/student-dashboard' }
       ];
     }
@@ -77,8 +79,8 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
       return [
         { id: 'timetable', label: 'My Schedule', icon: Calendar, path: '/teacher-dashboard' },
         { id: 'courses', label: 'My Courses', icon: BookOpen, path: '/teacher-dashboard' },
-        { id: 'assignments', label: 'Query Raised', icon: Users, path: '/teacher-dashboard' },
-        { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/teacher-dashboard' },
+        { id: 'assignments', label: 'Query Raised', icon: MessageSquare, path: '/teacher-dashboard' },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/teacher-dashboard' },
         { id: 'notifications', label: 'Notifications', icon: Bell, path: '/teacher-dashboard' }
       ];
     }
@@ -150,13 +152,13 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
 
       <div className="h-full overflow-y-auto overflow-x-hidden p-3 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600">
         {/* Top spacer to add breathing room so the collapse control doesn't overlap the first nav item */}
-        <div className={isCollapsed ? 'h-10' : 'h-6'} />
+        <div className={isCollapsed ? 'h-6' : 'h-3'} />
         {/* Top branding removed (icon removed as requested) */}
 
         {/* Main Navigation */}
-  <nav className="space-y-1 mb-3">
+  <nav className="space-y-1 mb-2">
           {!isCollapsed && (
-            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 px-3 ${
+            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 px-3 ${
               isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
               Navigation
@@ -168,9 +170,9 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
               onClick={() => handleNavigation(tab.path, tab.id)}
               className={`relative w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} ${
                 isCollapsed ? 'px-3' : 'pl-6 pr-4'
-              } py-2.5 rounded-lg transition-all duration-200 text-left group ${
+              } py-2 rounded-lg transition-all duration-200 text-left group ${
                 currentTab === tab.id 
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg scale-[1.02]' 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-[1.02]' 
                   : isDarkMode 
                     ? 'text-gray-300 hover:bg-gray-800 hover:text-white hover:shadow-md'
                     : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 hover:shadow-md'
@@ -195,15 +197,15 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
 
         {/* Quick Actions (optional) */}
         {showQuickActions && (
-          <div className={`border-t pt-2 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+          <div className={`border-t pt-2 mt-2 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
             {!isCollapsed && (
-              <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 px-3 ${
+              <h4 className={`text-xs font-semibold uppercase tracking-wider mb-2 px-3 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 Quick Actions
               </h4>
             )}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {quickActions.map((action, index) => {
                 const isActive = location.pathname === action.path;
                 return (
@@ -212,7 +214,7 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
                     onClick={() => navigate(action.path)}
                     className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} ${
                       isCollapsed ? 'px-3' : 'px-4'
-                    } py-2.5 rounded-lg transition-all duration-200 text-white ${action.color} ${
+                    } py-2 rounded-lg transition-all duration-200 text-white ${action.color} ${
                       isActive ? 'ring-2 ring-white ring-opacity-50 shadow-xl scale-[1.02]' : 'shadow-md hover:shadow-lg hover:scale-[1.02]'
                     } group`}
                     title={isCollapsed ? action.label : ''}

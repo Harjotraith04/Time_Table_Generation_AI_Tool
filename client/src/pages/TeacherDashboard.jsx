@@ -343,41 +343,98 @@ const TeacherDashboard = () => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      <header className={`border-b transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+      {/* Enhanced Header */}
+      <header className={`sticky top-0 z-50 border-b backdrop-blur-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800/95 border-gray-700 shadow-lg shadow-gray-900/50' : 'bg-white/95 border-gray-200 shadow-sm'}`}>
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-3">
+            {/* Left Section - Logo & Title */}
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                <Users className="w-8 h-8 text-white" />
+              <div className="p-2.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <Users className="w-7 h-7 text-white" />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Teacher Dashboard
-              </h1>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Faculty Portal
+                </h1>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Academic Year 2024-25
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <button className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
-                <Bell className="w-5 h-5" />
+            {/* Right Section - Actions & Profile */}
+            <div className="flex items-center space-x-2 ml-auto">
+              {/* Quick Actions */}
+              <button 
+                className={`hidden md:flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm">Quick Add</span>
               </button>
+
+              {/* Messages/Queries */}
+              <div className="relative">
+                <button 
+                  className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+                  title="Student Queries"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                    5
+                  </span>
+                </button>
+              </div>
+
+              {/* Notifications */}
+              <div className="relative">
+                <button 
+                  className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+                  title="Notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    2
+                  </span>
+                </button>
+              </div>
               
+              {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
+                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
                 {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
+
+              {/* Divider */}
+              <div className={`h-8 w-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`} />
               
-              <div className="flex items-center space-x-3">
-                <img 
-                  src={user?.avatar || 'https://via.placeholder.com/32'} 
-                  alt={user?.name}
-                  className="w-8 h-8 rounded-full"
-                />
-                <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{user?.name}</span>
+              {/* User Profile */}
+              <div className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} cursor-pointer`}>
+                <div className="relative">
+                  <img 
+                    src={user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.name || 'Teacher') + '&background=6366f1&color=fff'} 
+                    alt={user?.name}
+                    className="w-9 h-9 rounded-full border-2 border-purple-500 shadow-md"
+                  />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                </div>
+                <div className="hidden lg:block">
+                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    {user?.name || 'Test Teacher'}
+                  </p>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Faculty ID: {user?.employeeId || 'FAC2024001'}
+                  </p>
+                </div>
               </div>
+
+              {/* Logout */}
               <button 
                 onClick={handleLogout}
-                className={`p-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-400 hover:text-red-600'}`}
+                className={`p-2.5 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-red-900/30 text-gray-400 hover:text-red-400' : 'hover:bg-red-50 text-gray-600 hover:text-red-600'}`}
+                title="Logout"
               >
                 <LogOut className="w-5 h-5" />
               </button>
