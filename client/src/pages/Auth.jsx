@@ -92,8 +92,10 @@ const Auth = () => {
       });
 
       if (result.success) {
-        if (result.user.role === 'admin' || result.user.role === 'faculty') {
+        if (result.user.role === 'admin') {
           navigate('/admin-dashboard');
+        } else if (result.user.role === 'faculty') {
+          navigate('/teacher-dashboard');
         } else {
           navigate('/student-dashboard');
         }
@@ -128,8 +130,10 @@ const Auth = () => {
       });
 
       if (result.success) {
-        if (result.user.role === 'admin' || result.user.role === 'faculty') {
+        if (result.user.role === 'admin') {
           navigate('/admin-dashboard');
+        } else if (result.user.role === 'faculty') {
+          navigate('/teacher-dashboard');
         } else {
           navigate('/student-dashboard');
         }

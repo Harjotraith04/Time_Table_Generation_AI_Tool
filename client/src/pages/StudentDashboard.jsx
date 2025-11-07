@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Chatbot from '../components/Chatbot';
+import AdminSidebar from '../components/AdminSidebar';
 import { getTimetables } from '../services/api';
 import { 
   Calendar, 
@@ -347,9 +348,19 @@ const StudentDashboard = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 mb-8 text-white">
+      <div className="w-full px-0 pt-16 pb-8">
+        <div className="w-full flex">
+          <AdminSidebar 
+            showQuickActions={false} 
+            userRole="student" 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+
+          <main className="flex-1">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {/* Welcome Section */}
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 mb-8 text-white">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-white/20 rounded-lg">
               <GraduationCap className="w-8 h-8" />
@@ -361,8 +372,8 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className={`rounded-xl p-6 border transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="flex items-center justify-between">
               <div>
@@ -412,8 +423,8 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className={`flex space-x-1 rounded-lg p-1 border mb-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      {/* Navigation Tabs */}
+      <div className={`flex space-x-1 rounded-lg p-1 border mb-8 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
           {[
             { id: 'timetable', label: 'Timetable', icon: Calendar },
             { id: 'courses', label: 'Courses', icon: BookOpen },
@@ -437,11 +448,14 @@ const StudentDashboard = () => {
           ))}
         </div>
 
-        {/* Content */}
-        {activeTab === 'timetable' && renderTimetable()}
-        {activeTab === 'courses' && renderCourses()}
-        {activeTab === 'assignments' && renderAssignments()}
-        {activeTab === 'notifications' && renderNotifications()}
+              {/* Content */}
+              {activeTab === 'timetable' && renderTimetable()}
+              {activeTab === 'courses' && renderCourses()}
+              {activeTab === 'assignments' && renderAssignments()}
+              {activeTab === 'notifications' && renderNotifications()}
+            </div>
+          </main>
+        </div>
       </div>
 
       {/* Chatbot Component */}

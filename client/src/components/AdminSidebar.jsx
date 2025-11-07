@@ -14,10 +14,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
-  Table
+  Table,
+  CheckCircle,
+  Bell
 } from 'lucide-react';
 
-const AdminSidebar = ({ activeTab, onTabChange }) => {
+const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRole = 'admin' }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode } = useTheme();
@@ -45,6 +47,7 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
     // Check if we're on any of the special pages
     if (path === '/view-timetable' || path.startsWith('/view-timetable/')) return 'timetables';
     if (path === '/query-resolution') return 'users';
+    if (path === '/student-dashboard') return activeTab || 'timetable';
     
     // Use explicit prop/state for dashboard tab highlighting only.
     if (activeTab) return activeTab;
@@ -58,12 +61,27 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
 
   const currentTab = getActiveTab();
 
-  const navigationTabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3, path: '/admin-dashboard' },
-    { id: 'timetables', label: 'All Time Tables', icon: Calendar, path: '/view-timetable' },
-    { id: 'users', label: 'Query Resolution', icon: Users, path: '/query-resolution' },
-    { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/admin-dashboard' }
-  ];
+  // Define navigation tabs based on user role
+  const getNavigationTabs = () => {
+    if (userRole === 'student' || userRole === 'teacher' || userRole === 'faculty') {
+      return [
+        { id: 'timetable', label: 'My Timetable', icon: Calendar, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' },
+        { id: 'courses', label: 'My Courses', icon: BookOpen, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' },
+        { id: 'assignments', label: 'Assignments', icon: CheckCircle, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' },
+        { id: 'notifications', label: 'Notifications', icon: Bell, path: userRole === 'student' ? '/student-dashboard' : '/admin-dashboard' }
+      ];
+    }
+    
+    // Admin tabs
+    return [
+      { id: 'overview', label: 'Overview', icon: BarChart3, path: '/admin-dashboard' },
+      { id: 'timetables', label: 'All Time Tables', icon: Calendar, path: '/view-timetable' },
+      { id: 'users', label: 'Query Resolution', icon: Users, path: '/query-resolution' },
+      { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/admin-dashboard' }
+    ];
+  };
+
+  const navigationTabs = getNavigationTabs();
 
   const quickActions = [
     { label: 'Create Timetable', icon: Plus, color: 'bg-blue-700 hover:bg-blue-600', path: '/create-timetable' },
@@ -78,7 +96,7 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
     if (path === '/view-timetable' || path === '/query-resolution') {
       // Navigate directly to these pages
       navigate(path);
-    } else if (tabId && path === '/admin-dashboard') {
+    } else if (tabId && (path === '/admin-dashboard' || path === '/student-dashboard')) {
       // For dashboard tabs, call the callback if provided
       if (onTabChange) {
         onTabChange(tabId);
@@ -164,38 +182,40 @@ const AdminSidebar = ({ activeTab, onTabChange }) => {
           ))}
         </nav>
 
-        {/* Quick Actions */}
+        {/* Quick Actions (optional) */}
+        {showQuickActions && (
           <div className={`border-t pt-2 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-          {!isCollapsed && (
-            <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 px-3 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              Quick Actions
-            </h4>
-          )}
-          <div className="space-y-2">
-            {quickActions.map((action, index) => {
-              const isActive = location.pathname === action.path;
-              return (
-                <button
-                  key={index}
-                  onClick={() => navigate(action.path)}
-                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} ${
-                    isCollapsed ? 'px-3' : 'px-4'
-                  } py-2.5 rounded-lg transition-all duration-200 text-white ${action.color} ${
-                    isActive ? 'ring-2 ring-white ring-opacity-50 shadow-xl scale-[1.02]' : 'shadow-md hover:shadow-lg hover:scale-[1.02]'
-                  } group`}
-                  title={isCollapsed ? action.label : ''}
-                >
-                  <action.icon className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'} transition-transform group-hover:scale-110`} />
-                  {!isCollapsed && (
-                    <span className="text-sm font-medium flex-1 text-left">{action.label}</span>
-                  )}
-                </button>
-              );
-            })}
+            {!isCollapsed && (
+              <h4 className={`text-xs font-semibold uppercase tracking-wider mb-3 px-3 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                Quick Actions
+              </h4>
+            )}
+            <div className="space-y-2">
+              {quickActions.map((action, index) => {
+                const isActive = location.pathname === action.path;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => navigate(action.path)}
+                    className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} ${
+                      isCollapsed ? 'px-3' : 'px-4'
+                    } py-2.5 rounded-lg transition-all duration-200 text-white ${action.color} ${
+                      isActive ? 'ring-2 ring-white ring-opacity-50 shadow-xl scale-[1.02]' : 'shadow-md hover:shadow-lg hover:scale-[1.02]'
+                    } group`}
+                    title={isCollapsed ? action.label : ''}
+                  >
+                    <action.icon className={`${isCollapsed ? 'w-5 h-5' : 'w-4 h-4'} transition-transform group-hover:scale-110`} />
+                    {!isCollapsed && (
+                      <span className="text-sm font-medium flex-1 text-left">{action.label}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Help box removed per request */}
       </div>

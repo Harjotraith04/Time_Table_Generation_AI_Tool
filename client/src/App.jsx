@@ -7,6 +7,7 @@ import Auth from './pages/Auth';
 import Demo from './pages/Demo';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import TeacherDashboard from './pages/TeacherDashboard';
 import CreateTimetable from './pages/CreateTimetable';
 import UserManagement from './pages/UserManagement';
 import StudentManagement from './pages/StudentManagement';
@@ -41,8 +42,10 @@ const ProtectedRoute = ({ children, allowedRole }) => {
     const allowedRoles = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
     if (!allowedRoles.includes(user?.role)) {
       // Redirect to appropriate dashboard based on user role
-      if (user?.role === 'admin' || user?.role === 'faculty') {
+      if (user?.role === 'admin') {
         return <Navigate to="/admin-dashboard" replace />;
+      } else if (user?.role === 'faculty') {
+        return <Navigate to="/teacher-dashboard" replace />;
       } else {
         return <Navigate to="/student-dashboard" replace />;
       }
@@ -87,6 +90,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute allowedRole="student">
               <StudentDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher-dashboard" 
+          element={
+            <ProtectedRoute allowedRole="faculty">
+              <TeacherDashboard />
             </ProtectedRoute>
           } 
         />
