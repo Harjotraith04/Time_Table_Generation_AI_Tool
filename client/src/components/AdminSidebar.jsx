@@ -89,7 +89,7 @@ const AdminSidebar = ({ activeTab, onTabChange, showQuickActions = true, userRol
     return [
       { id: 'overview', label: 'Overview', icon: BarChart3, path: '/admin-dashboard' },
       { id: 'timetables', label: 'All Time Tables', icon: Calendar, path: '/view-timetable' },
-      { id: 'users', label: 'Query Resolution', icon: Users, path: '/query-resolution' },
+      { id: 'queries', label: 'Query Resolution', icon: MessageSquare, path: '/admin-dashboard' },
       { id: 'analytics', label: 'Analytics', icon: TrendingUp, path: '/admin-dashboard' }
     ];
   };

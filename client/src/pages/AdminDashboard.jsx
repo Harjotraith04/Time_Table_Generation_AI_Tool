@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import AdminSidebar from '../components/AdminSidebar';
 import Chatbot from '../components/Chatbot';
+import QueryManagement from '../components/QueryManagement';
 import { getTeachers, getClassrooms, getCourses, getTimetables, getDataStatistics, getStudentStats } from '../services/api';
 import { 
   Calendar, 
@@ -1210,6 +1211,7 @@ const AdminDashboard = () => {
               {activeTab === 'timetables' && renderTimetables()}
               {activeTab === 'users' && renderUsers()}
               {activeTab === 'analytics' && renderAnalytics()}
+              {activeTab === 'queries' && <QueryManagement />}
             </div>
           </main>
         </div>

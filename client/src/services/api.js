@@ -367,6 +367,16 @@ export const respondToQuery = async (id, response) => {
   return responseData.data
 }
 
+export const addQueryComment = async (id, text) => {
+  const response = await api.post(`/queries/${id}/comments`, { text })
+  return response.data
+}
+
+export const getQueryStatistics = async () => {
+  const response = await api.get('/queries/statistics/overview')
+  return response.data
+}
+
 export const deleteQuery = async (id) => {
   const response = await api.delete(`/queries/${id}`)
   return response.data

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Chatbot from '../components/Chatbot';
 import AdminSidebar from '../components/AdminSidebar';
-import { getTimetables } from '../services/api';
+import { getTimetables, getQueries, createQuery } from '../services/api';
 import { 
   Calendar, 
   BookOpen, 
@@ -29,7 +29,9 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  Award
+  Award,
+  X,
+  Send
 } from 'lucide-react';
 
 const TeacherDashboard = () => {
@@ -40,10 +42,23 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timetableData, setTimetableData] = useState(null);
+  const [allTimetables, setAllTimetables] = useState([]);
+  const [queries, setQueries] = useState([]);
+  const [showQueryModal, setShowQueryModal] = useState(false);
+  const [newQuery, setNewQuery] = useState({
+    subject: '',
+    description: '',
+    type: 'timetable-conflict',
+    priority: 'medium',
+    timetableId: ''
+  });
 
   useEffect(() => {
     fetchTeacherTimetable();
-  }, []);
+    if (activeTab === 'assignments') {
+      fetchQueries();
+    }
+  }, [activeTab]);
 
   const fetchTeacherTimetable = async () => {
     try {
@@ -51,6 +66,7 @@ const TeacherDashboard = () => {
       setError(null);
       const response = await getTimetables();
       const timetables = response.data || response.timetables || [];
+      setAllTimetables(timetables);
       // Filter by teacher ID in real system
       if (timetables.length > 0) {
         setTimetableData(timetables[0]);
@@ -63,6 +79,50 @@ const TeacherDashboard = () => {
     }
   };
 
+  const fetchQueries = async () => {
+    try {
+      const response = await getQueries();
+      setQueries(response.data || []);
+    } catch (err) {
+      console.error('Error fetching queries:', err);
+    }
+  };
+
+  const handleCreateQuery = async () => {
+    if (!newQuery.subject.trim() || !newQuery.description.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const queryData = {
+        subject: newQuery.subject,
+        description: newQuery.description,
+        type: newQuery.type,
+        priority: newQuery.priority
+      };
+      
+      if (newQuery.timetableId) {
+        queryData.timetableId = newQuery.timetableId;
+      }
+
+      await createQuery(queryData);
+      setShowQueryModal(false);
+      setNewQuery({
+        subject: '',
+        description: '',
+        type: 'timetable-conflict',
+        priority: 'medium',
+        timetableId: ''
+      });
+      fetchQueries();
+      alert('Query submitted successfully! Admin will review it shortly.');
+    } catch (err) {
+      console.error('Error creating query:', err);
+      alert('Failed to submit query. Please try again.');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -71,7 +131,6 @@ const TeacherDashboard = () => {
   const currentWeek = [];
   const courses = [];
   const notifications = [];
-  const queries = []; // Changed from upcomingTasks to queries
 
   const renderTimetable = () => (
     <div className="space-y-6">
@@ -143,10 +202,13 @@ const TeacherDashboard = () => {
   const renderAssignments = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Student Queries</h3>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>My Queries</h3>
+        <button 
+          onClick={() => setShowQueryModal(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
           <MessageSquare className="w-4 h-4" />
-          <span>View All</span>
+          <span>Raise Query</span>
         </button>
       </div>
       
@@ -154,47 +216,57 @@ const TeacherDashboard = () => {
         <div className="text-center py-12">
           <MessageSquare className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
           <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            No Pending Queries
+            No Active Queries
           </h3>
           <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            All student queries have been resolved. Great work!
+            Have a question or need to report a timetable conflict? Click "Raise Query"!
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {queries.map((query, index) => (
-            <div key={index} className={`rounded-xl border p-5 hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400'}`}>
+          {queries.map((query) => (
+            <div key={query._id} className={`rounded-xl border p-5 hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400'}`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-4 flex-1">
                   <div className={`p-3 rounded-lg ${
-                    query.priority === 'high' ? 'bg-red-100 dark:bg-red-900/30' :
-                    query.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
-                    'bg-green-100 dark:bg-green-900/30'
+                    query.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                    query.status === 'approved' ? 'bg-green-100 dark:bg-green-900/30' :
+                    query.status === 'rejected' ? 'bg-red-100 dark:bg-red-900/30' :
+                    'bg-blue-100 dark:bg-blue-900/30'
                   }`}>
                     <MessageSquare className={`w-5 h-5 ${
-                      query.priority === 'high' ? 'text-red-600' :
-                      query.priority === 'medium' ? 'text-yellow-600' :
-                      'text-green-600'
+                      query.status === 'pending' ? 'text-yellow-600' :
+                      query.status === 'approved' ? 'text-green-600' :
+                      query.status === 'rejected' ? 'text-red-600' :
+                      'text-blue-600'
                     }`} />
                   </div>
                   <div className="flex-1">
-                    <h4 className={`font-semibold mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{query.student}</h4>
-                    <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{query.subject}</p>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{query.question}</p>
+                    <h4 className={`font-semibold mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{query.subject}</h4>
+                    <p className={`text-sm mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{query.description}</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Submitted on {new Date(query.createdAt).toLocaleDateString()}
+                    </p>
+                    {query.adminResponse && (
+                      <div className={`mt-3 p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+                        <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                          Admin Response:
+                        </p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {query.adminResponse}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end space-y-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    query.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                    query.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  }`}>
-                    {query.priority}
-                  </span>
-                  <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Respond
-                  </button>
-                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  query.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                  query.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                  query.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                }`}>
+                  {query.status}
+                </span>
               </div>
             </div>
           ))}
@@ -558,6 +630,150 @@ const TeacherDashboard = () => {
       </div>
 
       <Chatbot />
+
+      {/* Query Modal */}
+      {showQueryModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'} rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+            <div className={`sticky top-0 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 flex justify-between items-center`}>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Raise a Query
+              </h3>
+              <button
+                onClick={() => setShowQueryModal(false)}
+                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Timetable Selection */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Select Timetable (Optional)
+                </label>
+                <select
+                  value={newQuery.timetableId}
+                  onChange={(e) => setNewQuery({ ...newQuery, timetableId: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-200 focus:border-blue-500'
+                  } focus:ring-4 focus:ring-blue-500/20 outline-none`}
+                >
+                  <option value="">No specific timetable</option>
+                  {allTimetables.map((tt) => (
+                    <option key={tt._id} value={tt._id}>
+                      {tt.name} - Semester {tt.semester}, Year {tt.academicYear}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Subject *
+                </label>
+                <input
+                  type="text"
+                  value={newQuery.subject}
+                  onChange={(e) => setNewQuery({ ...newQuery, subject: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-200 focus:border-blue-500'
+                  } focus:ring-4 focus:ring-blue-500/20 outline-none`}
+                  placeholder="Brief subject of your query"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Description *
+                </label>
+                <textarea
+                  value={newQuery.description}
+                  onChange={(e) => setNewQuery({ ...newQuery, description: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-200 focus:border-blue-500'
+                  } focus:ring-4 focus:ring-blue-500/20 outline-none resize-none`}
+                  rows="5"
+                  placeholder="Provide detailed information about your query..."
+                  required
+                />
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Query Type *
+                </label>
+                <select
+                  value={newQuery.type}
+                  onChange={(e) => setNewQuery({ ...newQuery, type: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-200 focus:border-blue-500'
+                  } focus:ring-4 focus:ring-blue-500/20 outline-none`}
+                >
+                  <option value="timetable-conflict">Timetable Conflict</option>
+                  <option value="schedule-change">Schedule Change Request</option>
+                  <option value="general">General Query</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Priority *
+                </label>
+                <select
+                  value={newQuery.priority}
+                  onChange={(e) => setNewQuery({ ...newQuery, priority: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-300 ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-200 focus:border-blue-500'
+                  } focus:ring-4 focus:ring-blue-500/20 outline-none`}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={`sticky bottom-0 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 flex justify-end space-x-3`}>
+              <button
+                onClick={() => setShowQueryModal(false)}
+                className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                } shadow-lg hover:shadow-xl`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateQuery}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center space-x-2"
+              >
+                <Send className="w-4 h-4" />
+                <span>Submit Query</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
