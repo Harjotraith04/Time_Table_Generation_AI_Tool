@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: timetable-backend
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: ''
+    startCommand: 'npm run start'
+    branch: main
+    rootDir: server
+    healthCheckPath: '/api/health'
+    envVars:
+      # Configure environment variables on Render dashboard instead of storing secrets here.
+      # Example placeholders (do NOT commit real secrets):
+      # - key: MONGODB_URI
+      #   value: 'mongodb+srv://<user>:<pass>@cluster0.mongodb.net/timetable'
+      # - key: JWT_SECRET
+      #   value: 'your_jwt_secret'
+      # - key: CLIENT_URL
+      #   value: 'https://your-vercel-app.vercel.app'
+      # - key: NODE_ENV
+      #   value: 'production'
