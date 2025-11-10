@@ -123,6 +123,24 @@ export const detectTimetableConflicts = async (timetableId) => {
   return response.data
 }
 
+// Get published timetables for teachers
+export const getTeacherTimetables = async (teacherId) => {
+  const response = await api.get(`/timetables/teacher/${teacherId}`)
+  return response.data
+}
+
+// Get published timetables for students
+export const getStudentTimetables = async (studentId) => {
+  const response = await api.get(`/timetables/student/${studentId}`)
+  return response.data
+}
+
+// Get all published timetables
+export const getPublishedTimetables = async () => {
+  const response = await api.get('/timetables/status/published')
+  return response.data
+}
+
 // ==================== DATA API ====================
 // Teachers
 export const getTeachers = async (params = {}) => {

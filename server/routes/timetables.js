@@ -955,4 +955,163 @@ function calculateTimetableStatistics(schedule, teachers, classrooms, courses) {
   return stats;
 }
 
+/**
+ * @route   GET /api/timetables/teacher/:teacherId
+ * @desc    Get the most recently published timetable for a specific teacher
+ * @access  Private
+ */
+router.get('/teacher/:teacherId', async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    
+    // Find the most recently published timetable (sorted by publishedAt descending)
+    const timetable = await Timetable.findOne({ 
+      status: 'published', 
+      isActive: true 
+    })
+    .populate('createdBy', 'name email')
+    .sort({ publishedAt: -1 })
+    .limit(1);
+
+    if (!timetable) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No published timetable found'
+      });
+    }
+
+    // Filter schedule to show only classes for this teacher
+    const teacherSchedule = timetable.schedule.filter(
+      slot => slot.teacherId === teacherId || slot.teacherName?.includes(teacherId)
+    );
+
+    const filteredTimetable = {
+      _id: timetable._id,
+      name: timetable.name,
+      academicYear: timetable.academicYear,
+      semester: timetable.semester,
+      department: timetable.department,
+      year: timetable.year,
+      program: timetable.program,
+      status: timetable.status,
+      publishedAt: timetable.publishedAt,
+      createdAt: timetable.createdAt,
+      schedule: teacherSchedule,
+      quality: timetable.quality
+    };
+
+    res.json({
+      success: true,
+      data: filteredTimetable,
+      message: 'Latest published timetable retrieved successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error fetching teacher timetables:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching teacher timetables'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/timetables/student/:studentId
+ * @desc    Get the most recently published timetable for a specific student
+ * @access  Private
+ */
+router.get('/student/:studentId', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    
+    // Find the most recently published timetable (sorted by publishedAt descending)
+    const timetable = await Timetable.findOne({ 
+      status: 'published', 
+      isActive: true 
+    })
+    .populate('createdBy', 'name email')
+    .sort({ publishedAt: -1 })
+    .limit(1);
+
+    if (!timetable) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No published timetable found'
+      });
+    }
+
+    // For now, return the full timetable
+    // In a real system, you would filter by student's department, year, semester, batch
+    const filteredTimetable = {
+      _id: timetable._id,
+      name: timetable.name,
+      academicYear: timetable.academicYear,
+      semester: timetable.semester,
+      department: timetable.department,
+      year: timetable.year,
+      program: timetable.program,
+      status: timetable.status,
+      publishedAt: timetable.publishedAt,
+      createdAt: timetable.createdAt,
+      schedule: timetable.schedule,
+      quality: timetable.quality
+    };
+
+    res.json({
+      success: true,
+      data: filteredTimetable,
+      message: 'Latest published timetable retrieved successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error fetching student timetables:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching student timetables'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/timetables/published
+ * @desc    Get the most recently published timetable (final timetable)
+ * @access  Private
+ */
+router.get('/status/published', async (req, res) => {
+  try {
+    // Find the most recently published timetable
+    const timetable = await Timetable.findOne({ 
+      status: 'published', 
+      isActive: true 
+    })
+    .populate('createdBy', 'name email')
+    .select('-conflicts -comments') // Exclude detailed information
+    .sort({ publishedAt: -1 })
+    .limit(1);
+
+    if (!timetable) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No published timetable found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: timetable,
+      message: 'Latest published timetable retrieved successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error fetching published timetable:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching published timetable'
+    });
+  }
+});
+
 module.exports = router;

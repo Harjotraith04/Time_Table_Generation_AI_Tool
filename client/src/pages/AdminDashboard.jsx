@@ -177,11 +177,25 @@ const AdminDashboard = () => {
         ];
 
     // Timetable Status Distribution
+    // Timetable Status Distribution
     const statusData = [
-      { name: 'Active', value: timetables.filter(tt => tt.status === 'Active' || tt.status === 'active').length },
-      { name: 'Draft', value: timetables.filter(tt => tt.status === 'Draft' || tt.status === 'draft').length },
-      { name: 'Archived', value: timetables.filter(tt => tt.status === 'Archived' || tt.status === 'archived').length }
-    ];
+      { 
+        name: 'Published', 
+        value: timetables.filter(tt => tt.status === 'published').length 
+      },
+      { 
+        name: 'Draft', 
+        value: timetables.filter(tt => tt.status === 'draft').length 
+      },
+      { 
+        name: 'Generating', 
+        value: timetables.filter(tt => tt.status === 'generating').length 
+      },
+      { 
+        name: 'Failed', 
+        value: timetables.filter(tt => tt.status === 'failed').length 
+      }
+    ].filter(item => item.value > 0); // Only show statuses that have timetables
 
     // Weekly Activity (last 7 days)
     const weeklyData = Array.from({ length: 7 }, (_, i) => {
@@ -895,32 +909,44 @@ const AdminDashboard = () => {
               </h3>
               <PieChart className="w-5 h-5 text-green-600" />
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartsPieChart>
-                <Pie
-                  data={analyticsData.timetableStatus}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {analyticsData.timetableStatus.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
-                    border: `1px solid ${isDarkMode ? '#374151' : '#E5E7EB'}`,
-                    borderRadius: '0.5rem'
-                  }}
-                />
-                <Legend />
-              </RechartsPieChart>
-            </ResponsiveContainer>
+            {analyticsData.timetableStatus.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-[300px]">
+                <AlertCircle className={`w-12 h-12 mb-3 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  No timetables available yet
+                </p>
+                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Create your first timetable to see statistics
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsPieChart>
+                  <Pie
+                    data={analyticsData.timetableStatus}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {analyticsData.timetableStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF',
+                      border: `1px solid ${isDarkMode ? '#374151' : '#E5E7EB'}`,
+                      borderRadius: '0.5rem'
+                    }}
+                  />
+                  <Legend />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 

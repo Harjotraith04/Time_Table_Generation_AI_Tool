@@ -535,9 +535,9 @@ const ViewTimetable = () => {
   const renderTeacherView = () => {
     if (!currentTimetable?.schedule) return null;
 
-    // Group schedule by teacher
+    // Group filtered schedule by teacher
     const teacherSchedules = {};
-    currentTimetable.schedule.forEach(slot => {
+    filteredSchedule.forEach(slot => {
       if (!teacherSchedules[slot.teacherId]) {
         teacherSchedules[slot.teacherId] = {
           name: slot.teacherName || 'Unknown',
@@ -546,6 +546,19 @@ const ViewTimetable = () => {
       }
       teacherSchedules[slot.teacherId].slots.push(slot);
     });
+
+    // If no teachers match the filter, show a message
+    if (Object.keys(teacherSchedules).length === 0) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Teachers Found</h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            No teacher schedules match the current filters.
+          </p>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -612,9 +625,9 @@ const ViewTimetable = () => {
   const renderClassroomView = () => {
     if (!currentTimetable?.schedule) return null;
 
-    // Group schedule by classroom
+    // Group filtered schedule by classroom
     const classroomSchedules = {};
-    currentTimetable.schedule.forEach(slot => {
+    filteredSchedule.forEach(slot => {
       if (!classroomSchedules[slot.classroomId]) {
         classroomSchedules[slot.classroomId] = {
           name: slot.classroomName || 'Unknown',
@@ -623,6 +636,19 @@ const ViewTimetable = () => {
       }
       classroomSchedules[slot.classroomId].slots.push(slot);
     });
+
+    // If no classrooms match the filter, show a message
+    if (Object.keys(classroomSchedules).length === 0) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Classrooms Found</h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            No classroom schedules match the current filters.
+          </p>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -689,9 +715,9 @@ const ViewTimetable = () => {
   const renderBatchView = () => {
     if (!currentTimetable?.schedule) return null;
 
-    // Group schedule by batch/division
+    // Group filtered schedule by batch/division
     const batchSchedules = {};
-    currentTimetable.schedule.forEach(slot => {
+    filteredSchedule.forEach(slot => {
       const batchId = slot.batchId || slot.divisionId || 'General';
       if (!batchSchedules[batchId]) {
         batchSchedules[batchId] = {
@@ -701,6 +727,19 @@ const ViewTimetable = () => {
       }
       batchSchedules[batchId].slots.push(slot);
     });
+
+    // If no batches match the filter, show a message
+    if (Object.keys(batchSchedules).length === 0) {
+      return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Batches Found</h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            No batch schedules match the current filters.
+          </p>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -769,6 +808,9 @@ const ViewTimetable = () => {
   const renderTimetableGrid = () => {
     if (!currentTimetable?.schedule) return null;
 
+    // Determine which days to show based on filter
+    const daysToShow = selectedDay === 'all' ? daysOfWeek : [selectedDay];
+
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
@@ -776,7 +818,7 @@ const ViewTimetable = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Time</th>
-                {daysOfWeek.map(day => (
+                {daysToShow.map(day => (
                   <th key={day} className="px-4 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
                     {day}
                   </th>
@@ -789,8 +831,9 @@ const ViewTimetable = () => {
                   <td className="px-4 py-4 text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                     {timeSlot}
                   </td>
-                  {daysOfWeek.map(day => {
-                    const session = currentTimetable.schedule.find(s => 
+                  {daysToShow.map(day => {
+                    // Find session in filteredSchedule instead of currentTimetable.schedule
+                    const session = filteredSchedule.find(s => 
                       s.day === day && s.startTime + '-' + s.endTime === timeSlot
                     );
                     
@@ -893,20 +936,50 @@ const ViewTimetable = () => {
   };
 
   const renderTimetablesList = () => {
+    // Find the most recently published timetable to mark it as "Final"
+    const publishedTimetables = timetables.filter(t => t.status === 'published');
+    let finalTimetableId = null;
+    if (publishedTimetables.length > 0) {
+      const sortedPublished = [...publishedTimetables].sort((a, b) => 
+        new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt)
+      );
+      finalTimetableId = sortedPublished[0]._id;
+    }
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {timetables.map((timetable) => (
-            <div key={timetable._id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          {timetables.map((timetable) => {
+            const isFinalTimetable = timetable._id === finalTimetableId;
+            
+            return (
+            <div key={timetable._id} className={`bg-white dark:bg-gray-800 rounded-xl border p-6 ${
+              isFinalTimetable 
+                ? 'border-green-500 dark:border-green-600 ring-2 ring-green-500/20' 
+                : 'border-gray-200 dark:border-gray-700'
+            }`}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    {timetable.name}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {timetable.name}
+                    </h3>
+                    {isFinalTimetable && (
+                      <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-current" />
+                        Final
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <p>{timetable.department} • Year {timetable.year} • Semester {timetable.semester}</p>
                     {timetable.program && <p>Program: {timetable.program}</p>}
                     <p className="text-xs">Created: {new Date(timetable.createdAt).toLocaleString()}</p>
+                    {timetable.publishedAt && (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Published: {new Date(timetable.publishedAt).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded ${getStatusColor(timetable.status)}`}>
@@ -972,7 +1045,7 @@ const ViewTimetable = () => {
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
     );
@@ -1185,68 +1258,66 @@ const ViewTimetable = () => {
                   </div>
                 </div>
 
-                {/* Filters */}
-                {timetableViewMode === 'standard' && (
-                  <div className="flex items-center space-x-4 flex-wrap gap-2">
+                {/* Filters - Show for all view modes */}
+                <div className="flex items-center space-x-4 flex-wrap gap-2">
+                  <select
+                    value={selectedDay}
+                    onChange={(e) => setSelectedDay(e.target.value)}
+                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                  >
+                    <option value="all">All Days</option>
+                    {daysOfWeek.map(day => (
+                      <option key={day} value={day}>{day}</option>
+                    ))}
+                  </select>
+
+                  {uniqueTeachers.length > 1 && (
                     <select
-                      value={selectedDay}
-                      onChange={(e) => setSelectedDay(e.target.value)}
+                      value={selectedTeacher}
+                      onChange={(e) => setSelectedTeacher(e.target.value)}
                       className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
                     >
-                      <option value="all">All Days</option>
-                      {daysOfWeek.map(day => (
-                        <option key={day} value={day}>{day}</option>
+                      <option value="all">All Teachers</option>
+                      {uniqueTeachers.map(teacher => (
+                        <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
                       ))}
                     </select>
+                  )}
 
-                    {uniqueTeachers.length > 1 && (
-                      <select
-                        value={selectedTeacher}
-                        onChange={(e) => setSelectedTeacher(e.target.value)}
-                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
-                      >
-                        <option value="all">All Teachers</option>
-                        {uniqueTeachers.map(teacher => (
-                          <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
-                        ))}
-                      </select>
-                    )}
+                  {uniqueClassrooms.length > 1 && (
+                    <select
+                      value={selectedClassroom}
+                      onChange={(e) => setSelectedClassroom(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                    >
+                      <option value="all">All Classrooms</option>
+                      {uniqueClassrooms.map(classroom => (
+                        <option key={classroom.id} value={classroom.id}>{classroom.name}</option>
+                      ))}
+                    </select>
+                  )}
 
-                    {uniqueClassrooms.length > 1 && (
-                      <select
-                        value={selectedClassroom}
-                        onChange={(e) => setSelectedClassroom(e.target.value)}
-                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
-                      >
-                        <option value="all">All Classrooms</option>
-                        {uniqueClassrooms.map(classroom => (
-                          <option key={classroom.id} value={classroom.id}>{classroom.name}</option>
-                        ))}
-                      </select>
-                    )}
+                  {uniqueBatches.length > 0 && (
+                    <select
+                      value={selectedBatch}
+                      onChange={(e) => setSelectedBatch(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                    >
+                      <option value="all">All Batches</option>
+                      {uniqueBatches.map(batch => (
+                        <option key={batch.id} value={batch.id}>{batch.name}</option>
+                      ))}
+                    </select>
+                  )}
 
-                    {uniqueBatches.length > 0 && (
-                      <select
-                        value={selectedBatch}
-                        onChange={(e) => setSelectedBatch(e.target.value)}
-                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
-                      >
-                        <option value="all">All Batches</option>
-                        {uniqueBatches.map(batch => (
-                          <option key={batch.id} value={batch.id}>{batch.name}</option>
-                        ))}
-                      </select>
-                    )}
-
-                    <input
-                      type="text"
-                      placeholder="Search courses, teachers, rooms..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="flex-1 min-w-[200px] px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
-                    />
-                  </div>
-                )}
+                  <input
+                    type="text"
+                    placeholder="Search courses, teachers, rooms..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1 min-w-[200px] px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                  />
+                </div>
               </div>
             </div>
 

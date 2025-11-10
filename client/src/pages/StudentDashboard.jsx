@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Chatbot from '../components/Chatbot';
 import AdminSidebar from '../components/AdminSidebar';
-import { getTimetables, getQueries, createQuery } from '../services/api';
+import { getTimetables, getQueries, createQuery, getPublishedTimetables } from '../services/api';
 import { 
   Calendar, 
   BookOpen, 
@@ -69,12 +69,16 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getTimetables();
-      const timetables = response.data || response.timetables || [];
-      setAllTimetables(timetables);
-      // In a real system, you'd filter by student ID
-      if (timetables.length > 0) {
-        setTimetableData(timetables[0]);
+      // Fetch the most recently published timetable (final timetable)
+      const response = await getPublishedTimetables();
+      const timetable = response.data; // Now it's a single object, not an array
+      
+      if (timetable) {
+        setTimetableData(timetable);
+        setAllTimetables([timetable]); // Wrap in array for compatibility
+      } else {
+        setTimetableData(null);
+        setAllTimetables([]);
       }
     } catch (err) {
       console.error('Error fetching timetable:', err);
@@ -139,6 +143,72 @@ const StudentDashboard = () => {
   const courses = [];
   const notifications = [];
 
+  // Generate week view from timetable data
+  const getWeekSchedule = () => {
+    if (!timetableData || !timetableData.schedule) return [];
+    
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return daysOfWeek.map(day => {
+      const dayClasses = timetableData.schedule
+        .filter(slot => slot.day === day)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+        .map(slot => ({
+          time: `${slot.startTime} - ${slot.endTime}`,
+          subject: slot.courseName,
+          teacher: slot.teacherName,
+          room: slot.classroomName,
+          type: slot.sessionType
+        }));
+      
+      return {
+        day,
+        date: new Date().getDate(), // Simplified - should calculate actual dates
+        classes: dayClasses
+      };
+    });
+  };
+
+  const weekSchedule = getWeekSchedule();
+
+  const downloadTimetable = () => {
+    if (!timetableData || !timetableData.schedule) {
+      alert('No timetable available to download');
+      return;
+    }
+
+    // Create CSV content
+    const rows = [];
+    rows.push(['Day', 'Time', 'Course', 'Teacher', 'Room', 'Type']);
+    
+    timetableData.schedule
+      .sort((a, b) => {
+        const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+        if (dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+        return a.startTime.localeCompare(b.startTime);
+      })
+      .forEach(slot => {
+        rows.push([
+          slot.day,
+          `${slot.startTime} - ${slot.endTime}`,
+          slot.courseName,
+          slot.teacherName,
+          slot.classroomName,
+          slot.sessionType
+        ]);
+      });
+
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${timetableData.name || 'timetable'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const renderTimetable = () => (
     <div className="space-y-6">
       {/* Week Navigation */}
@@ -164,7 +234,7 @@ const StudentDashboard = () => {
       )}
 
       {/* Empty State */}
-      {!loading && currentWeek.length === 0 && (
+      {!loading && !error && weekSchedule.length === 0 && (
         <div className="text-center py-12">
           <Calendar className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
           <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -176,10 +246,49 @@ const StudentDashboard = () => {
         </div>
       )}
 
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <AlertCircle className={`w-16 h-16 mx-auto mb-4 text-red-500`} />
+          <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Error Loading Timetable
+          </h3>
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>{error}</p>
+          <button 
+            onClick={fetchStudentTimetable}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Timetable Info Banner */}
+      {!loading && timetableData && (
+        <div className={`rounded-xl border p-4 mb-4 ${isDarkMode ? 'bg-blue-900/20 border-blue-700/50' : 'bg-blue-50 border-blue-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className={`font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-900'}`}>
+                {timetableData.name}
+              </h4>
+              <p className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                {timetableData.department} • Semester {timetableData.semester} • Year {timetableData.year}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={`text-xs ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Published</p>
+              <p className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-800'}`}>
+                {timetableData.publishedAt ? new Date(timetableData.publishedAt).toLocaleDateString() : 'Recently'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Timetable Grid */}
-      {!loading && currentWeek.length > 0 && (
+      {!loading && !error && weekSchedule.length > 0 && (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {currentWeek.map((day, index) => (
+        {weekSchedule.map((day, index) => (
           <div key={index} className={`rounded-xl border p-4 transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <div className="text-center mb-4">
               <h4 className={`font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{day.day}</h4>
@@ -188,13 +297,34 @@ const StudentDashboard = () => {
             
             <div className="space-y-3">
               {day.classes.map((classItem, classIndex) => (
-                <div key={classIndex} className={`p-3 rounded-lg border transition-colors duration-300 ${isDarkMode ? 'bg-blue-900/30 border-blue-700/50' : 'bg-blue-50 border-blue-200'}`}>
+                <div key={classIndex} className={`p-3 rounded-lg border transition-colors duration-300 ${
+                  classItem.type === 'Theory' 
+                    ? (isDarkMode ? 'bg-blue-900/30 border-blue-700/50' : 'bg-blue-50 border-blue-200')
+                    : classItem.type === 'Practical'
+                    ? (isDarkMode ? 'bg-green-900/30 border-green-700/50' : 'bg-green-50 border-green-200')
+                    : (isDarkMode ? 'bg-purple-900/30 border-purple-700/50' : 'bg-purple-50 border-purple-200')
+                }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>{classItem.time}</span>
-                    <span className={`text-xs ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{classItem.room}</span>
+                    <span className={`text-xs font-medium ${
+                      classItem.type === 'Theory' 
+                        ? (isDarkMode ? 'text-blue-300' : 'text-blue-700')
+                        : classItem.type === 'Practical'
+                        ? (isDarkMode ? 'text-green-300' : 'text-green-700')
+                        : (isDarkMode ? 'text-purple-300' : 'text-purple-700')
+                    }`}>{classItem.time}</span>
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.room}</span>
                   </div>
                   <h5 className={`font-medium text-sm mb-1 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{classItem.subject}</h5>
                   <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{classItem.teacher}</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded ${
+                    classItem.type === 'Theory' 
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+                      : classItem.type === 'Practical'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                      : 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300'
+                  }`}>
+                    {classItem.type}
+                  </span>
                 </div>
               ))}
               
@@ -211,11 +341,19 @@ const StudentDashboard = () => {
 
       {/* Quick Actions */}
       <div className="flex items-center space-x-4">
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+        <button 
+          onClick={downloadTimetable}
+          disabled={!timetableData}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Download className="w-4 h-4" />
           <span>Download Timetable</span>
         </button>
-        <button className={`px-4 py-2 border rounded-lg transition-colors flex items-center space-x-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+        <button 
+          onClick={() => navigate(`/view-timetable/${timetableData?._id}`)}
+          disabled={!timetableData}
+          className={`px-4 py-2 border rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+        >
           <Eye className="w-4 h-4" />
           <span>View Full Schedule</span>
         </button>
